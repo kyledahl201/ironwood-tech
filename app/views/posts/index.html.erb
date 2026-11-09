@@ -1,0 +1,11 @@
+<% page_title "Blog" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Blog</p><h1>Notes from student number one</h1>
+<p class="lede">What <%= brand.founder %> is learning, building and getting wrong, written up so you can skip the mistakes.</p></div></header>
+<section class="section"><div class="wrap">
+  <% if @posts.any? %>
+    <ul class="card-grid three"><% @posts.each do |post| %>
+      <li class="card"><p class="eyebrow"><%= post.published_at.to_date.to_fs(:long) %></p><h3><%= link_to post.title, post_path(post) %></h3><p class="meta"><%= post.summary %></p></li>
+    <% end %></ul>
+  <% else %><p>The first posts are on their way.</p><% end %>
+</div></section>
+<%= render "shared/newsletter" %>

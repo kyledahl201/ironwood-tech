@@ -1,0 +1,45 @@
+<% page_title "#{@lesson.title} · #{@course.title}" %>
+<div class="wrap lesson-layout">
+  <article>
+    <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "My portal", portal_path %></li><li><%= link_to @course.title, course_path(@course) %></li><li aria-current="page">Lesson <%= @lesson.position %></li></ol></nav>
+    <div class="progress" aria-hidden="true" style="margin-bottom:24px"><span style="width: <%= @enrollment.progress_percent %>%"></span></div>
+    <p class="eyebrow">Lesson <%= @lesson.position %> of <%= @course.lessons.size %></p>
+    <h1><%= @lesson.title %></h1>
+    <div class="prose"><%= markdown @lesson.body %></div>
+
+    <div class="lesson-nav">
+      <%= link_to "← Lesson #{@lesson.previous_lesson.position}", learn_lesson_path(@course, @lesson.previous_lesson), class: "btn btn-outline" if @lesson.previous_lesson %>
+      <% if @enrollment.completed?(@lesson) %>
+        <% if (nxt = @lesson.next_lesson) %><%= link_to "Next: lesson #{nxt.position} →", learn_lesson_path(@course, nxt), class: "btn btn-primary" %><% else %><%= link_to "Back to portal", portal_path, class: "btn btn-primary" %><% end %>
+      <% else %>
+        <%= button_to "Mark complete and continue", complete_learn_lesson_path(@course, @lesson), class: "btn btn-copper" %>
+      <% end %>
+    </div>
+  </article>
+
+  <aside class="tutor" id="tutor" aria-label="AI tutor">
+    <div class="tutor-head">
+      <strong><%= @course.tutor_name %></strong>
+      <p>AI tutor, not a person. Can make mistakes; check important answers. Never paste passwords, API keys or private data.</p>
+    </div>
+    <div class="tutor-log" id="tutor-log">
+      <% if @messages.empty? %>
+        <div class="msg msg-assistant"><div class="msg-who"><%= @course.tutor_name %></div><p>Hi <%= current_user.first_name %>. Read the lesson, then tell me where you are. When your exercise is ready, paste it here and I'll review it against the <%= link_to "rubric", rubric_course_path(@course), target: "_blank" %>.</p></div>
+      <% end %>
+      <%= render partial: "learn/tutor_messages/tutor_message", collection: @messages, as: :tutor_message %>
+    </div>
+    <%= turbo_stream_from current_user, @lesson %>
+    <%= form_with model: @tutor_message, url: learn_lesson_tutor_messages_path(@course, @lesson), id: "tutor-form", data: { controller: "tutor", action: "turbo:submit-end->tutor#reset" } do |f| %>
+      <%= f.label :content, "Ask your tutor", class: "visually-hidden" %>
+      <%= f.text_area :content, required: true, maxlength: 8000, placeholder: "Ask a question or paste your work…", id: "tutor-input" %>
+      <div class="quick">
+        <button type="submit" name="tutor_message[content]" value="I'm ready for the quiz." formnovalidate>Quiz me</button>
+        <button type="submit" name="tutor_message[content]" value="Give me this lesson's Judge it snippet." formnovalidate>Judge it</button>
+        <button type="submit" name="tutor_message[content]" value="I'm stuck. Can I have a hint?" formnovalidate>Hint</button>
+      </div>
+      <%= f.submit "Send", class: "btn btn-primary" %>
+      <p class="small muted" style="margin:0">Up to <%= Tutor.daily_cap(@course) %> questions a day.</p>
+    <% end %>
+  </aside>
+</div>
+

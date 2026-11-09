@@ -1,0 +1,11 @@
+<%= nav_link "Courses", courses_path %>
+<%= nav_link "Consulting", consulting_path %>
+<%= nav_link "Blog", posts_path %>
+<%= nav_link "About", about_path %>
+<% if current_user %>
+  <%= nav_link "My portal", portal_path %>
+  <li><%= button_to "Log out", session_path, method: :delete, class: "link-button" %></li>
+<% else %>
+  <%= nav_link "Log in", new_session_path %>
+  <li class="nav-login"><%= link_to "Start free", new_registration_path, class: "btn btn-primary" %></li>
+<% end %>

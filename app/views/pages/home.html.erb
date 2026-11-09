@@ -1,0 +1,78 @@
+<% starter = @courses.first %>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <%= image_tag "brand/crest-v5-full-reversed.svg", class: "hero-crest", alt: "", width: 220, height: 299 %>
+    <div>
+      <p class="eyebrow"><%= brand.name %></p>
+      <h1 class="display">Learn to build with AI, one step at a time.</h1>
+      <p class="lede">Hands-on courses in AI workflows and agentic AI. AI tutors walk you through every lab, review your work, and tell you honestly when it isn't there yet.</p>
+      <p class="actions">
+        <% if starter %>
+          <%= link_to (starter.free? ? "Start free with #{starter.title}" : "Start with #{starter.title}"), course_path(starter), class: "btn btn-light" %>
+        <% end %>
+        <%= link_to "See all courses", courses_path, class: "btn btn-outline-light" %>
+      </p>
+      <p class="under-actions">AI tutors, real projects, no degree claims. <a href="#how-it-works">How it works</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how-it-works" aria-labelledby="how-h">
+  <div class="wrap">
+    <h2 id="how-h">How it works</h2>
+    <ol class="steps">
+      <li><strong>Pick a course.</strong> Each one is built around projects you'll actually use.</li>
+      <li><strong>Learn by doing.</strong> Your tutor gives you one step at a time and waits for your result before moving on.</li>
+      <li><strong>Get honest feedback.</strong> Every project is reviewed against a published rubric. You can redo any lesson, and your tutor will tell you honestly when work isn't there yet.</li>
+      <li><strong>Keep what you build.</strong> Every project goes in your own portfolio.</li>
+    </ol>
+  </div>
+</section>
+
+<% if @courses.any? %>
+<section class="section band" aria-labelledby="courses-h">
+  <div class="wrap">
+    <div class="section-head"><h2 id="courses-h">Courses</h2><%= link_to "All courses", courses_path %></div>
+    <ul class="card-grid"><%= render partial: "courses/card", collection: @courses, as: :course %></ul>
+  </div>
+</section>
+<% end %>
+
+<section class="section" aria-labelledby="who-h">
+  <div class="wrap">
+    <h2 id="who-h">Who it's for</h2>
+    <ul class="audience">
+      <li><strong>Professionals</strong> who want AI to do real work in their week, not just answer questions.</li>
+      <li><strong>Builders</strong> who want to make agents that plan, use tools and can be tested.</li>
+      <li><strong>Executives</strong> who need a clear plan for AI in their organization. <%= link_to "Talk to #{brand.founder}", consulting_path %></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section band" aria-labelledby="tutors-h">
+  <div class="wrap split">
+    <div>
+      <h2 id="tutors-h">Meet the tutors</h2>
+      <p>Every <%= brand.name %> course is taught by an AI tutor with a name, a teaching style and a rubric. Prof. Tomas Reyes teaches agents and asks to see the trace before he believes anything works. The tutors are characters played by AI, and we say so everywhere. The courses are designed by <%= brand.founder %>, the founder.</p>
+    </div>
+    <div>
+      <h2>Built by student number one</h2>
+      <p><%= brand.founder %>, the founder, is <%= brand.name %>'s first student. He's working through the same structure himself, from the beginning, and publishes what he learns. <%= link_to "Read the story", about_path %></p>
+    </div>
+  </div>
+</section>
+
+<% if @posts.any? %>
+<section class="section" aria-labelledby="blog-h">
+  <div class="wrap">
+    <div class="section-head"><h2 id="blog-h">From the blog</h2><%= link_to "All posts", posts_path %></div>
+    <ul class="card-grid three">
+      <% @posts.each do |post| %>
+        <li class="card"><p class="eyebrow"><%= post.published_at.to_date.to_fs(:long) %></p><h3><%= link_to post.title, post_path(post) %></h3><p class="meta"><%= post.summary %></p></li>
+      <% end %>
+    </ul>
+  </div>
+</section>
+<% end %>
+
+<%= render "shared/newsletter" %>

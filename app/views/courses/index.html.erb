@@ -1,0 +1,11 @@
+<% page_title "Courses" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Catalog</p><h1>Courses</h1>
+  <p class="lede">Every course is project-first. You'll type the code or build the workflow yourself, with an AI tutor guiding one step at a time and reviewing what you make. Each course lists its hours, its projects and the rubric your work is reviewed against, so you know the work before you start.</p>
+</div></header>
+<section class="section"><div class="wrap">
+  <% if (starter = @courses.first) %>
+    <p class="callout"><strong>Start here:</strong> new to AI tools? Take <%= link_to starter.title, course_path(starter) %> first. It's <%= starter.free? ? "free" : starter.price %>, and it sets you up for everything else.</p>
+  <% end %>
+  <ul class="card-grid" style="margin-top:24px"><%= render partial: "courses/card", collection: @courses, as: :course %></ul>
+  <p class="muted" style="margin-top:24px"><strong>A note on credentials:</strong> you'll get a certificate of completion from <%= brand.name %> when you finish a course. It shows what you built. It is not academic credit or a degree.</p>
+</div></section>

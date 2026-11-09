@@ -1,0 +1,7 @@
+<li class="card">
+  <p class="eyebrow"><%= course.level %></p>
+  <h3><%= link_to course.title, course_path(course) %></h3>
+  <p><%= course.tagline %></p>
+  <p class="meta"><%= [course.hours, ("Tutor: #{course.tutor_name}" if course.tutor_name.present?)].compact.join(" · ") %></p>
+  <p class="price"><%= course.price %></p>
+</li>

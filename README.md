@@ -1,46 +1,62 @@
-# Ironwood Institute of Technology
+# Ironwood Tech
 
-The public website of Ironwood Tech, a personal, self-directed computer science and data science curriculum. Ironwood is not an accredited institution and does not grant degrees. Its faculty are fictional, and all data here is made up or is Kyle's own.
+The course platform for **Ironwood Tech**, the education arm of Digital Farm and Garden. It sells hands-on courses in AI workflows and agentic AI, taught one step at a time by AI tutor personas, plus an executive consulting inquiry form and a blog with a newsletter sign-up.
 
-## What is in this repository
+Ironwood Tech is not an accredited school and does not grant degrees or academic credit. The tutors are characters played by AI, and the site says so on every page.
 
-This is **static site v0**, built with Claude as a hobby project. It is plain HTML and CSS with no accounts, no tracking and no JavaScript. It is not part of Kyle's portfolio work.
+## What's in the app
 
-The real site is a Rails 8 app with a student portal, a digital transcript and course records. **Kyle is writing that himself as App #2**, in a separate repository, during Stage 3 of the curriculum. When it ships, it replaces this site.
-
-## Pages
-
-| Page | File |
+| Area | What it does |
 | --- | --- |
-| Home | `docs/index.html` |
-| How it works | `docs/about.html` |
-| Academics and 10 department pages | `docs/academics/` |
-| 32 public course summaries | `docs/courses/` |
-| Faculty directory | `docs/faculty.html` |
-| Athletics: the Sentinels | `docs/athletics.html` |
-| News and the Sentinel Dispatch | `docs/news/` |
-| Student login (placeholder until App #2) | `docs/login.html` |
+| Public site | Home, course catalog, course pages with a published rubric, consulting, blog, about, FAQ, refunds, terms and privacy |
+| Accounts | Sign up, log in and password reset (Rails 8 authentication) |
+| Checkout | Free courses enroll instantly. Paid courses go through Stripe Checkout, and access is granted only after Stripe confirms payment |
+| Learning | Lesson pages with an AI tutor chat that runs on the Claude API, plus Quiz me, Judge it and Hint shortcuts and progress tracking |
+| Student portal | Courses, progress, a private record of completion, and a printable certificate of completion |
+| Owner area | `/admin`: revenue and lead counts, leads, students, course grants and course pricing |
 
-## Not indexed yet
+## Run it locally
 
-Every page carries `noindex, nofollow`, `docs/robots.txt` disallows all crawlers, and a "personal project" strip sits at the top of every page. Kyle decides when to opt in to search indexing.
-
-## Build
-
-The pages are generated from data so the catalog stays the single source. You need Python 3.10 or newer and nothing else.
+You need Ruby 3.3 and SQLite.
 
 ```sh
-python3 tools/build.py
+bundle install
+bin/rails db:prepare          # creates the database and seeds both courses
+bin/dev                       # http://localhost:3000
 ```
 
-- `tools/catalog.py`: departments, faculty and courses, the same data as the printed catalog.
-- `content/news/*.md`: Office of Communications posts. Name new posts `YYYY-MM-DD-slug.md`.
-- `docs/assets/`: the stylesheet and the brand masters (SVG), unchanged from the brand book.
+The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. Everything else is optional, and you can export the variables from `.env.example` in your shell:
 
-## Publish with GitHub Pages
+- `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
+- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` turn on paid checkout. Without them, paid courses can't be bought, but you can still grant them from `/admin`.
 
-Settings → Pages → Build and deployment → Source: **Deploy from a branch**, Branch: **main**, folder **/docs**. The site appears at `https://kyledahl201.github.io/ironwood-tech/`.
+## Setting prices
 
-## Design
+The Agentic AI Bootcamp ships with **no price**, so it's listed as "Price coming soon" and can't be bought. Set the price in `/admin/courses`, in cents (for example, 14900 is $149). Re-running the seeds never overwrites a price you set.
 
-The layout follows Prof. Camille Duarte's Phase 1 wireframes and UI notes, and the colors, type and marks come from Ironwood Brand Book edition 1. Copper is used only for large type, rules and focus rings. Small copper text on light grounds uses Copper Deep, so text meets WCAG AA contrast.
+## Tests
+
+```sh
+bin/rails test
+bin/rubocop
+bin/brakeman
+```
+
+## Deploy (Kamal)
+
+1. Get a small Linux server (any VPS with Docker) and a domain, then point the domain at the server.
+2. In `config/deploy.yml`, set the server IP, `proxy.host` to your domain, the registry, `ADMIN_EMAIL` and `BRAND_CONTACT_EMAIL`.
+3. Export the secrets listed in `.kamal/secrets` in your shell. Generate `SECRET_KEY_BASE` with `bin/rails secret`.
+4. Run `bin/kamal setup` the first time, then `bin/kamal deploy` after that.
+5. In Stripe, add a webhook to `https://YOUR-DOMAIN/webhooks/stripe` for `checkout.session.completed`.
+
+SQLite lives in the `storage` volume, so back it up (Litestream or a nightly copy) before you take real payments.
+
+## Before you take real money
+
+- [ ] Get a legal check on the name, the refund policy, terms and privacy policy, and selling where you sell
+- [ ] Replace the placeholder privacy and terms pages with real policies
+- [ ] Set the support email, your full name and the Digital Farm and Garden link
+- [ ] Set course prices and confirm the AI Workflow Fundamentals module list
+- [ ] Use Stripe live keys after a test purchase and a test refund
+- [ ] Turn on search indexing (`ALLOW_INDEXING=1`), which also removes the pre-launch strip

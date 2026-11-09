@@ -1,0 +1,66 @@
+<% page_title @course.title %>
+<% content_for :description, @course.tagline %>
+<header class="page-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Courses", courses_path %></li><li aria-current="page"><%= @course.title %></li></ol></nav>
+  <p class="eyebrow"><%= @course.level %></p>
+  <h1><%= @course.title %></h1>
+  <p class="lede"><%= @course.tagline %></p>
+</div></header>
+
+<section class="section"><div class="wrap course-layout">
+  <div>
+    <dl class="facts">
+      <dt>Level</dt><dd><%= @course.level %></dd>
+      <dt>Time</dt><dd><%= @course.hours %></dd>
+      <dt>Tutor</dt><dd><%= tutor_label(@course).upcase_first %></dd>
+      <dt>Designed by</dt><dd><%= brand.founder %>, the founder</dd>
+    </dl>
+
+    <% if @course.outcome_list.any? %>
+      <h2>What you'll be able to do</h2>
+      <ul class="prose"><% @course.outcome_list.each do |o| %><li><%= o %></li><% end %></ul>
+    <% end %>
+
+    <div class="prose"><%= markdown @course.description %></div>
+
+    <h2 style="margin-top:40px"><%= @course.lessons.size > 10 ? "The #{@course.lessons.size} weeks" : "Lessons" %></h2>
+    <ol class="syllabus">
+      <% @lessons.each do |lesson| %>
+        <li>
+          <span class="pos"><%= lesson.position %></span>
+          <% if @enrollment %><%= link_to lesson.title, learn_lesson_path(@course, lesson) %><% else %><span><%= lesson.title %></span><% end %>
+          <% if @enrollment&.completed?(lesson) %><span class="done">Done</span><% end %>
+        </li>
+      <% end %>
+    </ol>
+    <p style="margin-top:16px"><%= link_to "Read the rubric your work is reviewed against", rubric_course_path(@course) %></p>
+  </div>
+
+  <aside class="buy-box" aria-label="Enroll">
+    <p class="price"><%= @course.price %></p>
+    <% if @enrollment %>
+      <p>You're enrolled. <%= @enrollment.progress_percent %>% complete.</p>
+      <%= link_to "Continue learning", learn_lesson_path(@course, @enrollment.next_lesson || @lessons.first), class: "btn btn-copper" %>
+    <% elsif !@course.on_sale? %>
+      <p>This course isn't on sale yet.</p>
+      <%= link_to "Get notified", root_path(anchor: "newsletter"), class: "btn btn-outline" %>
+    <% else %>
+      <div class="disclosure-box">
+        You're <%= @course.free? ? "enrolling in" : "buying" %> <strong><%= @course.title %></strong> for <strong><%= @course.price.downcase == "free" ? "free" : @course.price %></strong>.
+        The course is taught by AI tutors and designed by <%= brand.founder %>, the founder. <%= brand.name %> is not an accredited school, and completing this course does not grant a degree or academic credit.
+        <%= link_to "Refund policy", refunds_path %>
+      </div>
+      <% if current_user %>
+        <%= form_with url: course_checkout_path(@course), data: { turbo: false } do %>
+          <% unless @course.free? %>
+            <label class="checkbox small" style="margin-bottom:12px"><input type="checkbox" name="accept_terms" value="1" required> I've read the <%= link_to "terms", terms_path, target: "_blank" %> and <%= link_to "refund policy", refunds_path, target: "_blank" %>.</label>
+          <% end %>
+          <button type="submit" class="btn btn-copper"><%= @course.free? ? "Enroll free" : "Enroll for #{@course.price}" %></button>
+        <% end %>
+      <% else %>
+        <%= link_to "Create an account to enroll", new_registration_path(return_to: course_path(@course)), class: "btn btn-copper" %>
+        <p class="small" style="margin-top:12px">Already have one? <%= link_to "Log in", new_session_path %></p>
+      <% end %>
+    <% end %>
+  </aside>
+</div></section>

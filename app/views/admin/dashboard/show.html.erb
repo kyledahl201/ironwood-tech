@@ -1,0 +1,27 @@
+<% page_title "Owner dashboard" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Dashboard</h1></div></header>
+<section class="section"><div class="wrap">
+  <div class="stat-row">
+    <div class="stat"><strong><%= @counts[:students] %></strong><span>Students</span></div>
+    <div class="stat"><strong><%= @counts[:enrollments] %></strong><span>Enrollments</span></div>
+    <div class="stat"><strong><%= @counts[:paid] %></strong><span>Paid enrollments</span></div>
+    <div class="stat"><strong><%= money @counts[:revenue_cents] %></strong><span>Revenue (Stripe)</span></div>
+    <div class="stat"><strong><%= @counts[:new_leads] %></strong><span>New leads</span></div>
+    <div class="stat"><strong><%= @counts[:subscribers] %></strong><span>Newsletter sign-ups</span></div>
+  </div>
+  <p class="small muted">Payments: <%= Payments.enabled? ? "Stripe connected" : "off (set STRIPE_SECRET_KEY)" %> · AI tutor: <%= Tutor.enabled? ? "on" : "off (set ANTHROPIC_API_KEY)" %> · Search indexing: <%= brand.indexable ? "on" : "off" %></p>
+  <div class="split" style="margin-top:32px">
+    <div>
+      <div class="section-head"><h2>Latest leads</h2><%= link_to "All leads", admin_leads_path %></div>
+      <div class="table-scroll"><table><thead><tr><th>When</th><th>Kind</th><th>Who</th></tr></thead><tbody>
+        <% @leads.each do |l| %><tr><td><%= l.created_at.to_date.to_fs(:short) %></td><td><%= l.kind %></td><td><%= l.name.presence || l.email %></td></tr><% end %>
+      </tbody></table></div>
+    </div>
+    <div>
+      <div class="section-head"><h2>Latest enrollments</h2><%= link_to "All students", admin_users_path %></div>
+      <div class="table-scroll"><table><thead><tr><th>When</th><th>Student</th><th>Course</th><th>Source</th></tr></thead><tbody>
+        <% @enrollments.each do |e| %><tr><td><%= e.created_at.to_date.to_fs(:short) %></td><td><%= link_to e.user.name, admin_user_path(e.user) %></td><td><%= e.course.title %></td><td><%= e.source %></td></tr><% end %>
+      </tbody></table></div>
+    </div>
+  </div>
+</div></section>

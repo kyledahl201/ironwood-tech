@@ -1,0 +1,14 @@
+<section class="section band-dark" id="newsletter" aria-labelledby="newsletter-h">
+  <div class="wrap narrow">
+    <p class="eyebrow">Free newsletter</p>
+    <h2 id="newsletter-h">The Sentinel Morning Brief</h2>
+    <p>What happened in AI and software yesterday, in five minutes. Every item linked to its source, rumors labeled as rumors, and one concept explained each morning. Free.</p>
+    <%= form_with model: Lead.new(kind: "newsletter"), url: leads_path, class: "inline-form" do |f| %>
+      <%= f.hidden_field :kind %>
+      <%= f.label :email, "Email", class: "visually-hidden" %>
+      <%= f.email_field :email, required: true, placeholder: "you@example.com", autocomplete: "email" %>
+      <%= f.submit "Subscribe", class: "btn btn-light" %>
+    <% end %>
+    <p class="under-actions">One email a morning. Unsubscribe anytime. <%= link_to "Privacy policy", privacy_path %></p>
+  </div>
+</section>

@@ -1,0 +1,35 @@
+<% page_title "Executive consulting" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Consulting</p><h1>A clear plan for AI in your organization.</h1>
+<p class="lede">Practical advice from <%= brand.founder %>, the founder of <%= brand.name %> and <%= brand.parent %>, for leaders who want results, not demos.</p></div></header>
+<section class="section"><div class="wrap split">
+  <div class="prose">
+    <h2>What we can help with</h2>
+    <ul>
+      <li><strong>Where AI fits:</strong> which workflows in your organization are worth automating, and which aren't.</li>
+      <li><strong>Agent pilots:</strong> scoping a first agent project with clear success measures, guardrails and a cost ceiling.</li>
+      <li><strong>Team training:</strong> private versions of <%= brand.name %> courses for your staff.</li>
+      <li><strong>Risk and policy:</strong> data handling, approval steps and what to tell your people.</li>
+    </ul>
+    <h2>How it works</h2>
+    <ol>
+      <li>Send the form.</li>
+      <li><%= brand.founder %> replies within <%= brand.reply_days %> business days to set up a short call.</li>
+      <li>If there's a fit, you get a written proposal with scope and price.</li>
+    </ol>
+    <p class="callout">Consulting is delivered by <%= brand.founder %>, a person. The AI tutors teach the courses. They don't consult.</p>
+  </div>
+  <div>
+    <h2>Send an inquiry</h2>
+    <%= form_with model: @lead, url: leads_path, class: "form" do |f| %>
+      <%= render "shared/errors", record: @lead %>
+      <%= f.hidden_field :kind, value: "consulting" %>
+      <div class="field"><%= f.label :name %><%= f.text_field :name, required: true, autocomplete: "name" %></div>
+      <div class="field"><%= f.label :email, "Work email" %><%= f.email_field :email, required: true, autocomplete: "email" %></div>
+      <div class="field"><%= f.label :company, "Organization" %><%= f.text_field :company, autocomplete: "organization" %></div>
+      <div class="field"><%= f.label :job_title, "Role" %><%= f.text_field :job_title, autocomplete: "organization-title" %></div>
+      <div class="field"><%= f.label :message, "What you'd like help with" %><%= f.text_area :message, rows: 6, maxlength: 4000 %></div>
+      <div><%= f.submit "Send inquiry", class: "btn btn-primary" %></div>
+      <p class="small muted">We use your details only to reply to this inquiry. <%= link_to "Privacy policy", privacy_path %></p>
+    <% end %>
+  </div>
+</div></section>

@@ -1,0 +1,20 @@
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-mark">
+      <%= image_tag "brand/crest-v5-badge.svg", alt: "", width: 56, height: 66 %>
+      <p><strong><%= brand.name %></strong><br>Part of <%= brand.parent_url ? link_to(brand.parent, brand.parent_url) : brand.parent %><br><%= mail_to brand.contact_email %></p>
+    </div>
+    <ul class="footer-nav">
+      <li><%= link_to "Courses", courses_path %></li>
+      <li><%= link_to "Consulting", consulting_path %></li>
+      <li><%= link_to "Blog", posts_path %></li>
+      <li><%= link_to "About", about_path %></li>
+      <li><%= link_to "FAQ", faq_path %></li>
+      <li><%= link_to "Refunds", refunds_path %></li>
+      <li><%= link_to "Terms", terms_path %></li>
+      <li><%= link_to "Privacy", privacy_path %></li>
+    </ul>
+    <p class="honest" id="disclosure"><%= brand.disclosure %></p>
+    <p class="built">© <%= Date.current.year %> <%= brand.legal_name || brand.parent %><%= " · #{brand.postal_address}" if brand.postal_address %> · <%= brand.contact_email %></p>
+  </div>
+</footer>

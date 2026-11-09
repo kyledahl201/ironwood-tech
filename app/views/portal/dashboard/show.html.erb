@@ -1,0 +1,43 @@
+<% page_title "My portal" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Student portal</p><h1>Welcome back, <%= current_user.first_name %>.</h1></div></header>
+<section class="section"><div class="wrap">
+  <% if @enrollments.empty? %>
+    <div class="callout"><p>You're not enrolled in a course yet. <%= link_to "Browse courses", courses_path %> to get started.</p></div>
+  <% else %>
+    <h2>Your courses</h2>
+    <ul class="card-grid">
+      <% @enrollments.each do |e| %>
+        <li class="card">
+          <p class="eyebrow"><%= e.course.level %></p>
+          <h3><%= link_to e.course.title, course_path(e.course) %></h3>
+          <div class="progress" role="progressbar" aria-valuenow="<%= e.progress_percent %>" aria-valuemin="0" aria-valuemax="100" aria-label="Progress"><span style="width: <%= e.progress_percent %>%"></span></div>
+          <p class="meta"><%= e.lesson_completions.size %> of <%= e.course.lessons.size %> lessons done · <%= e.progress_percent %>%</p>
+          <p style="margin-top:auto" class="actions">
+            <% if e.finished? %>
+              <%= link_to "View certificate", portal_certificate_path(e.course), class: "btn btn-copper" %>
+            <% else %>
+              <%= link_to (e.lesson_completions.empty? ? "Start lesson 1" : "Continue: lesson #{e.next_lesson.position}"), learn_lesson_path(e.course, e.next_lesson), class: "btn btn-primary" %>
+            <% end %>
+          </p>
+        </li>
+      <% end %>
+    </ul>
+
+    <h2 style="margin-top:48px" id="record">Your record</h2>
+    <p class="muted small">Private to your account. This is a record of completion, not an academic transcript.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Course</th><th>Enrolled</th><th>Progress</th><th>Completed</th><th>Certificate</th></tr></thead>
+      <tbody>
+        <% @enrollments.each do |e| %>
+          <tr>
+            <td><%= e.course.title %></td>
+            <td><%= e.created_at.to_date.to_fs(:long) %></td>
+            <td><%= e.progress_percent %>%</td>
+            <td><%= e.finished_at&.to_date&.to_fs(:long) || "In progress" %></td>
+            <td><%= e.finished? ? link_to(e.certificate_code, portal_certificate_path(e.course)) : "Not yet" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table></div>
+  <% end %>
+</div></section>

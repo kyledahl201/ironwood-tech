@@ -1,0 +1,6 @@
+<% page_title "Unsubscribe" %>
+<div class="auth">
+  <h1>Unsubscribe</h1>
+  <p>Stop sending the newsletter to <strong><%= @lead.email %></strong>?</p>
+  <%= button_to "Unsubscribe", unsubscribe_path(params[:token]), class: "btn btn-primary" %>
+</div>

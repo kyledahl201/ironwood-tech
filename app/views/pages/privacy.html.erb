@@ -1,0 +1,29 @@
+<% page_title "Privacy" %>
+<header class="page-head"><div class="wrap narrow"><p class="eyebrow">Policies</p><h1>Privacy</h1></div></header>
+<section class="section"><div class="wrap narrow prose">
+  <p class="callout">Draft privacy notice, pending legal review before sales open. It describes what this site actually does today.</p>
+  <p><strong>Who we are:</strong> <%= brand.name %>, part of <%= brand.legal_name || brand.parent %><%= ", #{brand.postal_address}" if brand.postal_address %>. Contact: <%= mail_to brand.contact_email %>.</p>
+
+  <h2>What we collect and why</h2>
+  <table>
+    <thead><tr><th>Data</th><th>Why</th><th>How long we keep it</th></tr></thead>
+    <tbody>
+      <tr><td>Account: name, email, hashed password</td><td>To run your account</td><td>Until you ask us to delete your account</td></tr>
+      <tr><td>Learning: enrollments, lessons completed</td><td>To track progress and issue certificates</td><td>Until you ask us to delete your account</td></tr>
+      <tr><td>Tutor chats</td><td>To give the AI tutor context and show your history</td><td><%= TutorMessage::RETENTION.in_days.to_i %> days, then deleted automatically</td></tr>
+      <tr><td>Purchases: course, amount, Stripe reference</td><td>To grant access, handle refunds and keep tax records</td><td>As long as tax law requires</td></tr>
+      <tr><td>Newsletter and consulting forms</td><td>To send the newsletter or reply to you</td><td>Until you unsubscribe or ask us to delete it</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Who processes it for us</h2>
+  <ul>
+    <li><strong>Stripe</strong> handles payments. We never see or store your card number.</li>
+    <li><strong>Anthropic</strong> (the Claude API) generates tutor replies. Your questions, your recent chat in that lesson, and the lesson text are sent to it.</li>
+    <li><strong><%= brand.host_name %></strong> hosts the site and its database.</li>
+  </ul>
+  <p>We don't sell your data, and we don't use advertising trackers.</p>
+
+  <h2>Your choices</h2>
+  <p>To see what we hold about you, correct it, or delete it, email <%= mail_to brand.contact_email %>. Every newsletter has an unsubscribe link.</p>
+</div></section>
