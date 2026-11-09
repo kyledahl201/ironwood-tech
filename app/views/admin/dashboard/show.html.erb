@@ -9,7 +9,7 @@
     <div class="stat"><strong><%= @counts[:new_leads] %></strong><span>New leads</span></div>
     <div class="stat"><strong><%= @counts[:subscribers] %></strong><span>Newsletter sign-ups</span></div>
   </div>
-  <p class="small muted">Payments: <%= Payments.enabled? ? "Stripe connected" : "off (set STRIPE_SECRET_KEY)" %> · AI tutor: <%= Tutor.enabled? ? "on" : "off (set ANTHROPIC_API_KEY)" %> · Search indexing: <%= brand.indexable ? "on" : "off" %></p>
+  <p class="small muted">Payments: <%= Payments.enabled? ? "Stripe connected" : (Payments.seller_identity_complete? ? "off (set STRIPE_SECRET_KEY)" : "off until BRAND_LEGAL_NAME, BRAND_POSTAL_ADDRESS and a real BRAND_CONTACT_EMAIL are set") %> · AI tutor: <%= Tutor.enabled? ? "on" : "off (set ANTHROPIC_API_KEY)" %> · Search indexing: <%= brand.indexable ? "on" : "off" %></p>
   <div class="split" style="margin-top:32px">
     <div>
       <div class="section-head"><h2>Latest leads</h2><%= link_to "All leads", admin_leads_path %></div>

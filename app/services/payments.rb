@@ -6,7 +6,15 @@ module Payments
   module_function
 
   def enabled?
-    ENV["STRIPE_SECRET_KEY"].present?
+    ENV["STRIPE_SECRET_KEY"].present? && seller_identity_complete?
+  end
+
+  # Consumer law expects the seller's name, address and contact on the site,
+  # so paid checkout stays off in production until they're set.
+  def seller_identity_complete?
+    return true unless Rails.env.production?
+    b = Rails.configuration.x.brand
+    b.legal_name.present? && b.postal_address.present? && !b.contact_email.to_s.end_with?("example.com")
   end
 
   def client

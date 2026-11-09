@@ -96,6 +96,29 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
     assert_match(/today's \d+ tutor questions/, flash[:alert])
   end
 
+  test "the daily tutor cap is counted per course" do
+    users(:two).enrollments.create!(course: courses(:paid), source: "admin")
+    Tutor.daily_cap(courses(:free)).times { users(:two).tutor_messages.create!(lesson: lessons(:free_one), role: "user", content: "q") }
+    assert Tutor.over_cap?(users(:two), courses(:free))
+    assert_not Tutor.over_cap?(users(:two), courses(:paid))
+  end
+
+  test "paid checkout stays off in production until the seller identity is set" do
+    ENV["STRIPE_SECRET_KEY"] = "sk_test_fake"
+    prod = ActiveSupport::EnvironmentInquirer.new("production")
+    original = Rails.method(:env)
+    Rails.define_singleton_method(:env) { prod }
+    assert_not Payments.enabled?
+    brand = Rails.configuration.x.brand
+    brand.legal_name, brand.postal_address, brand.contact_email = "DFG LLC", "1 Main St", "help@dfg.test"
+    assert Payments.enabled?
+  ensure
+    Rails.define_singleton_method(:env, original) if original
+    brand.legal_name = brand.postal_address = nil if brand
+    brand.contact_email = "hello@example.com" if brand
+    ENV.delete("STRIPE_SECRET_KEY")
+  end
+
   test "expired tutor chats are purged" do
     old = TutorMessage.create!(user: users(:two), lesson: lessons(:free_one), role: "user", content: "old", created_at: 400.days.ago)
     fresh = TutorMessage.create!(user: users(:two), lesson: lessons(:free_one), role: "user", content: "new")

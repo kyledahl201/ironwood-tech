@@ -14,7 +14,7 @@ class Tutor
   end
 
   def self.over_cap?(user, course)
-    user.tutor_messages.questions_today.count >= daily_cap(course)
+    user.tutor_messages.questions_today.joins(:lesson).where(lessons: { course_id: course.id }).count >= daily_cap(course)
   end
 
   def initialize(course:, lesson:, user:)
