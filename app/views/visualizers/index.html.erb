@@ -1,0 +1,14 @@
+<% page_title "Visualizers" %>
+<header class="page-head lab-head"><div class="wrap"><p class="eyebrow">Visualizers</p><h1>See the code think</h1>
+  <p class="lede">Small programs you can step through one line at a time. Change the inputs, predict the next line, then press Step.</p></div></header>
+<section class="section"><div class="wrap">
+  <ul class="card-grid three">
+    <% @tools.each do |tool| %>
+      <li class="card course-card">
+        <p class="eyebrow"><%= tool.eyebrow %></p>
+        <h3><%= link_to tool.title, visualizer_path(tool.id) %></h3>
+        <p><%= tool.blurb %></p>
+      </li>
+    <% end %>
+  </ul>
+</div></section>

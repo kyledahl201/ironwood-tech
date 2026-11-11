@@ -1,0 +1,15 @@
+free:
+  title: Free Course
+  slug: free-course
+  tagline: A free course
+  published: true
+  position: 1
+  tutor_name: Prof. Test Tutor
+  rubric: "Clear and working."
+
+other:
+  title: Other Course
+  slug: other-course
+  tagline: Another course
+  published: true
+  position: 2

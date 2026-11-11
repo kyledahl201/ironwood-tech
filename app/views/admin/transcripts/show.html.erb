@@ -1,0 +1,22 @@
+<% page_title "Sync transcript" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Sync transcript</h1>
+  <p class="lede">Paste the whole TRANSCRIPT.md. The portal keeps only the numbers it needs (day, hours, gate, courses, grades) and throws the text away.</p></div></header>
+<section class="section"><div class="wrap split">
+  <%= form_with url: admin_transcript_path, class: "form" do |f| %>
+    <div class="field"><%= f.label :markdown, "TRANSCRIPT.md" %><%= f.text_area :markdown, rows: 18, required: true, class: "mono" %></div>
+    <div><%= f.submit "Sync", class: "btn btn-primary" %></div>
+  <% end %>
+  <div>
+    <h2>Last sync</h2>
+    <% if @snapshot %>
+      <dl class="facts">
+        <dt>Day</dt><dd><%= @snapshot.current_day %> (Day 1 = <%= @snapshot.day_one&.to_fs(:long) %>)</dd>
+        <dt>Phase</dt><dd><%= @snapshot.phase %></dd>
+        <dt>Hours</dt><dd><%= @snapshot.hours_logged.to_f %> of <%= @snapshot.stage_hours_target %></dd>
+        <dt>Next gate</dt><dd><%= @snapshot.next_gate_name %>, Day <%= @snapshot.next_gate_day %></dd>
+        <dt>Synced</dt><dd><%= time_ago_in_words(@snapshot.updated_at) %> ago</dd>
+      </dl>
+      <ul class="mini-list"><% @records.each do |r| %><li><strong><%= r.code %></strong> <%= r.title %> <span class="muted small"><%= r.status %> · <%= r.lessons_done %> lessons</span></li><% end %></ul>
+    <% else %><p class="muted">Nothing synced yet.</p><% end %>
+  </div>
+</div></section>

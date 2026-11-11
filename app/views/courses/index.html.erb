@@ -1,0 +1,12 @@
+<% page_title "Courses" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Catalog</p><h1>Courses</h1>
+  <p class="lede">Project-first courses with an AI tutor. You type the code yourself; the tutor guides one step at a time. Each course lists its hours and the rubric your work is reviewed against.</p>
+</div></header>
+<section class="section"><div class="wrap">
+  <% if @courses.any? %>
+    <ul class="card-grid"><%= render partial: "courses/card", collection: @courses, as: :course %></ul>
+  <% else %>
+    <p class="muted">No online courses are published yet. Your classes with the faculty are on <%= link_to "Today", portal_path %>.</p>
+  <% end %>
+  <p class="muted small" style="margin-top:24px">Finishing a course earns a certificate of completion. It records what you did. It is not academic credit or a degree.</p>
+</div></section>

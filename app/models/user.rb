@@ -1,0 +1,31 @@
+class User < ApplicationRecord
+  has_secure_password
+  has_many :sessions, dependent: :destroy
+  has_many :enrollments, dependent: :destroy
+  has_many :study_sessions, dependent: :destroy
+  has_many :course_records, -> { ordered }, dependent: :destroy
+  has_one :transcript_snapshot, dependent: :destroy
+  has_many :attempts, dependent: :destroy
+  has_many :user_badges, dependent: :destroy
+  has_many :courses, through: :enrollments
+  has_many :tutor_messages, dependent: :destroy
+
+  enum :role, { student: 0, admin: 1 }
+
+  normalizes :email_address, with: ->(e) { e.strip.downcase }
+
+  validates :email_address, presence: true, uniqueness: true,
+            format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :name, presence: true, length: { maximum: 100 }
+  validates :password, length: { minimum: 10 }, allow_nil: true
+
+  def enrolled_in?(course)
+    enrollments.exists?(course: course)
+  end
+
+  scope :in_study_hall, -> { where(share_in_study_hall: true) }
+
+  def first_name
+    name.to_s.split.first
+  end
+end

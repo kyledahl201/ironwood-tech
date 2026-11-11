@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title><%= page_title %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="<%= brand.full_name %>: a personal, self-directed course of study.">
+    <% unless brand.indexable %><meta name="robots" content="noindex, nofollow"><% end %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Graduate&family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body data-controller="eggs" data-eggs-url-value="<%= current_user ? portal_egg_path("konami") : "" %>"
+        data-eggs-lines-value="<%= SentryLines::EGGS.to_json %>" data-eggs-sentry-value="<%= image_path("brand/sentry-watching.svg") %>" data-sentry-cheering="<%= image_path("brand/sentry-cheering.svg") %>" data-sentry-sleepy="<%= image_path("brand/sentry-sleepy.svg") %>">
+    <a class="skip" href="#main">Skip to content</a>
+    <% if current_user&.admin? %>
+      <div class="admin-bar no-print"><div class="wrap"><strong>Owner:</strong> <%= link_to "Overview", admin_root_path %><%= link_to "Transcript", admin_transcript_path %><%= link_to "Invites", admin_invites_path %><%= link_to "Students", admin_users_path %><%= link_to "Exercises", admin_exercises_path %><%= link_to "Courses", admin_courses_path %></div></div>
+    <% end %>
+    <%= render "shared/header" %>
+    <% flash.each do |type, message| %>
+      <% next if type == "badges" %>
+      <div class="flash flash-<%= type == "alert" ? "alert" : "notice" %>" role="status"><div class="wrap"><%= message %></div></div>
+    <% end %>
+    <main id="main">
+      <%= yield %>
+    </main>
+    <%= render "shared/footer" %>
+    <%= render "shared/celebration", keys: Array(flash[:badges]) %>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+  </body>
+</html>

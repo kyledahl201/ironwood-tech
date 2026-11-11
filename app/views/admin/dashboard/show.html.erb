@@ -1,0 +1,20 @@
+<% page_title "Owner" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Running the university</h1></div></header>
+<section class="section"><div class="wrap">
+  <div class="stat-row">
+    <div class="stat"><strong><%= @counts[:students] %></strong><span>Students</span></div>
+    <div class="stat"><strong><%= @counts[:open_invites] %></strong><span>Open invites</span></div>
+    <div class="stat"><strong><%= @counts[:exercises] %></strong><span>Lab exercises</span></div>
+    <div class="stat"><strong><%= @counts[:attempts] %></strong><span>Lab attempts</span></div>
+    <div class="stat"><strong><%= @counts[:sessions] %></strong><span>Study sessions</span></div>
+    <div class="stat"><strong><%= @counts[:enrollments] %></strong><span>Course enrollments</span></div>
+  </div>
+  <p class="small muted">AI tutor: <%= Tutor.enabled? ? "on" : "off (set ANTHROPIC_API_KEY)" %> · Search indexing: <%= brand.indexable ? "on" : "off" %> · Transcript: <%= @snapshot ? "synced #{time_ago_in_words(@snapshot.updated_at)} ago" : "not synced yet" %></p>
+  <ul class="card-grid three" style="margin-top:24px">
+    <li class="card"><h3><%= link_to "Sync transcript", admin_transcript_path %></h3><p>Paste TRANSCRIPT.md after class. Only the numbers are kept.</p></li>
+    <li class="card"><h3><%= link_to "Invite a friend", admin_invites_path %></h3><p>One link per person. Links expire after 14 days.</p></li>
+    <li class="card"><h3><%= link_to "Lab exercises", admin_exercises_path %></h3><p>Exercises open with their lesson. You can open one early.</p></li>
+    <li class="card"><h3><%= link_to "Students", admin_users_path %></h3><p>Everyone with an account.</p></li>
+    <li class="card"><h3><%= link_to "Courses", admin_courses_path %></h3><p>Edit online course text and tutor personas.</p></li>
+  </ul>
+</div></section>

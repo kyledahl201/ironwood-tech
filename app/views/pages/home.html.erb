@@ -1,0 +1,14 @@
+<section class="hero hero-public">
+  <div class="wrap hero-grid">
+    <%= image_tag "brand/crest-v5-full-reversed.svg", class: "hero-crest", alt: "", width: 220, height: 299, data: { action: "click->eggs#crestClick" } %>
+    <div>
+      <p class="eyebrow"><%= brand.name %></p>
+      <h1 class="display"><%= brand.full_name %></h1>
+      <p class="lede">A personal, self-directed course of study in computer science and data science.</p>
+      <p class="lede">One student, a faculty of AI tutors, and a plan that starts from the beginning.</p>
+      <p class="actions"><%= link_to "Sign in (invited students)", new_session_path, class: "btn btn-light" %></p>
+      <p class="under-actions"><em><%= brand.motto %>.</em></p>
+    </div>
+  </div>
+</section>
+<section class="section"><div class="wrap narrow"><p class="callout"><%= brand.disclosure %></p></div></section>

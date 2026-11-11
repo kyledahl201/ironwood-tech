@@ -1,0 +1,50 @@
+<% page_title @course.title %>
+<% content_for :description, @course.tagline %>
+<header class="page-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Courses", courses_path %></li><li aria-current="page"><%= @course.title %></li></ol></nav>
+  <p class="eyebrow"><%= @course.level %></p>
+  <h1><%= @course.title %></h1>
+  <p class="lede"><%= @course.tagline %></p>
+</div></header>
+
+<section class="section"><div class="wrap course-layout">
+  <div>
+    <dl class="facts">
+      <dt>Level</dt><dd><%= @course.level %></dd>
+      <dt>Time</dt><dd><%= @course.hours %></dd>
+      <dt>Tutor</dt><dd><%= tutor_label(@course).upcase_first %></dd>
+          </dl>
+
+    <% if @course.outcome_list.any? %>
+      <h2>What you'll be able to do</h2>
+      <ul class="prose"><% @course.outcome_list.each do |o| %><li><%= o %></li><% end %></ul>
+    <% end %>
+
+    <div class="prose"><%= markdown @course.description %></div>
+
+    <h2 style="margin-top:40px"><%= @course.lessons.size > 10 ? "The #{@course.lessons.size} weeks" : "Lessons" %></h2>
+    <ol class="syllabus">
+      <% @lessons.each do |lesson| %>
+        <li>
+          <span class="pos"><%= lesson.position %></span>
+          <% if @enrollment %><%= link_to lesson.title, learn_lesson_path(@course, lesson) %><% else %><span><%= lesson.title %></span><% end %>
+          <% if @enrollment&.completed?(lesson) %><span class="done">Done</span><% end %>
+        </li>
+      <% end %>
+    </ol>
+    <p style="margin-top:16px"><%= link_to "Read the rubric your work is reviewed against", rubric_course_path(@course) %></p>
+  </div>
+
+  <aside class="buy-box" aria-label="Start">
+    <% if @enrollment %>
+      <p>You're in. <%= @enrollment.progress_percent %>% complete.</p>
+      <%= link_to (@enrollment.lesson_completions.empty? ? "Start lesson 1" : "Continue learning"), learn_lesson_path(@course, @enrollment.next_lesson || @lessons.first), class: "btn btn-copper" %>
+    <% elsif @lessons.any? %>
+      <p>Free, self-paced, with an AI tutor.</p>
+      <%= button_to "Start course", course_enrollment_path(@course), class: "btn btn-copper" %>
+    <% else %>
+      <p>Lessons are still being written.</p>
+    <% end %>
+    <p class="small muted" style="margin-top:12px"><%= brand.disclosure %></p>
+  </aside>
+</div></section>

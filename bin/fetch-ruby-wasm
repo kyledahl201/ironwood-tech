@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Downloads the pinned Ruby wasm binary for the code lab into public/lab/ruby.wasm
+# and refuses it unless its SHA-256 matches. Runs in the Docker build so the
+# binary always ships with the site. No Node needed.
+set -euo pipefail
+VERSION="2.10.1"
+SHA256="4b814fc9d13505ea5b4c1f3bd3a7cc7ccca137f551196b9b21f0a7caf9cc5878"
+DEST="$(dirname "$0")/../public/lab/ruby.wasm"
+
+check() { echo "${SHA256}  $1" | sha256sum --check --status; }
+
+if [ -f "$DEST" ] && check "$DEST"; then
+  echo "public/lab/ruby.wasm is already present and verified."
+  exit 0
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+curl -fsSL "https://registry.npmjs.org/@ruby/3.4-wasm-wasi/-/3.4-wasm-wasi-${VERSION}.tgz" -o "$TMP/pkg.tgz"
+tar -xzf "$TMP/pkg.tgz" -C "$TMP" "package/dist/ruby+stdlib.wasm"
+check "$TMP/package/dist/ruby+stdlib.wasm" || { echo "Checksum mismatch for ruby+stdlib.wasm ${VERSION}" >&2; exit 1; }
+mv "$TMP/package/dist/ruby+stdlib.wasm" "$DEST"
+echo "Fetched and verified public/lab/ruby.wasm (${VERSION})."

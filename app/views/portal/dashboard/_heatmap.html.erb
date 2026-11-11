@@ -1,0 +1,18 @@
+<% weeks = stats.heatmap %>
+<div class="heatmap-scroll">
+  <table class="heatmap" role="grid" aria-label="Study activity, last <%= weeks.size %> weeks">
+    <tbody>
+      <% 7.times do |dow| %>
+        <tr>
+          <% weeks.each do |week| %>
+            <% day, level = week[dow] %>
+            <% if day %>
+              <td class="hm hm-<%= level %><%= ' is-today' if day == Time.zone.today %>" title="<%= day.to_fs(:long) %>: <%= stats.minutes_by_day[day].to_i %> min logged"></td>
+            <% else %><td></td><% end %>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<p class="hm-legend small muted">Less <span class="hm hm-0"></span><span class="hm hm-1"></span><span class="hm hm-2"></span><span class="hm hm-3"></span><span class="hm hm-4"></span> More</p>

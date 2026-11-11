@@ -1,0 +1,17 @@
+free_one:
+  course: free
+  position: 1
+  title: First lesson
+  body: "Lesson one body"
+
+free_two:
+  course: free
+  position: 2
+  title: Second lesson
+  body: "Lesson two body"
+
+other_one:
+  course: other
+  position: 1
+  title: Other lesson
+  body: "Other body"

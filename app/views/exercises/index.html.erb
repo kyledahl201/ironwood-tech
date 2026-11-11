@@ -1,0 +1,26 @@
+<% page_title "Code lab" %>
+<header class="page-head lab-head"><div class="wrap"><p class="eyebrow">Code lab</p><h1>Practice, checked as you go</h1>
+  <p class="lede">Write real Ruby in your browser. Press Check and the lab tells you what passes and what's not there yet. Exercises open after their lesson is taught. You write every line.</p></div></header>
+<section class="section"><div class="wrap">
+  <% if @exercises.empty? %>
+    <p class="muted">No exercises yet.</p>
+  <% end %>
+  <% @exercises.group_by(&:course_code).each do |code, list| %>
+    <h2 class="lab-course"><%= code %></h2>
+    <ol class="ex-list">
+      <% list.each do |e| %>
+        <% unlocked = e.unlocked_for?(current_user) %>
+        <% passed = @passed.include?(e.id) %>
+        <li class="ex-row <%= passed ? 'is-passed' : (unlocked ? 'is-open' : 'is-locked') %>">
+          <span class="ex-state" aria-hidden="true"><%= passed ? "✓" : (unlocked ? "›" : "") %></span>
+          <div class="ex-body">
+            <% if unlocked %><%= link_to e.title, exercise_path(e), class: "ex-title" %><% else %><span class="ex-title"><%= e.title %></span><% end %>
+            <span class="muted small"><%= e.lesson_label.presence || "Lesson #{e.lesson_number}" %></span>
+          </div>
+          <span class="ex-tag small"><%= passed ? "Passed · self-checked" : (unlocked ? "Open" : "Opens after lesson #{e.lesson_number}") %></span>
+        </li>
+      <% end %>
+    </ol>
+  <% end %>
+  <div class="callout" style="margin-top:32px"><strong>Want to see a loop think?</strong> <%= link_to "Open the loop tracer", visualizer_path("loop") %> and step through <code>.each</code> one line at a time.</div>
+</div></section>

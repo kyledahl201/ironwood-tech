@@ -1,0 +1,20 @@
+<% page_title "Invites" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Invites</h1><p class="lede">Accounts are by invitation. Each link works once and expires after 14 days.</p></div></header>
+<section class="section"><div class="wrap">
+  <%= form_with model: @invite, url: admin_invites_path, class: "inline-form" do |f| %>
+    <%= f.label :note, "Who is it for?", class: "visually-hidden" %>
+    <%= f.text_field :note, placeholder: "Who is it for? (only you see this)", maxlength: 100 %>
+    <%= f.submit "Create invite link", class: "btn btn-primary" %>
+  <% end %>
+  <div class="table-scroll" style="margin-top:24px"><table>
+    <thead><tr><th>For</th><th>Link</th><th>Status</th><th></th></tr></thead>
+    <tbody><% @invites.each do |i| %>
+      <tr class="<%= 'is-new' if params[:new].to_i == i.id %>">
+        <td><%= i.note.presence || "—" %></td>
+        <td><% if i.usable? %><input class="copy-field" type="text" readonly value="<%= new_registration_url(invite: i.token) %>" aria-label="Invite link" onclick="this.select()"><% else %>—<% end %></td>
+        <td><%= if i.used_at then "Used by #{i.used_by&.name} on #{i.used_at.to_date.to_fs(:short)}" elsif i.usable? then "Open until #{i.expires_at.to_date.to_fs(:short)}" else "Expired" end %></td>
+        <td><% if i.usable? %><%= button_to "Cancel", admin_invite_path(i), method: :delete, class: "link-button small" %><% end %></td>
+      </tr>
+    <% end %></tbody>
+  </table></div>
+</div></section>

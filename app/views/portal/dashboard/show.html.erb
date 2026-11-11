@@ -1,0 +1,136 @@
+<% page_title "Today" %>
+<section class="today-band">
+  <div class="wrap today-grid">
+    <div class="today-main">
+      <p class="eyebrow"><%= Time.zone.today.to_fs(:long) %><%= " · Day #{@snapshot.current_day}" if @snapshot&.current_day %></p>
+      <h1 class="today-greeting"><%= @today.greeting %></h1>
+
+      <article class="today-card" aria-labelledby="today-title">
+        <p class="eyebrow">Today</p>
+        <h2 id="today-title"><%= @today.title %></h2>
+        <% if @today.detail.present? %><p class="today-detail"><%= markdown_inline(@today.detail) %></p><% end %>
+        <% if @today.professor %><p class="muted small">with <%= @today.professor %> (AI tutor)</p><% end %>
+        <div class="actions">
+          <% if @today.action_path %>
+            <%= link_to @today.action_label, learn_lesson_path(*@today.action_path.last(2)), class: "btn btn-copper" %>
+          <% elsif @today.kind == :class %>
+            <span class="muted small">Class happens with your professor. Log the time when you're done.</span>
+          <% else %>
+            <%= link_to "Browse courses", courses_path, class: "btn btn-copper" %>
+          <% end %>
+          <%= render "portal/study_sessions/quick_log" %>
+        </div>
+      </article>
+
+      <% if (gate = @today.gate) %>
+        <div class="gate-strip">
+          <div class="gate-count"><span class="gate-num"><%= gate[:days].clamp(0, 999) %></span><span>days to <%= gate[:name] %></span></div>
+          <div class="gate-info">
+            <p><strong><%= gate[:name] %>, Day <%= gate[:gate_day] %>:</strong> <%= gate[:goal] %></p>
+            <% if gate[:target].to_i.positive? %>
+              <div class="progress" aria-label="Stage hours"><span style="width: <%= [(gate[:hours] * 100 / gate[:target]).round, 100].min %>%"></span></div>
+              <p class="small muted"><%= gate[:hours] %> of <%= gate[:target] %> stage hours</p>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <aside class="tree-card" aria-label="Progress tree">
+      <%= @tree.to_svg(size: 300) %>
+      <p class="tree-caption"><%= @tree.caption %></p>
+      <p class="tree-rule"><%= @tree.leaf_rule %></p>
+    </aside>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap dash-grid">
+    <div class="panel">
+      <div class="section-head"><h2>Study heatmap</h2><span class="streak" title="One missed day a week is forgiven"><strong><%= @stats.streak %></strong> day streak</span></div>
+      <%= render "portal/dashboard/heatmap", stats: @stats %>
+      <p class="small muted"><%= @stats.hours_this_week %> hours this week · <%= @stats.total_hours %> total</p>
+    </div>
+
+    <div class="panel">
+      <div class="section-head"><h2>Code lab</h2><%= link_to "All exercises", exercises_path %></div>
+      <% if @new_exercises.any? %>
+        <ul class="mini-list"><% @new_exercises.each do |e| %>
+          <li><%= link_to e.title, exercise_path(e) %> <span class="muted small"><%= e.course_code %> · lesson <%= e.lesson_number %></span></li>
+        <% end %></ul>
+      <% else %>
+        <p class="muted">You're caught up. New exercises open as each lesson is taught.</p>
+      <% end %>
+      <p><%= link_to "Open the visualizers", visualizers_path %></p>
+    </div>
+  </div>
+</section>
+
+<section class="section band">
+  <div class="wrap">
+    <div class="section-head"><h2>Courses</h2><%= link_to "Course catalog", courses_path %></div>
+    <% if @records.empty? && @enrollments.empty? %>
+      <p class="muted">Nothing here yet. Your first lesson is one click away. <%= link_to "Browse courses", courses_path %></p>
+    <% else %>
+      <ul class="card-grid three">
+        <% @records.each do |r| %>
+          <li class="card course-card">
+            <p class="eyebrow"><%= r.code %></p>
+            <h3><%= r.title %></h3>
+            <p class="meta"><%= r.professor %> · <%= r.status %></p>
+            <% if r.hours_target %>
+              <div class="progress"><span style="width: <%= r.hours_percent %>%"></span></div>
+              <p class="meta"><%= r.hours_logged.to_f %> of <%= r.hours_target %> hours · <%= r.lessons_done %> lessons</p>
+            <% end %>
+            <% if r.grade %><p class="meta">Grade: <strong><%= r.grade %></strong></p><% end %>
+          </li>
+        <% end %>
+        <% @enrollments.each do |e| %>
+          <li class="card course-card">
+            <p class="eyebrow">Online course</p>
+            <h3><%= link_to e.course.title, course_path(e.course) %></h3>
+            <div class="progress"><span style="width: <%= e.progress_percent %>%"></span></div>
+            <p class="meta"><%= e.lesson_completions.size %> of <%= e.course.lessons.size %> lessons</p>
+            <p style="margin-top:auto">
+              <% if e.finished? %><%= link_to "Certificate", portal_certificate_path(e.course) %>
+              <% else %><%= link_to "Continue: lesson #{e.next_lesson.position}", learn_lesson_path(e.course, e.next_lesson) %><% end %>
+            </p>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap dash-grid">
+    <div class="panel">
+      <div class="section-head"><h2>Badges</h2><%= link_to "All badges", portal_badges_path %></div>
+      <% if @badges.any? %>
+        <ul class="badge-row"><% @badges.each do |b| %><li title="<%= b.definition.name %>: <%= b.definition.description %>"><%= badge_image(b.key, size: 56) %></li><% end %></ul>
+      <% else %>
+        <div class="empty-sentry"><%= image_tag "brand/sentry-watching.svg", alt: "", width: 96, height: 96 %><p class="muted">No badges yet. The first one is closer than it looks.</p></div>
+      <% end %>
+    </div>
+
+    <div class="panel" id="study-hall">
+      <div class="section-head"><h2>Study hall</h2></div>
+      <% if current_user.share_in_study_hall? %>
+        <% if @study_hall.any? %>
+          <ul class="hall"><% @study_hall.each do |m| %>
+            <li><span class="hall-dot<%= ' is-on' if m.studying_now %>" title="<%= m.studying_now ? 'Studying now' : 'Away' %>"></span>
+              <strong><%= m.user.first_name %></strong> <span class="muted small"><%= m.course || "Getting started" %> · <%= m.hours_this_week %> h this week</span></li>
+          <% end %></ul>
+        <% else %>
+          <p class="muted">It's quiet in here. When friends join and opt in, they'll show up as company, never as rankings.</p>
+        <% end %>
+      <% else %>
+        <p class="muted">Share your current course and weekly hours with invited friends, and see theirs. No rankings.</p>
+      <% end %>
+      <%= form_with model: current_user, url: portal_settings_path, method: :patch, class: "inline-form" do |f| %>
+        <%= f.hidden_field :share_in_study_hall, value: current_user.share_in_study_hall? ? "0" : "1" %>
+        <%= f.submit (current_user.share_in_study_hall? ? "Leave the study hall" : "Join the study hall"), class: "btn btn-outline" %>
+      <% end %>
+    </div>
+  </div>
+</section>

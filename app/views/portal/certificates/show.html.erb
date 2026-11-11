@@ -1,0 +1,14 @@
+<% page_title "Certificate: #{@enrollment.course.title}" %>
+<div class="wrap">
+  <div class="certificate">
+    <%= image_tag "brand/crest-v5-badge.svg", alt: "", width: 96, height: 112 %>
+    <p class="eyebrow"><%= brand.name %> · Certificate of completion</p>
+    <p>This certifies that</p>
+    <p class="who"><%= current_user.name %></p>
+    <p>marked every lesson complete in</p>
+    <p class="what"><%= @enrollment.course.title %></p>
+    <p><%= @enrollment.finished_at.to_date.to_fs(:long) %> · Reference <%= @enrollment.certificate_code %></p>
+    <p class="fine">Taught by <%= tutor_label(@enrollment.course) %>. This certificate records that every lesson was marked complete; it is not an assessment of skill. It is not academic credit or a degree, and <%= brand.name %> is not an accredited school.</p>
+  </div>
+  <p class="actions no-print" style="justify-content:center;margin-bottom:48px"><button class="btn btn-primary" onclick="window.print()">Print or save as PDF</button> <%= link_to "Back to portal", portal_path, class: "btn btn-outline" %></p>
+</div>

@@ -1,0 +1,13 @@
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-mark">
+      <%= image_tag "brand/crest-v5-badge.svg", alt: "", width: 56, height: 66 %>
+      <p><strong><%= brand.full_name %></strong><br><em><%= brand.motto %></em>: from the beginning</p>
+    </div>
+    <ul class="footer-nav">
+      <li><%= link_to "Privacy", privacy_path %></li>
+      <li><%= mail_to brand.contact_email, "Contact" %></li>
+    </ul>
+    <p class="honest" id="disclosure"><%= brand.disclosure %></p>
+  </div>
+</footer>

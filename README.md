@@ -1,46 +1,66 @@
-# Ironwood Institute of Technology
+# Ironwood Tech
 
-The public website of Ironwood Tech, a personal, self-directed computer science and data science curriculum. Ironwood is not an accredited institution and does not grant degrees. Its faculty are fictional, and all data here is made up or is Kyle's own.
+The learning portal for **Ironwood Tech**, a non-profit personal university. Kyle is its first student; friends can join later by invitation. It sells nothing.
 
-## What is in this repository
+Ironwood is not an accredited school and grants no degrees or credit. The faculty are AI personas, and the site says so on every page.
 
-This is **static site v0**, built with Claude as a hobby project. It is plain HTML and CSS with no accounts, no tracking and no JavaScript. It is not part of Kyle's portfolio work.
+## What's in the app
 
-The real site is a Rails 8 app with a student portal, a digital transcript and course records. **Kyle is writing that himself as App #2**, in a separate repository, during Stage 3 of the curriculum. When it ships, it replaces this site.
-
-## Pages
-
-| Page | File |
+| Area | What it does |
 | --- | --- |
-| Home | `docs/index.html` |
-| How it works | `docs/about.html` |
-| Academics and 10 department pages | `docs/academics/` |
-| 32 public course summaries | `docs/courses/` |
-| Faculty directory | `docs/faculty.html` |
-| Athletics: the Sentinels | `docs/athletics.html` |
-| News and the Sentinel Dispatch | `docs/news/` |
-| Student login (placeholder until App #2) | `docs/login.html` |
+| Public page | One page about the school, plus privacy. Search engines are told not to index it unless `ALLOW_INDEXING=1` |
+| Accounts | Invite-only sign-up, sign in and password reset (Rails 8 authentication) |
+| Today | The dashboard: today's class or lesson, the next gate countdown, the crest tree that lights up with progress, a 26-week study heatmap and a forgiving streak |
+| Code lab | Ruby exercises written by the faculty, with a real editor (CodeMirror), Ruby running in the browser (ruby.wasm), automatic checks, a line-by-line output diff and hints one at a time. Exercises open after their lesson is taught. No solutions are stored |
+| Visualizers | Step-through tools in one frame: a loop tracer, a hash lookup and a method call stack |
+| Rewards | Badges for real milestones (no points or leaderboards), Sentry the owl, and a few easter eggs |
+| Study log | Log study sessions; they feed the heatmap, streak and hours |
+| Study hall | Opt-in: invited friends see each other's current course and weekly hours. No rankings |
+| Online courses | Lesson pages with an AI tutor chat on the Claude API, progress, and a certificate of completion |
+| Owner area | `/admin`: sync the transcript, create invites, open exercises early, students and courses |
 
-## Not indexed yet
+## Privacy of the transcript
 
-Every page carries `noindex, nofollow`, `docs/robots.txt` disallows all crawlers, and a "personal project" strip sits at the top of every page. Kyle decides when to opt in to search indexing.
+The owner pastes TRANSCRIPT.md into `/admin/transcript`. The portal keeps only the parsed numbers (day, hours, next gate, course rows and grades) and discards the text. The transcript is never committed to this repository.
 
-## Build
+## Run it locally
 
-The pages are generated from data so the catalog stays the single source. You need Python 3.10 or newer and nothing else.
+You need Ruby 3.3 and SQLite.
 
 ```sh
-python3 tools/build.py
+bundle install
+bin/rails db:prepare          # creates the database and seeds courses and exercises
+bin/fetch-ruby-wasm           # Ruby for the code lab (checksummed)
+bin/dev                       # http://localhost:3000
 ```
 
-- `tools/catalog.py`: departments, faculty and courses, the same data as the printed catalog.
-- `content/news/*.md`: Office of Communications posts. Name new posts `YYYY-MM-DD-slug.md`.
-- `docs/assets/`: the stylesheet and the brand masters (SVG), unchanged from the brand book.
+The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. Optional settings:
 
-## Publish with GitHub Pages
+- `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
+- `APP_TIME_ZONE` sets the day boundary for streaks (default Central Time).
+- `RUBY_WASM_URL` overrides where the code lab loads Ruby from.
 
-Settings → Pages → Build and deployment → Source: **Deploy from a branch**, Branch: **main**, folder **/docs**. The site appears at `https://kyledahl201.github.io/ironwood-tech/`.
+## Code lab assets
 
-## Design
+The editor bundle (`app/javascript/lab/editor.js`) and the Ruby worker (`public/lab/ruby-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
 
-The layout follows Prof. Camille Duarte's Phase 1 wireframes and UI notes, and the colors, type and marks come from Ironwood Brand Book edition 1. Copper is used only for large type, rules and focus rings. Small copper text on light grounds uses Copper Deep, so text meets WCAG AA contrast.
+The Ruby binary (`public/lab/ruby.wasm`, about 30 MB) is not committed. `bin/fetch-ruby-wasm` downloads the pinned version and refuses it unless its SHA-256 matches. The Docker build runs it, so the binary always ships with the site. The worker checks the same SHA-256 before running Ruby, whether it came from this site or from the jsDelivr fallback.
+
+Exercises live in `db/seeds/exercises/*.md`, one file per exercise, in the faculty's format. Re-run `bin/rails db:seed` after adding one.
+
+## Tests
+
+```sh
+bin/rails test
+bin/rubocop
+bin/brakeman
+```
+
+## Deploy (Kamal)
+
+1. Get a small Linux server (any VPS with Docker) and a domain, then point the domain at the server.
+2. In `config/deploy.yml`, set the server IP, `proxy.host` to your domain, the registry, `ADMIN_EMAIL` and `BRAND_CONTACT_EMAIL`.
+3. Export the secrets listed in `.kamal/secrets` in your shell. Generate `SECRET_KEY_BASE` with `bin/rails secret`.
+4. Run `bin/kamal setup` the first time, then `bin/kamal deploy` after that.
+
+SQLite lives in the `storage` volume, so back it up (Litestream or a nightly copy).
