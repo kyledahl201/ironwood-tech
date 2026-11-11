@@ -112,6 +112,18 @@ export class TerminalSim {
 
   get commands() { return COMMANDS }
 
+  // Tab: finish the last word when exactly one file or folder name fits.
+  complete(line) {
+    const parts = String(line).split(" ")
+    const word = parts.pop()
+    const slash = word.lastIndexOf("/")
+    const folder = this.node(slash >= 0 ? word.slice(0, slash) || "/" : ".")
+    const names = Object.keys(folder?.children || {}).filter(n => n.startsWith(word.slice(slash + 1)))
+    if (names.length !== 1) return line
+    const tail = folder.children[names[0]].type === DIR ? "/" : ""
+    return [...parts, word.slice(0, slash + 1) + names[0] + tail].join(" ")
+  }
+
   // Practice git ----------------------------------------------------------------
 
   repoPath() {

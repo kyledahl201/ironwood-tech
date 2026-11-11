@@ -55,6 +55,7 @@ Exercises live in `db/seeds/exercises/*.md`, one file per exercise, in the facul
 
 ```sh
 bin/rails test
+bin/test-js                   # practice Terminal, checks, and the Ruby console in real Ruby (needs Node)
 bin/rubocop
 bin/brakeman
 ```

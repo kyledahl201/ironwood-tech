@@ -76,7 +76,7 @@
 .quiz-options { display: flex; flex-direction: column; gap: 8px; }
 .quiz-option { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; min-height: 48px; padding: 10px 14px; background: var(--white); border: 1.5px solid var(--midnight); border-radius: var(--radius); font: inherit; color: var(--midnight); cursor: pointer; }
 .quiz-option:hover:not(:disabled) { background: var(--linen); border-color: var(--copper-deep); }
-.quiz-option:disabled { cursor: default; border-color: var(--rule); color: var(--muted); }
+.quiz-option:disabled { cursor: default; border-color: var(--rule); } /* the border fades; the words stay readable */
 .quiz-mark { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid currentColor; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
 .quiz-word { margin-left: auto; font: 600 12px var(--font-body); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 .quiz-option.is-right { border-color: var(--pass); color: var(--midnight); }
@@ -132,4 +132,10 @@
 @media (prefers-reduced-motion: reduce) {
   .step.is-live { animation: none; }
   .board { scroll-behavior: auto; }
+}
+
+/* On a phone the bench is where the typing happens, so toasts sit above it. */
+@media (max-width: 640px) {
+  body:has(.classroom) .toasts { bottom: auto; top: 12px; align-items: stretch; }
+  body:has(.classroom) .toast { max-width: none; }
 }

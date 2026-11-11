@@ -5,7 +5,9 @@
 const TIMEOUT_MS = 6000
 
 export class RubyRunner {
-  constructor({ workerUrl, wasmUrl, onStatus = () => {} }) {
+  constructor({ workerUrl, wasmUrl, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker }) {
+    this.timeoutMs = timeoutMs
+    this.WorkerClass = WorkerClass
     this.workerUrl = workerUrl
     this.wasmUrl = wasmUrl
     this.onStatus = onStatus
@@ -18,7 +20,7 @@ export class RubyRunner {
 
   start() {
     this.worker?.terminate()
-    this.worker = new Worker(this.workerUrl, { type: "module" })
+    this.worker = new this.WorkerClass(this.workerUrl, { type: "module" })
     this.worker.onmessage = ({ data }) => {
       if (data.ready) return
       if (data.id === this.id && this.pending) { const done = this.pending; this.pending = null; done(data) }
@@ -45,7 +47,7 @@ export class RubyRunner {
         this.pending = null
         this.start()
         reject(new Error("timeout"))
-      }, limit ?? (this.loaded ? TIMEOUT_MS : 90000))
+      }, limit ?? (this.loaded ? this.timeoutMs : 90000))
       this.pending = data => { clearTimeout(timer); this.loaded = true; data.ok ? resolve(data.result) : reject(new Error(data.error)) }
       this.worker.postMessage({ id, wasmUrl: this.wasmUrl, ...message })
     }))
@@ -104,9 +106,13 @@ export class RubyRunner {
     if (error.message !== "timeout") return { stdout: "", error: { friendly: error.message, raw: "" } }
     const lines = this.history.slice()
     this.onStatus("Stopped", "bad")
-    this.restore(lines).then(() => this.onStatus("Ready", "ok"))
+    this.restoring = this.restore(lines).then(() => this.onStatus("Ready", "ok"))
+    const seconds = Math.round(this.timeoutMs / 1000)
+    const kept = lines.length
+      ? " Ruby was restarted and your earlier lines were run again, so your variables are back."
+      : " Ruby was restarted, so anything set in the console is gone."
     return { stdout: "", stopped: true, error: {
-      friendly: "That ran for more than 6 seconds, so it was stopped. Look for a loop that never ends.", raw: "" } }
+      friendly: `That ran for more than ${seconds} seconds, so it was stopped. Look for a loop that never ends.${kept}`, raw: "" } }
   }
 
   dispose() { this.worker?.terminate() }

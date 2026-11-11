@@ -16,11 +16,21 @@ class ClassLessonsController < ApplicationController
     @tools = VisualizersController::TOOLS
   end
 
-  # The student finished a step. Their place only ever moves forward.
+  # The student finished a step. Their place moves forward one step at a time:
+  # a request can't skip ahead, and a quiz step needs an answer on record first.
   def progress
     record = @lesson.class_progresses.find_or_create_by!(user: current_user)
     total = @lesson.steps.size
-    record.step_index = [ record.step_index, params[:step_index].to_i.clamp(0, total) ].max
+    wanted = params[:step_index].to_i
+    if wanted == record.step_index + 1 && wanted <= total
+      finished_step = @lesson.steps[record.step_index]
+      if finished_step["kind"] == "quiz" && !record.quiz_first.key?(record.step_index.to_s)
+        return render json: { ok: false, step_index: record.step_index, error: "Answer the question first." }, status: :unprocessable_entity
+      end
+      record.step_index = wanted
+    elsif wanted > record.step_index
+      return render json: { ok: false, step_index: record.step_index, error: "Steps are finished one at a time." }, status: :unprocessable_entity
+    end
     record.hints_used = [ record.hints_used, params[:hints_used].to_i.clamp(0, 200) ].max
     finishing = record.step_index >= total && !record.completed?
     record.completed_at = Time.current if finishing

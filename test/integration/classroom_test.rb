@@ -5,8 +5,13 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     @lesson ||= ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("lesson.md").read).merge(overrides))
   end
 
-  def finish(lesson)
-    post progress_class_lesson_path(lesson), params: { step_index: lesson.steps.size }, as: :json
+  # Works through a lesson the way the classroom does: one step per request,
+  # answering each quiz question first.
+  def finish(lesson, from: 0)
+    (from...lesson.steps.size).each do |i|
+      post quiz_class_lesson_path(lesson), params: { step: i, choice: 1 }, as: :json if lesson.steps[i]["kind"] == "quiz"
+      post progress_class_lesson_path(lesson), params: { step_index: i + 1 }, as: :json
+    end
   end
 
   test "a lesson script parses into playable steps without solutions" do
@@ -91,20 +96,48 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     assert_not exercise.unlocked_for?(users(:one))
 
-    post progress_class_lesson_path(lesson), params: { step_index: 3, hints_used: 1 }, as: :json
+    (1..3).each { |n| post progress_class_lesson_path(lesson), params: { step_index: n, hints_used: 1 }, as: :json }
     assert_equal({ "step_index" => 3, "completed" => false }, response.parsed_body.slice("step_index", "completed"))
     post progress_class_lesson_path(lesson), params: { step_index: 1 }, as: :json
     assert_equal 3, response.parsed_body["step_index"]
     get portal_path
     assert_select "a.btn[href=?]", class_lesson_path(lesson), text: "Resume class"
 
-    finish lesson
+    finish lesson, from: 3
     assert response.parsed_body["completed"]
     progress = lesson.progress_for(users(:one))
     assert progress.completed?
     assert_equal 100, progress.percent
     assert exercise.unlocked_for?(users(:one))
     assert_nil ClassLesson.next_for(users(:one))
+  end
+
+  test "one request can't finish a lesson or skip ahead" do
+    lesson(lesson_number: 1)
+    sign_in_as users(:one)
+    [ lesson.steps.size, 2 ].each do |jump|
+      post progress_class_lesson_path(lesson), params: { step_index: jump }, as: :json
+      assert_response :unprocessable_entity
+      assert_equal 0, response.parsed_body["step_index"]
+    end
+    progress = lesson.progress_for(users(:one))
+    assert_not progress.completed?
+    assert_equal 0, progress.step_index
+    assert_empty users(:one).user_badges
+  end
+
+  test "a quiz step can't be passed until the question has an answer on record" do
+    lesson(lesson_number: 1)
+    sign_in_as users(:one)
+    (1..3).each { |n| post progress_class_lesson_path(lesson), params: { step_index: n }, as: :json }
+    post progress_class_lesson_path(lesson), params: { step_index: 4 }, as: :json # step 3 is the quiz
+    assert_response :unprocessable_entity
+    assert_equal 3, lesson.progress_for(users(:one)).step_index
+
+    post quiz_class_lesson_path(lesson), params: { step: 3, choice: 0 }, as: :json
+    post progress_class_lesson_path(lesson), params: { step_index: 4 }, as: :json
+    assert_response :success
+    assert_equal 4, lesson.progress_for(users(:one)).step_index
   end
 
   test "quiz answers are checked on the server and the first answer is recorded" do
@@ -127,7 +160,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     post progress_class_lesson_path(lesson), params: { step_index: 6 }, as: :json
     assert_nil lesson.progress_for(users(:one))
     sign_in_as users(:one)
-    finish lesson
+    post progress_class_lesson_path(lesson), params: { step_index: 1 }, as: :json
     assert_response :forbidden
     assert_nil lesson.progress_for(users(:one))
   end

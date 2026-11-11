@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { toast, celebrate, postJSON, pick } from "lib/ui"
+import { toast, clearToasts, celebrate, postJSON, pick } from "lib/ui"
 import { RubyRunner } from "lib/ruby_runner"
 import { TerminalSim } from "lib/terminal_sim"
 import { evaluateChecks } from "lib/checks"
@@ -145,6 +145,7 @@ export default class extends Controller {
     if (past) return this.markDone(article)
 
     const step = this.steps[index]
+    clearToasts() // praise for the last step shouldn't hang over this one
     this.attempt = this.freshAttempt()
     article.classList.add("is-live")
     if (step.kind === "try") this.setMode(step.mode, { starter: step.starter, index })
@@ -229,7 +230,7 @@ export default class extends Controller {
     this.completeStep()
   }
 
-  async completeStep() {
+  completeStep() {
     const article = this.article
     if (!article || article.classList.contains("is-done")) return
     this.markDone(article)
@@ -238,12 +239,19 @@ export default class extends Controller {
     this.save()
     if (this.current >= this.steps.length) this.showFinish()
     else this.showStep(this.current)
-    try {
-      const data = await postJSON(this.progressUrlValue, { step_index: this.current, hints_used: this.hintsUsed })
-      celebrate(data.badges)
-    } catch (_) {
-      this.setStatus("Your place wasn't saved. Are you still signed in?", "bad")
-    }
+    this.report(this.current)
+  }
+
+  // Tell the server one step at a time, in order (it refuses to skip ahead).
+  report(index) {
+    this.reporting = (this.reporting || Promise.resolve()).then(async () => {
+      try {
+        const data = await postJSON(this.progressUrlValue, { step_index: index, hints_used: this.hintsUsed })
+        celebrate(data.badges)
+      } catch (_) {
+        this.setStatus("Your place wasn't saved. Are you still signed in?", "bad")
+      }
+    })
   }
 
   showFinish({ quiet = false } = {}) {
@@ -292,6 +300,7 @@ export default class extends Controller {
     const passing = outcomes.filter(o => o.ok).length
     const stalled = passing <= this.attempt.passing
     this.attempt.passing = Math.max(this.attempt.passing, passing)
+    clearToasts()
     if (!stalled) return false
     this.attempt.misses += 1
     const hints = article.querySelector("[data-role=hints]")
@@ -392,6 +401,7 @@ export default class extends Controller {
     button.querySelector(".quiz-word").textContent = data.right ? "Right" : "Not this one"
     const explain = article.querySelector("[data-role=explain]")
     if (!data.right) {
+      clearToasts()
       explain.textContent = "Not this one. Look back at the step above and pick again."
       explain.hidden = false
       return
@@ -511,12 +521,7 @@ export default class extends Controller {
       input.value = typed[at] ?? ""
     } else if (event.key === "Tab" && mode === "terminal" && input.value) {
       event.preventDefault()
-      const parts = input.value.split(" ")
-      const word = parts.pop()
-      const slash = word.lastIndexOf("/")
-      const folder = this.sim.node(slash >= 0 ? word.slice(0, slash) || "/" : ".")
-      const names = Object.keys(folder?.children || {}).filter(n => n.startsWith(word.slice(slash + 1)))
-      if (names.length === 1) input.value = [...parts, word.slice(0, slash + 1) + names[0]].join(" ")
+      input.value = this.sim.complete(input.value)
     } else if (event.ctrlKey && event.key.toLowerCase() === "c") {
       input.value = ""
       if (mode === "irb") { this.irbBuffer = ""; this.irbPromptTarget.textContent = "irb>" }
