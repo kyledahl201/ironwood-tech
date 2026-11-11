@@ -6,5 +6,5 @@ cd "$(dirname "$0")/../vendor/lab-src"
 npm install --no-audit --no-fund --silent
 npx esbuild editor.js --bundle --format=esm --minify --legal-comments=none --outfile=../../app/javascript/lab/editor.js
 npx esbuild ruby-worker.js --bundle --format=esm --minify --legal-comments=none --outfile=../../public/lab/ruby-worker.js
-cp node_modules/@ruby/3.4-wasm-wasi/dist/ruby+stdlib.wasm ../../public/lab/ruby.wasm
+../../bin/fetch-ruby-wasm
 echo "Built app/javascript/lab/editor.js, public/lab/ruby-worker.js and public/lab/ruby.wasm"

@@ -24,6 +24,7 @@ class PortalTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "CS 101 Intro to Programming"
     assert_select "svg.crest-tree"
+    assert_includes response.body, "Leaves track hours, not lessons."
     assert_not_includes response.body, "SECRET-NOTE-123"
   end
 
@@ -162,10 +163,17 @@ class PortalTest < ActionDispatch::IntegrationTest
   test "visualizer and lab pages render" do
     import_transcript users(:one)
     sign_in_as users(:one)
-    get loop_visualizer_path
+    get visualizers_path
     assert_response :success
+    %w[loop hash stack].each do |id|
+      get visualizer_path(id)
+      assert_select "[data-controller=tracer][data-tracer-program-value=?]", id
+    end
+    get "/visualizers/nope"
+    assert_response :not_found
     get exercise_path(exercises(:first))
     assert_select "[data-controller=lab]"
     assert_select ".chips .chip", 1
+    assert_includes response.body, "self-checked"
   end
 end

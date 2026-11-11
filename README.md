@@ -12,7 +12,7 @@ Ironwood is not an accredited school and grants no degrees or credit. The facult
 | Accounts | Invite-only sign-up, sign in and password reset (Rails 8 authentication) |
 | Today | The dashboard: today's class or lesson, the next gate countdown, the crest tree that lights up with progress, a 26-week study heatmap and a forgiving streak |
 | Code lab | Ruby exercises written by the faculty, with a real editor (CodeMirror), Ruby running in the browser (ruby.wasm), automatic checks, a line-by-line output diff and hints one at a time. Exercises open after their lesson is taught. No solutions are stored |
-| Visualizers | A loop tracer that steps through `.each` line by line |
+| Visualizers | Step-through tools in one frame: a loop tracer, a hash lookup and a method call stack |
 | Rewards | Badges for real milestones (no points or leaderboards), Sentry the owl, and a few easter eggs |
 | Study log | Log study sessions; they feed the heatmap, streak and hours |
 | Study hall | Opt-in: invited friends see each other's current course and weekly hours. No rankings |
@@ -30,6 +30,7 @@ You need Ruby 3.3 and SQLite.
 ```sh
 bundle install
 bin/rails db:prepare          # creates the database and seeds courses and exercises
+bin/fetch-ruby-wasm           # Ruby for the code lab (checksummed)
 bin/dev                       # http://localhost:3000
 ```
 
@@ -41,7 +42,9 @@ The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or pr
 
 ## Code lab assets
 
-The editor bundle (`app/javascript/lab/editor.js`) and the Ruby worker (`public/lab/ruby-worker.js`) are built from `vendor/lab-src` and committed. To rebuild them, or to get a local copy of the Ruby binary for offline use, run `bin/build-lab-assets` (needs Node). Without a local `public/lab/ruby.wasm`, the lab loads Ruby from the jsDelivr CDN.
+The editor bundle (`app/javascript/lab/editor.js`) and the Ruby worker (`public/lab/ruby-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
+
+The Ruby binary (`public/lab/ruby.wasm`, about 30 MB) is not committed. `bin/fetch-ruby-wasm` downloads the pinned version and refuses it unless its SHA-256 matches. The Docker build runs it, so the binary always ships with the site. The worker checks the same SHA-256 before running Ruby, whether it came from this site or from the jsDelivr fallback.
 
 Exercises live in `db/seeds/exercises/*.md`, one file per exercise, in the faculty's format. Re-run `bin/rails db:seed` after adding one.
 

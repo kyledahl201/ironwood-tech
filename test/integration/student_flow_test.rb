@@ -15,7 +15,7 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "everything else needs a sign-in" do
-    %w[/portal /courses /lab /visualizers/loop /portal/badges /portal/study-log].each do |path|
+    %w[/portal /courses /lab /visualizers /visualizers/loop /portal/badges /portal/study-log].each do |path|
       get path
       assert_redirected_to new_session_path, path
     end

@@ -39,6 +39,7 @@
     <aside class="tree-card" aria-label="Progress tree">
       <%= @tree.to_svg(size: 300) %>
       <p class="tree-caption"><%= @tree.caption %></p>
+      <p class="tree-rule"><%= @tree.leaf_rule %></p>
     </aside>
   </div>
 </section>
@@ -60,7 +61,7 @@
       <% else %>
         <p class="muted">You're caught up. New exercises open as each lesson is taught.</p>
       <% end %>
-      <p><%= link_to "Try the loop tracer", loop_visualizer_path %></p>
+      <p><%= link_to "Open the visualizers", visualizers_path %></p>
     </div>
   </div>
 </section>

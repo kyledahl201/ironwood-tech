@@ -167,7 +167,7 @@ export default class extends Controller {
     this.showDiff(checks, outcomes)
 
     if (passed) {
-      this.setStatus("All checks pass", "ok")
+      this.setStatus("All checks pass (self-checked)", "ok")
       toast(this.failures === 0 && this.hintsShown === 0 ? this.firstTryLinesValue : pick(this.passLinesValue), { tone: "pass" })
       this.element.classList.add("is-passed")
     } else {
@@ -212,7 +212,7 @@ export default class extends Controller {
       chip.classList.toggle("is-pass", !!ok)
       chip.classList.toggle("is-fail", !ok)
       chip.querySelector(".chip-dot").textContent = ok ? "✓" : "✗"
-      chip.title = ok ? "Pass" : "Not yet"
+      chip.querySelector(".chip-word").textContent = ok ? "Pass" : "Not yet"
     })
   }
 

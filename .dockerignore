@@ -1,0 +1,12 @@
+/.git/
+/.bundle
+/.env*
+/config/master.key
+/config/credentials/*.key
+/log/*
+/tmp/*
+/storage/*
+/public/assets
+/vendor/lab-src/node_modules
+/.github
+/test

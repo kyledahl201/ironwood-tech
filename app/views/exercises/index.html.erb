@@ -17,10 +17,10 @@
             <% if unlocked %><%= link_to e.title, exercise_path(e), class: "ex-title" %><% else %><span class="ex-title"><%= e.title %></span><% end %>
             <span class="muted small"><%= e.lesson_label.presence || "Lesson #{e.lesson_number}" %></span>
           </div>
-          <span class="ex-tag small"><%= passed ? "Passed" : (unlocked ? "Open" : "Opens after lesson #{e.lesson_number}") %></span>
+          <span class="ex-tag small"><%= passed ? "Passed · self-checked" : (unlocked ? "Open" : "Opens after lesson #{e.lesson_number}") %></span>
         </li>
       <% end %>
     </ol>
   <% end %>
-  <div class="callout" style="margin-top:32px"><strong>Want to see a loop think?</strong> <%= link_to "Open the loop tracer", loop_visualizer_path %> and step through <code>.each</code> one line at a time.</div>
+  <div class="callout" style="margin-top:32px"><strong>Want to see a loop think?</strong> <%= link_to "Open the loop tracer", visualizer_path("loop") %> and step through <code>.each</code> one line at a time.</div>
 </div></section>

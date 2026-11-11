@@ -73,6 +73,14 @@ class CrestTree
     parts.compact.join(" · ")
   end
 
+  # The honest rule behind the leaves, shown under the tree.
+  def leaf_rule
+    target = facts[:target].to_i
+    return "Leaves light up as you log study hours." unless target.positive?
+    per = (target / self.class.leaf_count.to_f).round
+    "One leaf lights for about every #{per} hours of logged study. Leaves track hours, not lessons."
+  end
+
   def to_svg(size: 300, title: "Your progress tree")
     leaves = LEAVES_L + LEAVES_L.map { |b, a, s| [ mirror(b), 180 - a, s ] } + LEAVES_C
     # Fill from the lowest twig upward, alternating sides (spec: the crown grows evenly).

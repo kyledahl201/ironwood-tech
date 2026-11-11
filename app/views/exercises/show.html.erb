@@ -22,9 +22,11 @@
     <h2 class="lab-sub">Checks</h2>
     <ul class="chips" data-lab-target="chips">
       <% @exercise.checks.each_with_index do |c, i| %>
-        <li class="chip" data-index="<%= i %>"><span class="chip-dot" aria-hidden="true"></span><span><%= c["label"] %></span></li>
+        <li class="chip" data-index="<%= i %>"><span class="chip-dot" aria-hidden="true"></span><span class="chip-label"><%= c["label"] %></span><span class="chip-word"></span></li>
       <% end %>
     </ul>
+
+    <p class="small muted">Checks run in your browser, so a pass here is self-checked. Graded work goes through your professor.</p>
 
     <div class="hints" data-lab-target="hints" hidden>
       <h2 class="lab-sub">Hints</h2>

@@ -1,6 +1,8 @@
 /* Ironwood learning portal: Today, crest tree, heatmap, code lab, tracer,
    badges and Sentry. Prof. Duarte's portal spec; Night is the lab's ground. */
 :root {
+  /* The only two state colours, from Prof. Duarte's code-lab spec, used on check
+     chips only and always with an icon and the word. Everything else is brand. */
   --pass: #3F6E34;
   --notyet: #9B2335;
   --code-string: #8FB3D9;
@@ -101,7 +103,7 @@
 .hall { list-style: none; padding: 0; margin: 0 0 16px; }
 .hall li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
 .hall-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rule); display: inline-block; flex: none; }
-.hall-dot.is-on { background: var(--pass); box-shadow: 0 0 0 3px rgba(63,110,52,.2); }
+.hall-dot.is-on { background: var(--copper); box-shadow: 0 0 0 3px rgba(184,115,51,.25); }
 
 /* Code lab list ------------------------------------------------------------- */
 .lab-head { background: var(--night); color: var(--linen); border-bottom: 3px solid var(--copper); }
@@ -113,12 +115,12 @@
 .ex-body { display: flex; flex-direction: column; min-width: 0; }
 .ex-title { font-weight: 600; font-size: 18px; }
 .ex-state { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; border: 1.5px solid var(--rule); }
-.ex-row.is-passed .ex-state { background: var(--pass); border-color: var(--pass); color: var(--white); }
+.ex-row.is-passed .ex-state { background: var(--midnight); border-color: var(--midnight); color: var(--linen); }
 .ex-row.is-open .ex-state { border-color: var(--copper); color: var(--copper-deep); }
 .ex-row.is-locked { color: var(--muted); }
 .ex-row.is-locked .ex-state::before { content: ""; width: 10px; height: 8px; border: 2px solid var(--muted); border-radius: 1px; margin-top: 4px; box-shadow: 0 -5px 0 -2px var(--white), 0 -6px 0 0 var(--muted); }
 .ex-tag { color: var(--muted); text-align: right; }
-.ex-row.is-passed .ex-tag { color: var(--pass); font-weight: 600; }
+.ex-row.is-passed .ex-tag { color: var(--midnight); font-weight: 600; }
 
 /* Code lab bench ------------------------------------------------------------ */
 .lab { display: grid; gap: 0; background: var(--linen); }
@@ -131,11 +133,14 @@
 .lab-sub { font-family: var(--font-body); font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--copper-deep); margin: 24px 0 10px; }
 .chips { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .chips .chip { all: unset; display: flex; gap: 10px; align-items: center; padding: 8px 12px; background: var(--white); border: 1px solid var(--rule); font-size: 15px; transition: border-color .3s, background .3s; }
-.chips .chip span:last-child { font-family: var(--font-code); font-size: 14px; overflow-wrap: anywhere; }
+.chips .chip .chip-label { font-family: var(--font-code); font-size: 14px; overflow-wrap: anywhere; }
 .chip-dot { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 1.5px solid var(--rule); color: var(--white); }
-.chips .chip.is-pass { border-color: var(--pass); background: #F1F5EE; }
+.chips .chip.is-pass { border-color: var(--pass); }
 .chips .chip.is-pass .chip-dot { background: var(--pass); border-color: var(--pass); animation: pop .35s ease-out; }
-.chips .chip.is-fail { border-color: var(--notyet); background: #FBF1F2; }
+.chips .chip.is-fail { border-color: var(--notyet); }
+.chip-word { margin-left: auto; font: 600 12px var(--font-body) !important; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.chips .chip.is-pass .chip-word { color: var(--pass); }
+.chips .chip.is-fail .chip-word { color: var(--notyet); }
 .chips .chip.is-fail .chip-dot { background: var(--notyet); border-color: var(--notyet); }
 @keyframes pop { 0% { transform: scale(.4); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
 .hints ol { padding-left: 20px; margin: 0 0 8px; }
@@ -150,8 +155,8 @@
 .bench-file { font-family: var(--font-code); color: var(--bone); padding: 2px 10px; border-bottom: 2px solid var(--copper); }
 .bench-status { flex: 1; color: rgba(245,243,239,.7); }
 .bench-status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: rgba(245,243,239,.4); vertical-align: middle; }
-.bench-status[data-tone=ok]::before { background: #7FB069; }
-.bench-status[data-tone=bad]::before { background: #E07A86; }
+.bench-status[data-tone=ok]::before { background: var(--linen); }
+.bench-status[data-tone=bad]::before { background: transparent; box-shadow: inset 0 0 0 2px var(--copper); }
 .bench-status[data-tone=busy]::before { background: var(--copper); animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .2; } }
 .bench-timer { font-family: var(--font-code); color: rgba(245,243,239,.6); }
@@ -166,7 +171,7 @@
 .console { border-top: 1px solid var(--night-line); }
 .console-head { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--bone); padding: 10px 16px 0; }
 .console-body { margin: 0; padding: 8px 16px 16px; min-height: 96px; max-height: 260px; overflow: auto; font: 14px/1.55 var(--font-code); white-space: pre-wrap; color: var(--linen); }
-.console-error { color: #F2A7B0; font-family: var(--font-body); font-size: 15px; }
+.console-error { color: var(--bone); font-family: var(--font-body); font-size: 15px; }
 .console-raw { color: rgba(245,243,239,.4); font-size: 12px; }
 .console-muted { color: rgba(245,243,239,.5); font-style: italic; }
 .diff { padding: 0 16px 16px; }
@@ -176,14 +181,13 @@
 .diff-table th { text-align: left; font: 600 11px var(--font-body); letter-spacing: .15em; text-transform: uppercase; color: rgba(245,243,239,.5); padding: 4px 8px; }
 .diff-table td { padding: 3px 8px; border-top: 1px solid var(--night-line); white-space: pre-wrap; overflow-wrap: anywhere; }
 .diff-table td:first-child { color: rgba(245,243,239,.4); width: 2em; }
-.diff-table tr.differs td:nth-child(2) { background: rgba(63,110,52,.25); }
-.diff-table tr.differs td:nth-child(3) { background: rgba(155,35,53,.3); }
+.diff-table tr.differs td:nth-child(2) { background: rgba(245,243,239,.08); }
+.diff-table tr.differs td:nth-child(3) { background: rgba(184,115,51,.28); }
 .diff-pair { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font: 13px var(--font-code); }
 .diff-pair dt { color: rgba(245,243,239,.5); }
 .diff-pair dd { margin: 0; overflow-wrap: anywhere; }
 .lab-next { padding: 16px; border-top: 1px solid var(--night-line); display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .lab-next p { margin: 0; }
-.lab.is-passed .bench-file { border-color: #7FB069; }
 
 /* Loop tracer --------------------------------------------------------------- */
 .tracer-inputs { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
@@ -203,7 +207,7 @@
 .array-boxes { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .array-box { display: flex; flex-direction: column; align-items: center; border: 1.5px solid var(--rule); padding: 4px 10px 6px; min-width: 56px; transition: all .25s; }
 .array-index { font-size: 11px; color: var(--muted); }
-.array-value { font: 14px var(--font-code); color: #2F5D8A; }
+.array-value { font: 14px var(--font-code); color: var(--midnight); }
 .array-box.is-done { opacity: .5; }
 .array-box.is-current { border-color: var(--copper); background: #FBF1E6; transform: translateY(-3px); box-shadow: 0 4px 0 var(--copper); }
 .vars { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-family: var(--font-code); font-size: 15px; }
@@ -228,8 +232,8 @@
 .toasts { position: fixed; right: 16px; bottom: 16px; left: 16px; z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 10px; max-width: 380px; background: var(--midnight); color: var(--linen); padding: 10px 16px 10px 10px; border-left: 4px solid var(--copper); box-shadow: 0 10px 24px rgba(0,0,0,.25); font-size: 15px; opacity: 0; transform: translateY(12px); transition: opacity .3s, transform .3s; pointer-events: auto; }
 .toast.is-in { opacity: 1; transform: none; }
-.toast-pass { border-left-color: #7FB069; }
-.toast-fail { border-left-color: #E07A86; }
+.toast-pass { border-left-color: var(--copper); }
+.toast-fail { border-left-color: var(--bone); }
 .toast-egg { border-left-color: var(--bone); }
 .toast-sentry { width: 32px; height: 40px; flex: none; }
 body.is-konami .brand-mark img, body.is-konami .lockup img { animation: spin 1.2s ease-in-out 2; }
@@ -245,3 +249,20 @@ tr.is-new td { background: #FBF1E6; }
 }
 .admin-bar .wrap { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: center; }
 .admin-bar a { margin-right: 0; }
+.tree-rule { font-size: 12px; color: rgba(245,243,239,.6); margin: 6px auto 0; max-width: 36ch; }
+
+/* Hash and call-stack panels in the visualizers */
+.tracer-state .lab-sub:first-child { margin-top: 0; }
+.pair-rows, .stack-frames { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.pair-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 12px; border: 1.5px solid var(--rule); font: 14px var(--font-code); transition: all .25s; }
+.pair-arrow { color: var(--muted); }
+.pair-value { text-align: right; }
+.pair-row.is-current { border-color: var(--copper); background: #FBF1E6; box-shadow: inset 4px 0 0 var(--copper); }
+.pair-rows.is-miss .pair-row:not(.pair-missing) { opacity: .5; }
+.pair-missing { display: block; border-style: dashed; font-family: var(--font-body); color: var(--muted); }
+.stack-frame { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 10px 12px; border: 1.5px solid var(--rule); background: var(--linen); color: var(--muted); font-size: 14px; }
+.stack-frame.is-top { border-color: var(--copper); background: var(--midnight); color: var(--linen); box-shadow: 0 4px 0 var(--copper); animation: fade-in .25s ease-out; }
+.stack-name { font-family: var(--font-code); font-weight: 500; }
+.stack-vars { font-family: var(--font-code); white-space: pre-wrap; }
+.stack-return { margin-left: auto; font-weight: 600; color: var(--bone); }
+.stack-return::before { content: "↩ "; }

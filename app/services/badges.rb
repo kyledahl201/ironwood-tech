@@ -5,8 +5,8 @@ module Badges
   # Names and lines from the Office of Communications (copy/portal/03-badges.md).
   ALL = [
     Badge.new("first_run", "Hello, World", "You ran your own code. Everything starts here.", false),
-    Badge.new("first_pass", "All Green", "Every check passed on one exercise.", false),
-    Badge.new("no_hints", "Unassisted", "Passed without opening a hint. Sentry noticed.", false),
+    Badge.new("first_pass", "All Green", "Every check passed on one exercise. Self-checked in the lab.", false),
+    Badge.new("no_hints", "Unassisted", "Passed without opening a hint. Self-checked. Sentry noticed.", false),
     Badge.new("streak_7", "Seven Days", "A week in a row, with one grace day included.", false),
     Badge.new("streak_30", "Thirty Days", "A month of showing up. That's the whole secret.", false),
     Badge.new("hours_10", "Ten Hours", "10 hours logged. The first ten are the hardest.", false),

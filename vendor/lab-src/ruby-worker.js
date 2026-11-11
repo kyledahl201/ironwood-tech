@@ -68,15 +68,30 @@ end
 JSON.generate(result)
 `
 
+// The Ruby binary is pinned: whether it comes from this site or the CDN
+// fallback, it only runs if its SHA-256 matches (bin/fetch-ruby-wasm pins the same one).
+const WASM_SHA256 = "4b814fc9d13505ea5b4c1f3bd3a7cc7ccca137f551196b9b21f0a7caf9cc5878"
+
+async function loadVerified(url) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Ruby didn't download (HTTP ${response.status})`)
+  const bytes = await response.arrayBuffer()
+  const digest = await crypto.subtle.digest("SHA-256", bytes)
+  const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("")
+  if (hex !== WASM_SHA256) throw new Error("The Ruby download didn't match its checksum, so the lab won't run it.")
+  return WebAssembly.compile(bytes)
+}
+
 self.onmessage = async ({ data }) => {
   try {
-    modulePromise ||= WebAssembly.compileStreaming(fetch(data.wasmUrl))
+    modulePromise ||= loadVerified(data.wasmUrl)
     const module = await modulePromise
     const { vm } = await DefaultRubyVM(module, { consolePrint: false })
     self.__iwPayload = JSON.stringify({ code: data.code, checks: data.checks || [] })
     const json = vm.eval(HARNESS).toString()
     self.postMessage({ id: data.id, ok: true, result: JSON.parse(json) })
   } catch (e) {
+    if (!(await modulePromise?.catch(() => null))) modulePromise = null // let the next run retry the download
     self.postMessage({ id: data.id, ok: false, error: String(e && e.message || e) })
   }
 }

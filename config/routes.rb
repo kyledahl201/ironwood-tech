@@ -33,7 +33,8 @@ Rails.application.routes.draw do
   resources :exercises, only: %i[index show], path: "lab" do
     resources :attempts, only: :create
   end
-  get "visualizers/loop", to: "visualizers#loop", as: :loop_visualizer
+  get "visualizers", to: "visualizers#index", as: :visualizers
+  get "visualizers/:id", to: "visualizers#show", as: :visualizer, constraints: { id: /loop|hash|stack/ }
 
   # Owner area
   namespace :admin do
