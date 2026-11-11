@@ -1,16 +1,14 @@
-<% page_title "Create your account" %>
+<% page_title "Join" %>
 <div class="auth">
-  <p class="eyebrow">Free to join</p>
+  <p class="eyebrow">You're invited</p>
   <h1>Create your account</h1>
-  <p>Join to enroll in courses, work with your AI tutor and track your progress.</p>
-  <%= form_with model: @user, url: registration_path, class: "form" do |f| %>
+  <%= form_with model: @user, url: registration_path(invite: params[:invite]), class: "form" do |f| %>
     <%= render "shared/errors", record: @user %>
     <div class="field"><%= f.label :name, "Your name" %><%= f.text_field :name, required: true, autocomplete: "name", autofocus: true %></div>
     <div class="field"><%= f.label :email_address, "Email" %><%= f.email_field :email_address, required: true, autocomplete: "username" %></div>
     <div class="field"><%= f.label :password %><span class="hint">At least 10 characters.</span><%= f.password_field :password, required: true, autocomplete: "new-password", maxlength: 72 %></div>
     <div class="field"><%= f.label :password_confirmation, "Repeat password" %><%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", maxlength: 72 %></div>
-    <p class="small muted"><%= brand.disclosure %> By creating an account you agree to our <%= link_to "terms", terms_path %> and <%= link_to "privacy notice", privacy_path %>.</p>
+    <p class="small muted"><%= brand.disclosure %> See the <%= link_to "privacy notice", privacy_path %>.</p>
     <div><%= f.submit "Create account", class: "btn btn-primary" %></div>
   <% end %>
-  <p style="margin-top:24px">Already have an account? <%= link_to "Log in", new_session_path %></p>
 </div>

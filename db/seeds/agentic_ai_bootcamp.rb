@@ -64,7 +64,6 @@ AGENTIC_AI_BOOTCAMP = {
   tagline: "Build, test and deploy AI agents in Python over 14 weeks.",
   level: "Intermediate, basic Python needed",
   hours: "14 weeks, about 6 hours a week (about 84 hours)",
-  price_cents: nil, # Kyle sets the price in the owner area; listed as "Price coming soon" until then.
   position: 2,
   tutor_name: "Prof. Tomas Reyes",
   tutor_bio: "You are a builder at heart and a little impatient with hype. Your rule is \"Show me the trace\": " \

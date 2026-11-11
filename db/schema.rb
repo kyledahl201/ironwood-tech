@@ -10,13 +10,44 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_064759) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_040402) do
+  create_table "attempts", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "exercise_id", null: false
+    t.text "code", null: false
+    t.boolean "passed", default: false, null: false
+    t.integer "checks_passed", default: 0, null: false
+    t.integer "hints_used", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["exercise_id"], name: "index_attempts_on_exercise_id"
+    t.index ["user_id", "exercise_id", "passed"], name: "index_attempts_on_user_id_and_exercise_id_and_passed"
+    t.index ["user_id"], name: "index_attempts_on_user_id"
+  end
+
+  create_table "course_records", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "position", default: 0, null: false
+    t.string "code", null: false
+    t.string "title", null: false
+    t.string "professor"
+    t.string "status"
+    t.integer "lessons_done", default: 0, null: false
+    t.decimal "hours_logged", precision: 7, scale: 1, default: "0.0", null: false
+    t.integer "hours_target"
+    t.string "grade"
+    t.string "next_lesson"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "code"], name: "index_course_records_on_user_id_and_code", unique: true
+    t.index ["user_id"], name: "index_course_records_on_user_id"
+  end
+
   create_table "courses", force: :cascade do |t|
     t.string "title", null: false
     t.string "slug"
     t.string "tagline"
     t.text "description"
-    t.integer "price_cents"
     t.boolean "published", default: false, null: false
     t.string "level"
     t.integer "position", default: 0, null: false
@@ -33,32 +64,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_064759) do
   create_table "enrollments", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "course_id", null: false
-    t.string "source", default: "free", null: false
-    t.integer "amount_cents", default: 0, null: false
-    t.string "stripe_session_id"
+    t.string "source", default: "self", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "payment_intent_id"
-    t.datetime "revoked_at"
-    t.string "revoke_reason"
-    t.datetime "terms_accepted_at"
     t.index ["course_id"], name: "index_enrollments_on_course_id"
-    t.index ["payment_intent_id"], name: "index_enrollments_on_payment_intent_id"
-    t.index ["stripe_session_id"], name: "index_enrollments_on_stripe_session_id"
     t.index ["user_id", "course_id"], name: "index_enrollments_on_user_id_and_course_id", unique: true
     t.index ["user_id"], name: "index_enrollments_on_user_id"
   end
 
-  create_table "leads", force: :cascade do |t|
-    t.string "name"
-    t.string "email", null: false
-    t.string "company"
-    t.string "job_title"
-    t.text "message"
-    t.string "kind", default: "consulting", null: false
-    t.string "status", default: "new", null: false
+  create_table "exercises", force: :cascade do |t|
+    t.string "slug", null: false
+    t.string "title", null: false
+    t.string "course_code", null: false
+    t.integer "lesson_number", null: false
+    t.string "lesson_label"
+    t.string "weak_spot"
+    t.string "language", default: "ruby", null: false
+    t.text "prompt"
+    t.text "starter_code"
+    t.json "checks", default: [], null: false
+    t.json "hints", default: [], null: false
+    t.boolean "open_to_all", default: false, null: false
+    t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_exercises_on_slug", unique: true
+  end
+
+  create_table "invites", force: :cascade do |t|
+    t.string "token", null: false
+    t.string "note"
+    t.integer "created_by_id", null: false
+    t.integer "used_by_id"
+    t.datetime "used_at"
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_invites_on_created_by_id"
+    t.index ["token"], name: "index_invites_on_token", unique: true
+    t.index ["used_by_id"], name: "index_invites_on_used_by_id"
   end
 
   create_table "lesson_completions", force: :cascade do |t|
@@ -82,17 +126,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_064759) do
     t.index ["course_id"], name: "index_lessons_on_course_id"
   end
 
-  create_table "posts", force: :cascade do |t|
-    t.string "title", null: false
-    t.string "slug"
-    t.text "summary"
-    t.text "body"
-    t.datetime "published_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["slug"], name: "index_posts_on_slug", unique: true
-  end
-
   create_table "sessions", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "ip_address"
@@ -100,6 +133,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_064759) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "study_sessions", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.date "studied_on", null: false
+    t.integer "minutes", null: false
+    t.string "course_code"
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "studied_on"], name: "index_study_sessions_on_user_id_and_studied_on"
+    t.index ["user_id"], name: "index_study_sessions_on_user_id"
+  end
+
+  create_table "transcript_snapshots", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.date "day_one"
+    t.integer "current_day"
+    t.string "phase"
+    t.decimal "hours_logged", precision: 7, scale: 1, default: "0.0", null: false
+    t.integer "stage_hours_target"
+    t.string "next_gate_name"
+    t.integer "next_gate_day"
+    t.string "next_gate_goal"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_transcript_snapshots_on_user_id", unique: true
   end
 
   create_table "tutor_messages", force: :cascade do |t|
@@ -114,6 +174,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_064759) do
     t.index ["user_id"], name: "index_tutor_messages_on_user_id"
   end
 
+  create_table "user_badges", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "key", null: false
+    t.datetime "earned_at", null: false
+    t.datetime "seen_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "key"], name: "index_user_badges_on_user_id_and_key", unique: true
+    t.index ["user_id"], name: "index_user_badges_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email_address", null: false
     t.string "password_digest", null: false
@@ -121,15 +192,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_064759) do
     t.datetime "updated_at", null: false
     t.string "name"
     t.integer "role", default: 0, null: false
+    t.boolean "share_in_study_hall", default: false, null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "attempts", "exercises"
+  add_foreign_key "attempts", "users"
+  add_foreign_key "course_records", "users"
   add_foreign_key "enrollments", "courses"
   add_foreign_key "enrollments", "users"
+  add_foreign_key "invites", "users", column: "created_by_id"
+  add_foreign_key "invites", "users", column: "used_by_id"
   add_foreign_key "lesson_completions", "enrollments"
   add_foreign_key "lesson_completions", "lessons"
   add_foreign_key "lessons", "courses"
   add_foreign_key "sessions", "users"
+  add_foreign_key "study_sessions", "users"
+  add_foreign_key "transcript_snapshots", "users"
   add_foreign_key "tutor_messages", "lessons"
   add_foreign_key "tutor_messages", "users"
+  add_foreign_key "user_badges", "users"
 end

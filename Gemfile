@@ -63,6 +63,5 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem "stripe", "~> 20.1"
 gem "anthropic", "~> 2.6"
 gem "redcarpet", "~> 3.6"

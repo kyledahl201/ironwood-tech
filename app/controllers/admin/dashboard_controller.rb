@@ -2,15 +2,10 @@ module Admin
   class DashboardController < BaseController
     def show
       @counts = {
-        students: User.student.count,
-        enrollments: Enrollment.count,
-        paid: Enrollment.where(source: "stripe").count,
-        revenue_cents: Enrollment.where(source: "stripe").sum(:amount_cents),
-        new_leads: Lead.where(status: "new").count,
-        subscribers: Lead.where(kind: "newsletter").count
+        students: User.count, open_invites: Invite.open.count, enrollments: Enrollment.count,
+        exercises: Exercise.count, attempts: Attempt.count, sessions: StudySession.count
       }
-      @leads = Lead.recent.limit(5)
-      @enrollments = Enrollment.includes(:user, :course).order(created_at: :desc).limit(5)
+      @snapshot = current_user.transcript_snapshot
     end
   end
 end

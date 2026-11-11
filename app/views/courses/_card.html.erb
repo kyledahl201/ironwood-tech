@@ -1,7 +1,10 @@
-<li class="card">
+<li class="card course-card">
   <p class="eyebrow"><%= course.level %></p>
   <h3><%= link_to course.title, course_path(course) %></h3>
   <p><%= course.tagline %></p>
   <p class="meta"><%= [course.hours, ("Tutor: #{course.tutor_name}" if course.tutor_name.present?)].compact.join(" · ") %></p>
-  <p class="price"><%= course.price %></p>
+  <% if (e = @enrollments&.[](course.id)) %>
+    <div class="progress"><span style="width: <%= e.progress_percent %>%"></span></div>
+    <p class="meta"><%= e.progress_percent %>% complete</p>
+  <% end %>
 </li>

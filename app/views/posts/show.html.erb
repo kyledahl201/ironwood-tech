@@ -1,8 +1,0 @@
-<% page_title @post.title %>
-<% content_for :description, @post.summary %>
-<header class="page-head"><div class="wrap narrow">
-  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Blog", posts_path %></li><li aria-current="page"><%= @post.title %></li></ol></nav>
-  <p class="eyebrow"><%= @post.published_at.to_date.to_fs(:long) %></p><h1><%= @post.title %></h1>
-</div></header>
-<article class="section"><div class="wrap narrow prose"><%= markdown @post.body %></div></article>
-<%= render "shared/newsletter" %>

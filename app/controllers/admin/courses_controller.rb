@@ -19,7 +19,7 @@ module Admin
 
     private
       def course_params
-        params.require(:course).permit(:title, :tagline, :description, :price_cents, :published, :level, :tutor_name, :tutor_bio).tap { |p| p[:price_cents] = nil if p[:price_cents] == "" }
+        params.require(:course).permit(:title, :tagline, :description, :published, :level, :tutor_name, :tutor_bio)
       end
   end
 end

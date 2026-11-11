@@ -1,0 +1,18 @@
+<% page_title "Badges" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Portal</p><h1>Badges</h1><p class="lede">Earned for real milestones only. A couple are hidden.</p></div></header>
+<section class="section"><div class="wrap">
+  <ul class="badge-grid">
+    <% Badges::ALL.each_value do |b| %>
+      <% earned = @earned[b.key] %>
+      <% next if b.egg && !earned %>
+      <li class="badge-tile<%= ' is-earned' if earned %>">
+        <%= badge_image(b.key, size: 88, earned: earned) %>
+        <h3><%= b.name %></h3>
+        <p class="small"><%= earned ? b.description : "Not yet." %></p>
+        <% if earned %><p class="small muted">Earned <%= earned.earned_at.to_date.to_fs(:long) %></p><% end %>
+      </li>
+    <% end %>
+    <% hidden = Badges::ALL.values.count { |b| b.egg && !@earned[b.key] } %>
+    <% if hidden.positive? %><li class="badge-tile is-secret"><div class="secret-mark">?</div><h3><%= hidden %> hidden</h3><p class="small muted">Sentry knows.</p></li><% end %>
+  </ul>
+</div></section>

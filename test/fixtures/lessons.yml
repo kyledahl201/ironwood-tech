@@ -10,8 +10,8 @@ free_two:
   title: Second lesson
   body: "Lesson two body"
 
-paid_one:
-  course: paid
+other_one:
+  course: other
   position: 1
-  title: Paid lesson
-  body: "Paid body"
+  title: Other lesson
+  body: "Other body"

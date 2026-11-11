@@ -5,7 +5,6 @@
     <%= render "shared/errors", record: @course %>
     <div class="field"><%= f.label :title %><%= f.text_field :title %></div>
     <div class="field"><%= f.label :tagline %><%= f.text_field :tagline %></div>
-    <div class="field"><%= f.label :price_cents, "Price in cents" %><span class="hint">0 = free. Leave blank to list it as "Price coming soon" with no checkout. 14900 = $149.</span><%= f.number_field :price_cents, min: 0 %></div>
     <div class="field"><%= f.label :level %><%= f.text_field :level %></div>
     <div class="field"><%= f.label :tutor_name %><%= f.text_field :tutor_name %></div>
     <div class="field"><%= f.label :tutor_bio, "Tutor persona (sent to the AI)" %><%= f.text_area :tutor_bio, rows: 4 %></div>

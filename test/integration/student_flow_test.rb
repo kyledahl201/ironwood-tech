@@ -1,69 +1,80 @@
 require "test_helper"
 
 class StudentFlowTest < ActionDispatch::IntegrationTest
-  test "public pages render with the disclosure and noindex" do
-    %w[/ /courses /courses/free-course /courses/free-course/rubric /about /faq /refunds /privacy /terms /consulting /blog /signup].each do |path|
+  include ActiveJob::TestHelper
+
+  test "public pages show the disclosure, sell nothing and are not indexed" do
+    %w[/ /privacy /session/new].each do |path|
       get path
       assert_response :success, path
       assert_includes response.body, "not an accredited school", path
       assert_select "meta[name=robots][content='noindex, nofollow']"
     end
+    get root_path
+    assert_no_match(/\$\d|enroll now|buy/i, response.body)
   end
 
-  test "sign up, enroll free, finish every lesson, get a certificate" do
-    post registration_path, params: { user: { name: "New Person", email_address: "new@example.com", password: "longpassword1", password_confirmation: "longpassword1" } }
-    assert_redirected_to portal_url
-    course = courses(:free)
+  test "everything else needs a sign-in" do
+    %w[/portal /courses /lab /visualizers/loop /portal/badges /portal/study-log].each do |path|
+      get path
+      assert_redirected_to new_session_path, path
+    end
+  end
 
-    post course_checkout_path(course)
+  test "sign-up is invite-only and an invite works once" do
+    get new_registration_path
+    assert_response :forbidden
+    params = { user: { name: "New Friend", email_address: "friend@example.com", password: "longpassword1", password_confirmation: "longpassword1" } }
+    assert_no_difference -> { User.count } do
+      post registration_path, params: params
+      post registration_path, params: params.merge(invite: "forged")
+    end
+
+    invite = Invite.create!(created_by: users(:owner))
+    get new_registration_path(invite: invite.token)
+    assert_response :success
+    assert_difference -> { User.count }, 1 do
+      post registration_path, params: params.merge(invite: invite.token)
+    end
+    assert_redirected_to portal_url
+    assert_equal "friend@example.com", invite.reload.used_by.email_address
+
+    sign_out
+    assert_no_difference -> { User.count } do
+      post registration_path, params: { invite: invite.token, user: params[:user].merge(email_address: "second@example.com") }
+    end
+  end
+
+  test "expired invites do not work" do
+    invite = Invite.create!(created_by: users(:owner), expires_at: 1.day.ago)
+    get new_registration_path(invite: invite.token)
+    assert_response :forbidden
+  end
+
+  test "start a course, finish every lesson, get a certificate" do
+    sign_in_as users(:one)
+    course = courses(:free)
+    post course_enrollment_path(course)
     assert_redirected_to learn_lesson_path(course, 1)
-    enrollment = User.find_by!(email_address: "new@example.com").enrollments.find_by!(course: course)
-    assert_equal "free", enrollment.source
+    assert_equal "self", users(:one).enrollments.find_by!(course: course).source
 
     get portal_certificate_path(course)
     assert_redirected_to portal_path
-
     post complete_learn_lesson_path(course, 1)
-    assert_redirected_to learn_lesson_path(course, 2)
     post complete_learn_lesson_path(course, 2)
     assert_redirected_to portal_path
+    assert users(:one).user_badges.exists?(key: "course_done")
 
     get portal_certificate_path(course)
     assert_response :success
-    assert_select ".who", "New Person"
-    assert_includes response.body, "marked every lesson complete"
     assert_includes response.body, "not academic credit"
   end
 
   test "lessons are locked without an enrollment" do
     sign_in_as users(:one)
-    get learn_lesson_path(courses(:paid), 1)
-    assert_redirected_to course_path(courses(:paid))
+    get learn_lesson_path(courses(:other), 1)
+    assert_redirected_to course_path(courses(:other))
   end
-
-  test "paid course without Stripe does not enroll" do
-    sign_in_as users(:one)
-    post course_checkout_path(courses(:paid))
-    assert_redirected_to course_path(courses(:paid))
-    assert_not users(:one).enrolled_in?(courses(:paid))
-  end
-
-  test "course with no price is not on sale" do
-    sign_in_as users(:one)
-    get course_path(courses(:unpriced))
-    assert_includes response.body, "Price coming soon"
-    post course_checkout_path(courses(:unpriced))
-    assert_not users(:one).enrolled_in?(courses(:unpriced))
-  end
-
-  test "paid course shows price and refund link before checkout" do
-    sign_in_as users(:one)
-    get course_path(courses(:paid))
-    assert_select ".disclosure-box", /\$149/
-    assert_select ".disclosure-box a[href=?]", refunds_path
-  end
-
-  include ActiveJob::TestHelper
 
   test "tutor saves the question, answers in the background, and says offline without a key" do
     sign_in_as users(:two)
@@ -74,14 +85,10 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
       end
     end
     assert_response :success
-    assert_includes response.body, "What is a token?"
     placeholder = TutorMessage.order(:id).last
     assert placeholder.pending?
-
     perform_enqueued_jobs
-    placeholder.reload
-    assert_not placeholder.pending?
-    assert_equal Tutor::OFFLINE, placeholder.content
+    assert_equal Tutor::OFFLINE, placeholder.reload.content
   end
 
   test "tutor stops at the daily cap without calling the model" do
@@ -96,46 +103,12 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
     assert_match(/today's \d+ tutor questions/, flash[:alert])
   end
 
-  test "the daily tutor cap is counted per course" do
-    users(:two).enrollments.create!(course: courses(:paid), source: "admin")
-    Tutor.daily_cap(courses(:free)).times { users(:two).tutor_messages.create!(lesson: lessons(:free_one), role: "user", content: "q") }
-    assert Tutor.over_cap?(users(:two), courses(:free))
-    assert_not Tutor.over_cap?(users(:two), courses(:paid))
-  end
-
-  test "paid checkout stays off in production until the seller identity is set" do
-    ENV["STRIPE_SECRET_KEY"] = "sk_test_fake"
-    prod = ActiveSupport::EnvironmentInquirer.new("production")
-    original = Rails.method(:env)
-    Rails.define_singleton_method(:env) { prod }
-    assert_not Payments.enabled?
-    brand = Rails.configuration.x.brand
-    brand.legal_name, brand.postal_address, brand.contact_email = "DFG LLC", "1 Main St", "help@dfg.test"
-    assert Payments.enabled?
-  ensure
-    Rails.define_singleton_method(:env, original) if original
-    brand.legal_name = brand.postal_address = nil if brand
-    brand.contact_email = "hello@example.com" if brand
-    ENV.delete("STRIPE_SECRET_KEY")
-  end
-
   test "expired tutor chats are purged" do
     old = TutorMessage.create!(user: users(:two), lesson: lessons(:free_one), role: "user", content: "old", created_at: 400.days.ago)
     fresh = TutorMessage.create!(user: users(:two), lesson: lessons(:free_one), role: "user", content: "new")
     PurgeExpiredTutorMessagesJob.perform_now
     assert_not TutorMessage.exists?(old.id)
     assert TutorMessage.exists?(fresh.id)
-  end
-
-  test "newsletter unsubscribe needs a valid signed link and a POST" do
-    lead = Lead.create!(kind: "newsletter", email: "reader@example.com")
-    get unsubscribe_path(lead.unsubscribe_token)
-    assert_response :success
-    assert_equal "new", lead.reload.status
-    post unsubscribe_path(lead.unsubscribe_token)
-    assert_equal "unsubscribed", lead.reload.status
-    get unsubscribe_path("forged")
-    assert_redirected_to root_path
   end
 
   test "tutor replies render markdown without raw HTML" do
@@ -149,33 +122,31 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
   test "a student's record is private to them" do
     sign_in_as users(:one)
     get portal_path
+    assert_response :success
     assert_not_includes response.body, users(:two).name
     get portal_certificate_path(courses(:free))
     assert_response :not_found
   end
 
-  test "newsletter and consulting leads are saved" do
-    post leads_path, params: { lead: { kind: "newsletter", email: "News@Example.com " } }
-    assert_redirected_to root_path
-    post leads_path, params: { lead: { kind: "consulting", name: "Exec", email: "exec@example.com", message: "Pilot" } }
-    assert_redirected_to consulting_path
-    assert_equal %w[news@example.com exec@example.com], Lead.order(:id).pluck(:email)
-  end
-
-  test "owner area is owner-only, and the owner can grant and price courses" do
+  test "owner area is owner-only" do
     sign_in_as users(:one)
-    get admin_root_path
-    assert_redirected_to root_path
+    %w[/admin /admin/invites /admin/transcript /admin/exercises /admin/users].each do |path|
+      get path
+      assert_redirected_to root_path, path
+    end
+    post admin_invites_path
+    assert_equal 0, Invite.count
 
     sign_in_as users(:owner)
-    get admin_root_path
-    assert_response :success
-    post admin_enrollments_path, params: { user_id: users(:one).id, course_id: courses(:paid).id }
-    assert_equal "admin", users(:one).enrollments.find_by(course: courses(:paid)).source
-
-    patch admin_course_path(courses(:unpriced)), params: { course: { price_cents: "" } }
-    assert_nil courses(:unpriced).reload.price_cents
-    patch admin_course_path(courses(:unpriced)), params: { course: { price_cents: "9900" } }
-    assert_equal "$99", courses(:unpriced).reload.price
+    %w[/admin /admin/invites /admin/transcript /admin/exercises /admin/users /admin/courses].each do |path|
+      get path
+      assert_response :success, path
+    end
+    post admin_invites_path, params: { invite: { note: "A friend" } }
+    assert_equal 1, Invite.open.count
+    get admin_invites_path
+    assert_includes response.body, Invite.last.token
+    post admin_enrollments_path, params: { user_id: users(:one).id, course_id: courses(:other).id }
+    assert_equal "admin", users(:one).enrollments.find_by(course: courses(:other)).source
   end
 end

@@ -9,6 +9,7 @@ module Learn
 
     def complete
       @enrollment.lesson_completions.find_or_create_by!(lesson: @lesson)
+      announce_badges Badges.award!(current_user)
       if (nxt = @lesson.next_lesson)
         redirect_to learn_lesson_path(@course, nxt)
       else

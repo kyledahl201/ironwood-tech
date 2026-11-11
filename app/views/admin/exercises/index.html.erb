@@ -1,0 +1,12 @@
+<% page_title "Lab exercises" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Lab exercises</h1><p class="lede">Each exercise opens after its lesson is taught. Open one early only if Prof. Hale agrees.</p></div></header>
+<section class="section"><div class="wrap"><div class="table-scroll"><table>
+  <thead><tr><th>Exercise</th><th>Opens after</th><th>Passes</th><th>Open to everyone</th></tr></thead>
+  <tbody><% @exercises.each do |e| %>
+    <tr><td><%= e.title %></td><td><%= e.course_code %> lesson <%= e.lesson_number %></td><td><%= e.attempts.where(passed: true).distinct.count(:user_id) %></td>
+      <td><%= form_with model: e, url: admin_exercise_path(e), method: :patch, class: "inline-form" do |f| %>
+        <%= f.hidden_field :open_to_all, value: e.open_to_all? ? "0" : "1" %>
+        <%= f.submit (e.open_to_all? ? "Yes, close it" : "No, open it"), class: "link-button small" %>
+      <% end %></td></tr>
+  <% end %></tbody>
+</table></div></div></section>

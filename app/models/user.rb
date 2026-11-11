@@ -2,7 +2,11 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_many :enrollments, dependent: :destroy
-  has_many :active_enrollments, -> { active }, class_name: "Enrollment"
+  has_many :study_sessions, dependent: :destroy
+  has_many :course_records, -> { ordered }, dependent: :destroy
+  has_one :transcript_snapshot, dependent: :destroy
+  has_many :attempts, dependent: :destroy
+  has_many :user_badges, dependent: :destroy
   has_many :courses, through: :enrollments
   has_many :tutor_messages, dependent: :destroy
 
@@ -16,8 +20,10 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 10 }, allow_nil: true
 
   def enrolled_in?(course)
-    active_enrollments.exists?(course: course)
+    enrollments.exists?(course: course)
   end
+
+  scope :in_study_hall, -> { where(share_in_study_hall: true) }
 
   def first_name
     name.to_s.split.first

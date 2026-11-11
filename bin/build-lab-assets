@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Rebuilds the code lab's bundled editor and Ruby worker from vendor/lab-src,
+# and copies the Ruby wasm binary for local use (production loads it from a CDN).
+set -euo pipefail
+cd "$(dirname "$0")/../vendor/lab-src"
+npm install --no-audit --no-fund --silent
+npx esbuild editor.js --bundle --format=esm --minify --legal-comments=none --outfile=../../app/javascript/lab/editor.js
+npx esbuild ruby-worker.js --bundle --format=esm --minify --legal-comments=none --outfile=../../public/lab/ruby-worker.js
+cp node_modules/@ruby/3.4-wasm-wasi/dist/ruby+stdlib.wasm ../../public/lab/ruby.wasm
+echo "Built app/javascript/lab/editor.js, public/lab/ruby-worker.js and public/lab/ruby.wasm"

@@ -1,0 +1,17 @@
+<% badges = keys.filter_map { |k| Badges::ALL[k] } %>
+<% if badges.any? %>
+  <div class="celebration" role="dialog" aria-modal="true" aria-labelledby="celebration-title" data-controller="celebration">
+    <div class="celebration-card">
+      <%= image_tag "brand/sentry-full.svg", alt: "Sentry, cheering", class: "celebration-sentry", width: 120, height: 150 %>
+      <p class="eyebrow varsity-small">Badge earned</p>
+      <% badges.each do |b| %>
+        <div class="celebration-badge">
+          <%= badge_image(b.key, size: 96) %>
+          <h2 id="celebration-title"><%= b.name %></h2>
+          <p><%= b.description %></p>
+        </div>
+      <% end %>
+      <button type="button" class="btn btn-primary" data-action="celebration#close" autofocus>Back to work</button>
+    </div>
+  </div>
+<% end %>

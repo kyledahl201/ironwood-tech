@@ -8,10 +8,8 @@ class Tutor
 
   def self.enabled? = ENV["ANTHROPIC_API_KEY"].present?
 
-  # Daily question caps per student, lower on the free course, to bound API spend.
-  def self.daily_cap(course)
-    course.free? ? ENV.fetch("TUTOR_DAILY_CAP_FREE", 20).to_i : ENV.fetch("TUTOR_DAILY_CAP", 60).to_i
-  end
+  # Daily question cap per student and course, to bound API spend.
+  def self.daily_cap(_course = nil) = ENV.fetch("TUTOR_DAILY_CAP", 40).to_i
 
   def self.over_cap?(user, course)
     user.tutor_messages.questions_today.joins(:lesson).where(lessons: { course_id: course.id }).count >= daily_cap(course)

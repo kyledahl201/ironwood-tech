@@ -1,0 +1,17 @@
+{
+  "name": "ironwood-lab-assets",
+  "private": true,
+  "description": "Sources for the code lab's editor and Ruby runner. Build with bin/build-lab-assets.",
+  "dependencies": {
+    "@codemirror/commands": "6.8.1",
+    "@codemirror/lang-python": "6.2.1",
+    "@codemirror/language": "6.11.0",
+    "@codemirror/legacy-modes": "6.5.2",
+    "@codemirror/state": "6.5.2",
+    "@codemirror/view": "6.36.8",
+    "@lezer/highlight": "1.2.1",
+    "@ruby/3.4-wasm-wasi": "2.10.1",
+    "@ruby/wasm-wasi": "2.10.1",
+    "esbuild": "0.25.0"
+  }
+}

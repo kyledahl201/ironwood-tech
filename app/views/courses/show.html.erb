@@ -13,8 +13,7 @@
       <dt>Level</dt><dd><%= @course.level %></dd>
       <dt>Time</dt><dd><%= @course.hours %></dd>
       <dt>Tutor</dt><dd><%= tutor_label(@course).upcase_first %></dd>
-      <dt>Designed by</dt><dd><%= brand.founder %>, the founder</dd>
-    </dl>
+          </dl>
 
     <% if @course.outcome_list.any? %>
       <h2>What you'll be able to do</h2>
@@ -36,31 +35,16 @@
     <p style="margin-top:16px"><%= link_to "Read the rubric your work is reviewed against", rubric_course_path(@course) %></p>
   </div>
 
-  <aside class="buy-box" aria-label="Enroll">
-    <p class="price"><%= @course.price %></p>
+  <aside class="buy-box" aria-label="Start">
     <% if @enrollment %>
-      <p>You're enrolled. <%= @enrollment.progress_percent %>% complete.</p>
-      <%= link_to "Continue learning", learn_lesson_path(@course, @enrollment.next_lesson || @lessons.first), class: "btn btn-copper" %>
-    <% elsif !@course.on_sale? %>
-      <p>This course isn't on sale yet.</p>
-      <%= link_to "Get notified", root_path(anchor: "newsletter"), class: "btn btn-outline" %>
+      <p>You're in. <%= @enrollment.progress_percent %>% complete.</p>
+      <%= link_to (@enrollment.lesson_completions.empty? ? "Start lesson 1" : "Continue learning"), learn_lesson_path(@course, @enrollment.next_lesson || @lessons.first), class: "btn btn-copper" %>
+    <% elsif @lessons.any? %>
+      <p>Free, self-paced, with an AI tutor.</p>
+      <%= button_to "Start course", course_enrollment_path(@course), class: "btn btn-copper" %>
     <% else %>
-      <div class="disclosure-box">
-        You're <%= @course.free? ? "enrolling in" : "buying" %> <strong><%= @course.title %></strong> for <strong><%= @course.price.downcase == "free" ? "free" : @course.price %></strong>.
-        The course is taught by AI tutors and designed by <%= brand.founder %>, the founder. <%= brand.name %> is not an accredited school, and completing this course does not grant a degree or academic credit.
-        <%= link_to "Refund policy", refunds_path %>
-      </div>
-      <% if current_user %>
-        <%= form_with url: course_checkout_path(@course), data: { turbo: false } do %>
-          <% unless @course.free? %>
-            <label class="checkbox small" style="margin-bottom:12px"><input type="checkbox" name="accept_terms" value="1" required> I've read the <%= link_to "terms", terms_path, target: "_blank" %> and <%= link_to "refund policy", refunds_path, target: "_blank" %>.</label>
-          <% end %>
-          <button type="submit" class="btn btn-copper"><%= @course.free? ? "Enroll free" : "Enroll for #{@course.price}" %></button>
-        <% end %>
-      <% else %>
-        <%= link_to "Create an account to enroll", new_registration_path(return_to: course_path(@course)), class: "btn btn-copper" %>
-        <p class="small" style="margin-top:12px">Already have one? <%= link_to "Log in", new_session_path %></p>
-      <% end %>
+      <p>Lessons are still being written.</p>
     <% end %>
+    <p class="small muted" style="margin-top:12px"><%= brand.disclosure %></p>
   </aside>
 </div></section>

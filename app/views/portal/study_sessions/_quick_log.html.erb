@@ -1,0 +1,10 @@
+<details class="quick-log">
+  <summary class="btn btn-outline">Log study time</summary>
+  <%= form_with model: StudySession.new(studied_on: Time.zone.today, minutes: 30), url: portal_study_sessions_path, class: "quick-log-form" do |f| %>
+    <%= f.hidden_field :studied_on %>
+    <%= f.label :minutes, "Minutes", class: "visually-hidden" %>
+    <%= f.select :minutes, [ [ "15 min", 15 ], [ "30 min", 30 ], [ "45 min", 45 ], [ "1 hour", 60 ], [ "90 min", 90 ], [ "2 hours", 120 ], [ "3 hours", 180 ] ], {} %>
+    <%= f.text_field :note, placeholder: "What did you work on? (optional)", maxlength: 200 %>
+    <%= f.submit "Log it", class: "btn btn-primary" %>
+  <% end %>
+</details>
