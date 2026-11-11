@@ -77,7 +77,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
 
     get class_lesson_path(lesson)
     assert_response :success
-    assert_select ".classroom[data-controller=classroom]"
+    assert_select ".classroom[data-controller~=classroom]"
     assert_select "template[data-classroom-target=template]", 6
     assert_select "select[data-classroom-target=mode] option", 3
     assert_select ".mac-runs li", 2
@@ -277,5 +277,74 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     post study_restart_class_lesson_path(lesson), params: { what: "questions" }
     assert_redirected_to study_class_lesson_path(lesson, anchor: "questions")
     assert_equal 0, record.reload.retry_total
+  end
+
+  test "time is logged by itself, and never faster than the clock" do
+    sign_in_as users(:one)
+    freeze_time do
+      post portal_pulse_path, params: { seconds: 30, course_code: "CS 101", activity: "class" }, as: :json
+      assert_equal({ "minutes" => 1, "today_label" => "1 min logged today" }, response.parsed_body.slice("minutes", "today_label"))
+      session = users(:one).study_sessions.auto.sole
+      assert_equal [ "CS 101", "class", 30, Time.zone.today ], [ session.course_code, session.activity, session.seconds, session.studied_on ]
+
+      post portal_pulse_path, params: { seconds: 60, course_code: "CS 101", activity: "class" }, as: :json # sent again at once
+      assert_equal 35, session.reload.seconds # only the few seconds of slack are added
+    end
+
+    travel 30.seconds do
+      post portal_pulse_path, params: { seconds: 30, course_code: "CS 101", activity: "class" }, as: :json
+    end
+    travel 10.minutes do
+      post portal_pulse_path, params: { seconds: 5000, course_code: "CS 101", activity: "class" }, as: :json # one report adds 90 s at most
+      session = users(:one).study_sessions.auto.sole
+      assert_equal [ 155, 3 ], [ session.seconds, session.minutes ]
+
+      post portal_pulse_path, params: { seconds: 40, course_code: "CS 101", activity: "homework" }, as: :json
+      post portal_pulse_path, params: { seconds: 40, course_code: "CS 101", activity: "made-up" }, as: :json
+      assert_equal %w[class homework study], users(:one).study_sessions.auto.order(:activity).pluck(:activity)
+      assert_equal 5, ProgressStats.new(users(:one)).minutes_by_day.values.sum # feeds the heatmap and hours
+    end
+    sign_out
+    post portal_pulse_path, params: { seconds: 30 }, as: :json
+    assert_equal 3, StudySession.count
+  end
+
+  test "pages that count time say so, and the lab no longer asks you to log it" do
+    lesson(lesson_number: 1)
+    sign_in_as users(:one)
+    get class_lesson_path(lesson)
+    assert_select ".classroom[data-controller~=pulse][data-pulse-activity-value=class][data-pulse-course-value='CS 101']"
+    assert_includes response.body, "Your time here is logged by itself"
+    get study_class_lesson_path(lesson)
+    assert_select "[data-controller~=pulse][data-pulse-activity-value=study] [data-pulse-target=today]"
+    TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
+    get exercise_path(exercises(:first))
+    assert_select ".lab[data-controller~=pulse][data-pulse-activity-value=lab]"
+    assert_select "[data-action='lab#logTime']", 0
+  end
+
+  test "offline time is added with one tap, and the log shows what was automatic" do
+    TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
+    sign_in_as users(:one)
+    post portal_pulse_path, params: { seconds: 60, course_code: "CS 101", activity: "class" }, as: :json
+
+    get portal_study_sessions_path
+    assert_select "form.quick-add select", 0 # no dropdowns
+    assert_select "form.quick-add input[type=text], form.quick-add input[type=date], form.quick-add input[type=number]", 0 # nothing to type
+    assert_select "form.quick-add button[name='study_session[minutes]']", 6
+    assert_select "form.quick-add input[name='study_session[course_code]'][value='CS 101'][checked]" # the course in progress is preselected
+    assert_select ".log-breakdown li", text: /Class.*logged by itself.*1 min/m
+
+    post portal_study_sessions_path, params: { study_session: { minutes: 45, activity: "reading", course_code: "CS 101" }, when: "yesterday" }
+    assert_redirected_to portal_study_sessions_path
+    follow_redirect!
+    assert_includes response.body, "Added 45 minutes: Reading, for yesterday."
+    added = users(:one).study_sessions.manual.sole
+    assert_equal [ 45, "reading", "CS 101", Time.zone.yesterday, "manual" ], [ added.minutes, added.activity, added.course_code, added.studied_on, added.source ]
+    assert_select ".log-list li", text: /Reading.*Added by you.*45 min/m
+    assert_select ".log-list li", text: /Class.*Logged by itself.*1 min/m
+
+    get portal_path
+    assert_select ".quick-log form.quick-add button[name='study_session[minutes]']", 6
   end
 end

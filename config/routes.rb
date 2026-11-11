@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   get "portal", to: "portal/dashboard#show", as: :portal
   namespace :portal do
     resources :study_sessions, only: %i[index create destroy], path: "study-log"
+    post "pulse", to: "pulses#create", as: :pulse
     resource :settings, only: :update
     resources :badges, only: :index
     post "eggs/:key", to: "eggs#create", as: :egg

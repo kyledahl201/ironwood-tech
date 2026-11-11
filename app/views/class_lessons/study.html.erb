@@ -1,9 +1,11 @@
 <% page_title "Study: #{@lesson.title}" %>
 <% professor = @lesson.professor.presence || "your professor" %>
+<div data-controller="pulse" data-pulse-url-value="<%= portal_pulse_path %>" data-pulse-course-value="<%= @lesson.course_code %>" data-pulse-activity-value="study">
 <header class="page-head lab-head"><div class="wrap">
   <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path %></li><% unless @lesson.tour? %><li><%= @lesson.course_code %> · Lesson <%= @lesson.lesson_number %></li><% end %><li aria-current="page">Study</li></ol></nav>
   <p class="eyebrow">Study</p><h1><%= @lesson.title %></h1>
   <p class="lede">The study guide, the flashcards<%= ", the questions from class" if @quizzes.any? %> and the homework for this lesson, in one place.</p>
+  <p class="small study-logged" data-pulse-target="today">Your time on this page is logged by itself.</p>
   <nav class="study-jump" aria-label="On this page">
     <a href="#guide">Study guide</a><% if @lesson.flashcards.any? %><a href="#cards">Flashcards</a><% end %><% if @quizzes.any? %><a href="#questions">Questions</a><% end %><% if @lesson.homework.any? %><a href="#homework">Homework</a><% end %>
   </nav>
@@ -96,3 +98,4 @@
     </div>
   <% end %>
 </div></section>
+</div>

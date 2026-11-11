@@ -15,7 +15,7 @@ Ironwood is not an accredited school and grants no degrees or credit. The facult
 | Code lab | Ruby exercises written by the faculty, with a real editor (CodeMirror), Ruby running in the browser (ruby.wasm), automatic checks, a line-by-line output diff and hints one at a time. Exercises open after their lesson is taught. No solutions are stored |
 | Visualizers | Step-through tools in one frame: a loop tracer, a hash lookup and a method call stack |
 | Rewards | Badges for real milestones (no points or leaderboards), Sentry the owl, and a few easter eggs |
-| Study log | Log study sessions; they feed the heatmap, streak and hours |
+| Study log | Time in class, on study pages, on homework and in the code lab is logged by itself, only while the page is showing and the student is active. Time away from the portal is added with one tap. It all feeds the heatmap, streak and hours |
 | Study hall | Opt-in: invited friends see each other's current course and weekly hours. No rankings |
 | Online courses | Lesson pages with an AI tutor chat on the Claude API, progress, and a certificate of completion |
 | Owner area | `/admin`: sync the transcript, create invites, open exercises early, students and courses |

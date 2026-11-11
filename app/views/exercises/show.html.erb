@@ -1,5 +1,5 @@
 <% page_title @exercise.title %>
-<div class="lab" data-controller="lab"
+<div class="lab" data-controller="lab pulse" data-pulse-url-value="<%= portal_pulse_path %>" data-pulse-course-value="<%= @exercise.course_code %>" data-pulse-activity-value="lab"
      data-lab-slug-value="<%= @exercise.slug %>"
      data-lab-checks-value="<%= @exercise.checks.to_json %>"
      data-lab-hints-value="<%= Array(@exercise.hints).to_json %>"
@@ -7,7 +7,6 @@
      data-lab-worker-url-value="/lab/ruby-worker.js"
      data-lab-wasm-url-value="<%= brand.ruby_wasm_url %>"
      data-lab-attempts-url-value="<%= exercise_attempts_path(@exercise) %>"
-     data-lab-log-url-value="<%= portal_study_sessions_path %>"
      data-lab-course-value="<%= @exercise.course_code %>"
      data-lab-passed-value="<%= @exercise.passed_by?(current_user) %>"
      data-lab-pass-lines-value="<%= SentryLines::PASS.to_json %>"
@@ -57,7 +56,7 @@
       <button type="button" class="btn btn-copper" data-action="lab#run" data-lab-target="runButton" title="Shift+Enter">Run</button>
       <button type="button" class="btn btn-outline-light" data-action="lab#check" data-lab-target="checkButton" title="Ctrl/Cmd+Enter">Check</button>
       <button type="button" class="link-button light small" data-action="lab#reset">Reset to starter</button>
-      <button type="button" class="link-button light small" data-action="lab#logTime" data-lab-target="logButton" hidden>Log time</button>
+      <span class="small bench-logged" data-pulse-target="today">Your time here is logged by itself</span>
     </div>
     <div class="console" aria-label="Output">
       <div class="console-head">Output</div>

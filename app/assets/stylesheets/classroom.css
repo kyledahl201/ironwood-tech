@@ -176,3 +176,30 @@
 .inline-form .link-button { min-height: 0; text-decoration: underline; text-decoration-color: var(--copper); }
 .handed-in-task { font-size: 15px; margin-bottom: 6px; }
 .handed-in-task > :last-child { margin-bottom: 0; }
+
+/* Study log: automatic time and one-tap adding */
+.quick-add { display: grid; gap: 14px; margin: 12px 0 0; }
+.chip-row { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.chip-row legend { padding: 0; margin-bottom: 6px; font: 600 12px var(--font-body); letter-spacing: .2em; text-transform: uppercase; color: var(--copper-deep); }
+.chip-row label { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 16px; border: 1.5px solid var(--midnight); border-radius: var(--radius); background: var(--white); color: var(--midnight); font-weight: 600; font-size: 15px; cursor: pointer; }
+.chip-row input:checked + label { background: var(--midnight); color: var(--linen); }
+.chip-row input:checked + label::before { content: "✓"; margin-right: 8px; }
+.chip-row input:focus-visible + label { outline: 2px solid var(--copper); outline-offset: 2px; }
+.add-row .btn { min-width: 96px; justify-content: center; }
+.quick-log-panel { margin-top: 12px; padding: 16px; background: var(--white); border: 1px solid var(--rule); color: var(--midnight); }
+.quick-log-panel > p { margin: 0; }
+.log-today { border-left: 4px solid var(--copper); }
+.log-total { font: 20px var(--font-body); margin: 0 0 8px; }
+.log-total strong { font: 56px/1 var(--font-display); margin-right: 6px; }
+.log-breakdown, .log-list { list-style: none; padding: 0; margin: 0; }
+.log-breakdown li, .log-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--rule); }
+.log-list li { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.log-list .link-button { min-height: 36px; }
+.log-tag { color: var(--muted); }
+.log-heading { margin-top: 32px; }
+.log-day { margin-bottom: 20px; }
+.log-day h3 { font-size: 18px; margin: 0 0 4px; display: flex; justify-content: space-between; align-items: baseline; }
+.class-logged { font-size: 13px; }
+.study-logged { color: rgba(245, 243, 239, .7); margin: 12px 0 0; }
+.bench-logged { color: rgba(245, 243, 239, .6); margin-left: auto; }
+@media (max-width: 520px) { .log-list li { grid-template-columns: minmax(0, 1fr) auto; } .log-tag { grid-row: 2; } }

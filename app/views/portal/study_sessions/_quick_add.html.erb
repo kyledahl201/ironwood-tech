@@ -1,0 +1,35 @@
+<%# One tap adds time spent away from the portal. Pick what and which course if
+    the defaults are wrong, then tap the amount. %>
+<% codes ||= current_user.course_records.map(&:code) %>
+<% default_code ||= current_user.course_records.find(&:in_progress?)&.code %>
+<% uid = local_assigns.fetch(:uid, "qa") %>
+<%= form_with url: portal_study_sessions_path, class: "quick-add" do %>
+  <fieldset class="chip-row">
+    <legend>What was it?</legend>
+    <% %w[reading practice class other].each_with_index do |activity, i| %>
+      <input type="radio" name="study_session[activity]" value="<%= activity %>" id="<%= uid %>-a-<%= activity %>" class="visually-hidden" <%= "checked" if i.zero? %>>
+      <label for="<%= uid %>-a-<%= activity %>"><%= activity == "class" ? "Class with my professor" : StudySession::LABELS[activity] %></label>
+    <% end %>
+  </fieldset>
+  <% if codes.any? %>
+    <fieldset class="chip-row">
+      <legend>Which course?</legend>
+      <% codes.each do |code| %>
+        <input type="radio" name="study_session[course_code]" value="<%= code %>" id="<%= uid %>-c-<%= code.parameterize %>" class="visually-hidden" <%= "checked" if code == (default_code || codes.first) %>>
+        <label for="<%= uid %>-c-<%= code.parameterize %>"><%= code %></label>
+      <% end %>
+      <input type="radio" name="study_session[course_code]" value="" id="<%= uid %>-c-none" class="visually-hidden"><label for="<%= uid %>-c-none">No course</label>
+    </fieldset>
+  <% end %>
+  <fieldset class="chip-row">
+    <legend>When?</legend>
+    <input type="radio" name="when" value="today" id="<%= uid %>-w-today" class="visually-hidden" checked><label for="<%= uid %>-w-today">Today</label>
+    <input type="radio" name="when" value="yesterday" id="<%= uid %>-w-yesterday" class="visually-hidden"><label for="<%= uid %>-w-yesterday">Yesterday</label>
+  </fieldset>
+  <fieldset class="chip-row add-row">
+    <legend>Tap how long to add it</legend>
+    <% [ [ 15, "15 min" ], [ 30, "30 min" ], [ 45, "45 min" ], [ 60, "1 hour" ], [ 90, "1½ hours" ], [ 120, "2 hours" ] ].each do |minutes, label| %>
+      <button type="submit" name="study_session[minutes]" value="<%= minutes %>" class="btn btn-copper">+ <%= label %></button>
+    <% end %>
+  </fieldset>
+<% end %>

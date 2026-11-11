@@ -1,26 +1,42 @@
 <% page_title "Study log" %>
-<header class="page-head"><div class="wrap"><p class="eyebrow">Portal</p><h1>Study log</h1><p class="lede">Every session you log feeds the heatmap, the streak and the hours on your tree.</p></div></header>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Portal</p><h1>Study log</h1>
+  <p class="lede">The portal logs your time by itself while you are in class, on a study page, doing homework or in the code lab. It only counts while the page is showing and you are active. Everything here feeds the heatmap, the streak and the hours on your tree.</p></div></header>
 <section class="section"><div class="wrap split">
   <div>
-    <h2>Log a session</h2>
-    <%= form_with model: @session, url: portal_study_sessions_path, class: "form" do |f| %>
-      <div class="field"><%= f.label :studied_on, "Date" %><%= f.date_field :studied_on, max: Time.zone.today %></div>
-      <div class="field"><%= f.label :minutes %><%= f.number_field :minutes, min: 5, max: 960, step: 5 %></div>
-      <div class="field"><%= f.label :course_code, "Course (optional)" %><%= f.select :course_code, @codes, include_blank: true %></div>
-      <div class="field"><%= f.label :note, "Note (optional)" %><%= f.text_field :note, maxlength: 200 %></div>
-      <div><%= f.submit "Log it", class: "btn btn-primary" %></div>
-    <% end %>
+    <div class="panel log-today">
+      <p class="eyebrow">Today</p>
+      <p class="log-total"><strong><%= @today_minutes %></strong> min</p>
+      <% today = @days[@today].to_a %>
+      <% if today.any? %>
+        <ul class="log-breakdown"><% today.group_by { |s| [ s.label, s.auto? ] }.each do |(label, auto), list| %>
+          <li><span><%= label %></span><span class="muted small"><%= auto ? "logged by itself" : "added by you" %></span><strong><%= list.sum(&:minutes) %> min</strong></li>
+        <% end %></ul>
+      <% else %>
+        <p class="muted">Nothing yet today. <%= link_to "Start class", class_lessons_path %> and the clock starts by itself.</p>
+      <% end %>
+    </div>
+
+    <h2 class="log-heading">Add time away from the portal</h2>
+    <p class="small muted">Read a chapter, practised on your Mac, had class in chat? One tap adds it. No typing.</p>
+    <%= render "portal/study_sessions/quick_add", codes: @codes, default_code: @default_code, uid: "log" %>
   </div>
+
   <div>
-    <h2>Recent sessions</h2>
-    <% if @sessions.any? %>
-      <div class="table-scroll"><table>
-        <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Note</th><th></th></tr></thead>
-        <tbody><% @sessions.each do |s| %>
-          <tr><td><%= s.studied_on.to_fs(:short) %></td><td><%= s.minutes %> min</td><td><%= s.course_code %></td><td><%= s.note %></td>
-          <td><%= button_to "Remove", portal_study_session_path(s), method: :delete, class: "link-button small", form: { data: { turbo_confirm: "Remove this session?" } } %></td></tr>
-        <% end %></tbody>
-      </table></div>
+    <h2>Recent days</h2>
+    <% if @days.any? %>
+      <% @days.each do |day, list| %>
+        <div class="log-day">
+          <h3><%= day == @today ? "Today" : (day == @today - 1 ? "Yesterday" : day.strftime("%a, %b %-d")) %> <span class="muted small"><%= list.sum(&:minutes) %> min</span></h3>
+          <ul class="log-list"><% list.each do |s| %>
+            <li>
+              <span class="log-what"><%= s.label %><% if s.course_code.present? %> <span class="muted small"><%= s.course_code %></span><% end %></span>
+              <span class="log-tag small"><%= s.auto? ? "Logged by itself" : "Added by you" %></span>
+              <strong><%= s.minutes %> min</strong>
+              <%= button_to "Remove", portal_study_session_path(s), method: :delete, class: "link-button small", form: { data: { turbo_confirm: "Remove these #{s.minutes} minutes?" } }, aria: { label: "Remove #{s.minutes} minutes of #{s.label}" } %>
+            </li>
+          <% end %></ul>
+        </div>
+      <% end %>
     <% else %><p class="muted">Your first session starts the heatmap.</p><% end %>
   </div>
 </div></section>
