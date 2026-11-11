@@ -22,6 +22,10 @@
           <% end %>
           <%= render "portal/study_sessions/quick_log" %>
         </div>
+        <% if @homework_due.any? %>
+          <p class="today-homework small">Homework waiting:
+            <% @homework_due.each do |lesson| %><%= link_to "#{lesson.course_code} lesson #{lesson.lesson_number}", homework_class_lesson_path(lesson) %><% end %></p>
+        <% end %>
       </article>
 
       <% if (gate = @today.gate) %>

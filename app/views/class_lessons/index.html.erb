@@ -18,6 +18,15 @@
             <% label = lesson.tour? ? lesson.title : "Lesson #{lesson.lesson_number}: #{lesson.title}" %>
             <% if open %><%= link_to label, class_lesson_path(lesson), class: "ex-title" %><% else %><span class="ex-title"><%= label %></span><% end %>
             <span class="muted small"><%= [ lesson.professor && "#{lesson.professor} (AI tutor)", lesson.minutes && "about #{lesson.minutes} min", "#{lesson.steps.size} steps" ].compact.join(" · ") %></span>
+            <% if open %>
+              <span class="lesson-links">
+                <%= link_to "Study guide and flashcards", study_class_lesson_path(lesson) %>
+                <% if progress&.completed? && lesson.homework.any? %>
+                  <% done = @handed_in[lesson.id].to_i %>
+                  <%= link_to (done >= lesson.homework.size ? "Homework handed in · awaiting review" : "Homework: #{done} of #{lesson.homework.size} handed in"), homework_class_lesson_path(lesson) %>
+                <% end %>
+              </span>
+            <% end %>
           </div>
           <span class="ex-tag small">
             <% if progress&.completed? %>Finished<% elsif progress && progress.step_index.positive? %>Step <%= progress.step_index + 1 %> of <%= lesson.steps.size %><% elsif open %>Open<% else %>Opens after lesson <%= lesson.lesson_number - 1 %><% end %>

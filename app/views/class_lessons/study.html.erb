@@ -1,0 +1,92 @@
+<% page_title "Study: #{@lesson.title}" %>
+<% professor = @lesson.professor.presence || "your professor" %>
+<header class="page-head lab-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path %></li><% unless @lesson.tour? %><li><%= @lesson.course_code %> · Lesson <%= @lesson.lesson_number %></li><% end %><li aria-current="page">Study</li></ol></nav>
+  <p class="eyebrow">Study</p><h1><%= @lesson.title %></h1>
+  <p class="lede">The study guide, the flashcards<%= ", the questions from class" if @quizzes.any? %> and the homework for this lesson, in one place.</p>
+  <nav class="study-jump" aria-label="On this page">
+    <a href="#guide">Study guide</a><% if @lesson.flashcards.any? %><a href="#cards">Flashcards</a><% end %><% if @quizzes.any? %><a href="#questions">Questions</a><% end %><% if @lesson.homework.any? %><a href="#homework">Homework</a><% end %>
+  </nav>
+</div></header>
+
+<section class="section" data-controller="study" data-study-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"><div class="wrap study-grid">
+  <div class="panel" id="guide">
+    <h2>Study guide</h2>
+    <% if @lesson.study_guide.any? %>
+      <ul class="guide-list"><% @lesson.study_guide.each do |point| %><li><%= markdown_inline point %></li><% end %></ul>
+    <% else %><p class="muted">No study guide for this lesson yet.</p><% end %>
+    <p class="small muted">Read it once, then close your eyes and say each point back. Whatever you can't say is what to practise.</p>
+  </div>
+
+  <% if @lesson.flashcards.any? %>
+    <div class="panel" id="cards">
+      <div class="section-head"><h2>Flashcards</h2><span class="small" data-study-target="tally" aria-live="polite"></span></div>
+      <div class="deck" data-study-target="deck">
+        <button type="button" class="flashcard" data-action="study#flip" data-study-target="card" aria-live="polite">
+          <span class="flash-side" data-study-target="side">Question</span>
+          <span class="flash-text" data-study-target="text"></span>
+          <span class="flash-tip small" data-study-target="tip">Say the answer out loud, then flip</span>
+        </button>
+        <div class="deck-actions">
+          <button type="button" class="btn btn-outline" data-action="study#again" data-study-target="againButton" hidden>Again later</button>
+          <button type="button" class="btn btn-copper" data-action="study#flip" data-study-target="flipButton">Flip</button>
+          <button type="button" class="btn btn-copper" data-action="study#gotIt" data-study-target="knownButton" hidden>Got it</button>
+        </div>
+      </div>
+      <div class="deck-done" data-study-target="done" hidden>
+        <p><strong>Deck done.</strong> You said every card back.</p>
+        <button type="button" class="btn btn-outline" data-action="study#restart">Shuffle and go again</button>
+      </div>
+      <ul hidden><% @lesson.flashcards.each do |card| %><li data-study-target="source"><span><%= markdown_inline card["front"] %></span><span><%= markdown_inline card["back"] %></span></li><% end %></ul>
+    </div>
+  <% end %>
+
+  <div class="panel" id="questions">
+    <h2>Questions from class</h2>
+    <% if !@finished %>
+      <p class="muted">These open when you finish the class, so they don't give it away. <%= link_to "Go to class", class_lesson_path(@lesson) %></p>
+    <% elsif @quizzes.empty? %>
+      <p class="muted">This lesson had no quick questions.</p>
+    <% else %>
+      <p class="small muted">In class your first answers were right <%= @progress.quiz_right %> of <%= @progress.quiz_total %> times. Try them again cold.</p>
+      <% @quizzes.each do |step, number| %>
+        <div class="study-question" data-step="<%= number %>">
+          <div class="prose"><%= markdown step["text"] %></div>
+          <div class="quiz-options" role="group" aria-label="Answers">
+            <% step["options"].each_with_index do |option, n| %>
+              <button type="button" class="quiz-option" data-action="study#answer" data-choice="<%= n %>"><span class="quiz-mark" aria-hidden="true"></span><span><%= markdown_inline option["text"] %></span><span class="quiz-word"></span></button>
+            <% end %>
+          </div>
+          <p class="quiz-explain" data-role="explain" hidden></p>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @lesson.homework.any? %>
+    <div class="panel" id="homework">
+      <h2>Homework</h2>
+      <% total = @lesson.homework.size %>
+      <% if !@finished %>
+        <p class="muted"><%= pluralize(total, "task") %>. Homework opens when you finish the class.</p>
+      <% elsif @handed_in >= total %>
+        <p><span class="status-pill">Handed in · awaiting review</span></p>
+        <p>All <%= pluralize(total, "task") %> passed their checks and your work is saved. <%= professor.sub(/\Ay/, "Y") %> reviews it and gives the grade in class; the portal doesn't grade homework.</p>
+        <%= link_to "Open my homework", homework_class_lesson_path(@lesson), class: "btn btn-outline" %>
+        <% report = "Homework for #{@lesson.course_code} lesson #{@lesson.lesson_number}: #{@lesson.title}\n" + @submissions.map { |sub| "\nTask #{sub.task_index + 1}: #{@lesson.homework[sub.task_index]&.fetch('text', '').to_s.squish}\n#{sub.work}\n" }.join %>
+        <details class="handed-in">
+          <summary>What I handed in</summary>
+          <% @submissions.each do |sub| %>
+            <h3>Task <%= sub.task_index + 1 %> · <%= sub.submitted_at.to_fs(:short) %></h3>
+            <pre><%= sub.work %></pre>
+          <% end %>
+          <button type="button" class="btn btn-outline" data-action="study#copy" data-copy="<%= report %>">Copy for <%= professor %></button>
+          <p class="small muted">Paste it to <%= professor %> in class to get it reviewed and graded.</p>
+        </details>
+      <% else %>
+        <p><%= @handed_in.zero? ? "#{pluralize(total, 'task')} to do in the workbench. Each one is checked as you work, and your work is saved for #{professor}." : "#{@handed_in} of #{total} tasks handed in." %></p>
+        <%= link_to (@handed_in.zero? ? "Start homework" : "Continue homework"), homework_class_lesson_path(@lesson), class: "btn btn-copper" %>
+      <% end %>
+    </div>
+  <% end %>
+</div></section>

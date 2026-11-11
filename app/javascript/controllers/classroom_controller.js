@@ -18,7 +18,7 @@ export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
                     "pane", "termLines", "termPrompt", "termInput", "irbLines", "irbPrompt", "irbInput",
                     "editor", "output", "runButton", "checkButton"]
-  static values = { slug: String, steps: Array, index: Number, completed: Boolean, user: String, store: String,
+  static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
                     progressUrl: String, quizUrl: String, workerUrl: String, wasmUrl: String,
                     firstTryLine: String, passLines: Array }
 
@@ -131,7 +131,7 @@ export default class extends Controller {
     const total = this.steps.length
     const at = Math.min(this.current, total)
     this.meterTarget.style.width = `${Math.round(at * 100 / total)}%`
-    this.counterTarget.textContent = at >= total ? "Finished" : `Step ${at + 1} of ${total}`
+    this.counterTarget.textContent = at >= total ? (this.homeworkValue ? "Handed in" : "Finished") : `${this.homeworkValue ? "Task" : "Step"} ${at + 1} of ${total}`
   }
 
   // The board ---------------------------------------------------------------------
@@ -233,20 +233,30 @@ export default class extends Controller {
   completeStep() {
     const article = this.article
     if (!article || article.classList.contains("is-done")) return
+    const work = this.work(article) // read before the next step clears the attempt
     this.markDone(article)
     this.current += 1
     this.updateMeter()
     this.save()
+    this.report(this.current, work)
     if (this.current >= this.steps.length) this.showFinish()
     else this.showStep(this.current)
-    this.report(this.current)
+  }
+
+  // What the student did on a task, kept with homework for the professor to read:
+  // the editor's code on an editor task, otherwise the lines they typed.
+  work(article) {
+    const step = this.steps[Number(article.dataset.index)]
+    if (step?.kind === "try" && step.mode === "ruby" && this.editor) return this.editor.value
+    return this.attempt.commands.join("\n")
   }
 
   // Tell the server one step at a time, in order (it refuses to skip ahead).
-  report(index) {
+  report(index, work) {
     this.reporting = (this.reporting || Promise.resolve()).then(async () => {
       try {
-        const data = await postJSON(this.progressUrlValue, { step_index: index, hints_used: this.hintsUsed })
+        const body = this.homeworkValue ? { task_index: index - 1, work } : { step_index: index, hints_used: this.hintsUsed }
+        const data = await postJSON(this.progressUrlValue, body)
         celebrate(data.badges)
       } catch (_) {
         this.setStatus("Your place wasn't saved. Are you still signed in?", "bad")
@@ -258,7 +268,7 @@ export default class extends Controller {
     const card = this.finishTarget.content.firstElementChild.cloneNode(true)
     this.stepsTarget.append(card)
     this.checkButtonTarget.hidden = true
-    if (!quiet) { this.board(card); toast("Class finished. Well done.", { tone: "pass" }) }
+    if (!quiet) { this.board(card); toast(this.homeworkValue ? "Homework handed in." : "Class finished. Well done.", { tone: "pass" }) }
   }
 
   // Go through a finished lesson again. The saved place on the server stays.

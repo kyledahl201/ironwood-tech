@@ -40,6 +40,13 @@ class ClassLesson < ApplicationRecord
     open.min_by { |l| [ codes.index(l.course_code) || codes.size, l.course_code, l.lesson_number ] }
   end
 
+  # Finished classes whose homework isn't all handed in yet, oldest first.
+  def self.homework_due_for(user)
+    handed_in = user.homework_submissions.group(:class_lesson_id).count
+    joins(:class_progresses).where(class_progresses: { user_id: user.id }).where.not(class_progresses: { completed_at: nil })
+      .order("class_progresses.completed_at").select { |l| l.homework.any? && handed_in[l.id].to_i < l.homework.size }
+  end
+
   TOUR = "TOUR".freeze
   def tour? = course_code == TOUR
 

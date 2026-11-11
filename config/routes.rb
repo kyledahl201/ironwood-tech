@@ -34,6 +34,9 @@ Rails.application.routes.draw do
     member do
       post :progress
       post :quiz
+      get :study
+      get :homework
+      post :homework, action: :hand_in
     end
   end
 

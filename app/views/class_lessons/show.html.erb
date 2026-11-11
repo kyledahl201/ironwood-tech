@@ -1,14 +1,14 @@
-<% page_title "#{@lesson.tour? ? '' : "#{@lesson.course_code} L#{@lesson.lesson_number}: "}#{@lesson.title}" %>
+<% page_title "#{'Homework: ' if @homework}#{@lesson.tour? ? '' : "#{@lesson.course_code} L#{@lesson.lesson_number}: "}#{@lesson.title}" %>
 <% professor = @lesson.professor.presence || "Your professor" %>
-<% default_mode = @lesson.steps.find { |s| s["mode"] }&.fetch("mode") || "terminal" %>
+<% default_mode = @steps.find { |s| s["mode"] }&.fetch("mode") || "terminal" %>
 <div class="classroom" data-controller="classroom"
      data-classroom-slug-value="<%= @lesson.slug %>"
-     data-classroom-steps-value="<%= @lesson.steps.map { |s| s.slice("kind", "mode", "visual", "starter", "hints").merge("checks" => Array(s["checks"]).map { |c| c.slice("type", "call", "expected", "label") }) }.to_json %>"
-     data-classroom-index-value="<%= @progress.step_index %>"
-     data-classroom-completed-value="<%= @progress.completed? %>"
+     data-classroom-steps-value="<%= @steps.map { |s| s.slice("kind", "mode", "visual", "starter", "hints").merge("checks" => Array(s["checks"]).map { |c| c.slice("type", "call", "expected", "label") }) }.to_json %>"
+     data-classroom-index-value="<%= @index %>"
+     data-classroom-homework-value="<%= @homework ? true : false %>"
      data-classroom-user-value="<%= current_user.first_name.to_s.downcase.gsub(/[^a-z0-9]/, "").presence || "student" %>"
      data-classroom-store-value="iw-class-<%= current_user.id %>-<%= @lesson.slug %>"
-     data-classroom-progress-url-value="<%= progress_class_lesson_path(@lesson) %>"
+     data-classroom-progress-url-value="<%= @homework ? homework_class_lesson_path(@lesson) : progress_class_lesson_path(@lesson) %>"
      data-classroom-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"
      data-classroom-worker-url-value="/lab/ruby-worker.js"
      data-classroom-wasm-url-value="<%= brand.ruby_wasm_url %>"
@@ -17,11 +17,11 @@
 
   <header class="class-bar">
     <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path %></li><% unless @lesson.tour? %><li><%= @lesson.course_code %> · Lesson <%= @lesson.lesson_number %></li><% end %></ol></nav>
-    <h1 class="class-title"><%= @lesson.title %></h1>
+    <h1 class="class-title"><%= "Homework: " if @homework %><%= @lesson.title %></h1>
     <p class="class-prof"><%= professor %> <span class="muted">(AI tutor)</span></p>
     <div class="class-meter" aria-label="Lesson progress">
       <div class="progress"><span data-classroom-target="meter" style="width:0%"></span></div>
-      <span class="small" data-classroom-target="counter" aria-live="polite">Step 1 of <%= @lesson.steps.size %></span>
+      <span class="small" data-classroom-target="counter" aria-live="polite"><%= @homework ? "Task" : "Step" %> 1 of <%= @steps.size %></span>
     </div>
   </header>
 
@@ -75,11 +75,11 @@
   </section>
 
   <%# One template per step. The classroom script shows them one at a time. %>
-  <% @lesson.steps.each_with_index do |step, i| %>
+  <% @steps.each_with_index do |step, i| %>
     <template data-classroom-target="template">
       <article class="step step-<%= step["kind"] %>" data-index="<%= i %>" data-kind="<%= step["kind"] %>">
         <p class="step-who"><%= image_tag "brand/sentry-watching.svg", alt: "", width: 28, height: 28 %><span><%= professor %></span>
-          <span class="step-tag"><%= { "teach" => "Lesson", "show" => "Watch", "try" => "Your turn", "mac" => "On your Mac", "quiz" => "Quick question" }[step["kind"]] %></span></p>
+          <span class="step-tag"><%= @homework ? "Homework task #{i + 1}" : { "teach" => "Lesson", "show" => "Watch", "try" => "Your turn", "mac" => "On your Mac", "quiz" => "Quick question" }[step["kind"]] %></span></p>
         <div class="step-text prose"><%= markdown step["text"] %></div>
 
         <% if step["kind"] == "show" && (tool = @tools[step["visual"]]) %>
@@ -141,14 +141,26 @@
     <article class="step step-finish">
       <%= image_tag "brand/sentry-cheering.svg", alt: "Sentry, cheering", width: 96, height: 96 %>
       <div>
-        <p class="eyebrow">Class finished</p>
-        <h2><%= @lesson.title %></h2>
-        <p>That's the whole lesson. It counts as taught, so its practice exercises are open in the Code lab. Your professor still gives the grade.</p>
-        <div class="actions">
-          <%= link_to "Back to Today", portal_path, class: "btn btn-copper" %>
-          <%= link_to "Code lab", exercises_path, class: "btn btn-outline" %>
-          <button type="button" class="link-button" data-action="classroom#replay">Go through it again</button>
-        </div>
+        <% if @homework %>
+          <p class="eyebrow">Homework handed in</p>
+          <h2>Awaiting review by <%= professor %></h2>
+          <p>Every task ran and passed its checks, and your work is saved. The checks here are self-checked practice: <%= professor %> reviews what you wrote and gives the grade in class.</p>
+          <div class="actions">
+            <%= link_to "Back to Today", portal_path, class: "btn btn-copper" %>
+            <%= link_to "Study guide and flashcards", study_class_lesson_path(@lesson), class: "btn btn-outline" %>
+            <button type="button" class="link-button" data-action="classroom#replay">Do it again</button>
+          </div>
+        <% else %>
+          <p class="eyebrow">Class finished</p>
+          <h2><%= @lesson.title %></h2>
+          <p>That's the whole lesson. It counts as taught, so its practice exercises are open in the Code lab. Your professor still gives the grade.</p>
+          <div class="actions">
+            <% if @lesson.homework.any? %><%= link_to "Do the homework", homework_class_lesson_path(@lesson), class: "btn btn-copper" %><% end %>
+            <%= link_to "Study guide and flashcards", study_class_lesson_path(@lesson), class: (@lesson.homework.any? ? "btn btn-outline" : "btn btn-copper") %>
+            <%= link_to "Back to Today", portal_path, class: "btn btn-outline" %>
+            <button type="button" class="link-button" data-action="classroom#replay">Go through it again</button>
+          </div>
+        <% end %>
       </div>
     </article>
   </template>

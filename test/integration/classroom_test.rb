@@ -164,4 +164,66 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
     assert_nil lesson.progress_for(users(:one))
   end
+
+  test "the study page has the guide and flashcards, and holds questions back until class is finished" do
+    lesson(lesson_number: 1)
+    sign_in_as users(:one)
+    get study_class_lesson_path(lesson)
+    assert_response :success
+    assert_select ".guide-list li", 2
+    assert_select "[data-study-target=source]", 1
+    assert_select ".study-question", 0
+    assert_includes response.body, "Homework opens when you finish the class."
+    assert_not_includes response.body, "SECRET-RIGHT"
+
+    get homework_class_lesson_path(lesson)
+    assert_redirected_to class_lesson_path(lesson)
+    post homework_class_lesson_path(lesson), params: { task_index: 0, work: "x = 5" }, as: :json
+    assert_response :forbidden
+
+    finish lesson
+    get study_class_lesson_path(lesson)
+    assert_select ".study-question[data-step='3'] .quiz-option", 2
+    assert_includes response.body, "first answers were right 1 of 1 times"
+    assert_not_includes response.body, "EXPLAIN-TEXT"
+    assert_select "a[href=?]", homework_class_lesson_path(lesson), text: "Start homework"
+  end
+
+  test "homework is handed in one task at a time and waits for the professor" do
+    lesson(lesson_number: 1)
+    lesson.update!(homework: lesson.homework * 2) # two tasks
+    sign_in_as users(:one)
+    finish lesson
+    get portal_path
+    assert_select ".today-homework a[href=?]", homework_class_lesson_path(lesson)
+
+    get homework_class_lesson_path(lesson)
+    assert_response :success
+    assert_select ".classroom[data-classroom-homework-value=true][data-classroom-index-value='0']"
+    assert_select "template[data-classroom-target=template]", 2
+    assert_includes response.body, "Homework task 1"
+
+    post homework_class_lesson_path(lesson), params: { task_index: 1, work: "skipping ahead" }, as: :json
+    assert_response :unprocessable_entity
+    post homework_class_lesson_path(lesson), params: { task_index: 0, work: "" }, as: :json
+    assert_response :unprocessable_entity
+    assert_equal 0, users(:one).homework_submissions.count
+
+    post homework_class_lesson_path(lesson), params: { task_index: 0, work: "x = 5" }, as: :json
+    assert_equal({ "handed_in" => 1, "complete" => false }, response.parsed_body.slice("handed_in", "complete"))
+    post homework_class_lesson_path(lesson), params: { task_index: 0, work: "x = 2 + 3" }, as: :json # doing it again replaces the work
+    post homework_class_lesson_path(lesson), params: { task_index: 1, work: "x = 5\nx" }, as: :json
+    assert response.parsed_body["complete"]
+    assert_equal [ "x = 2 + 3", "x = 5\nx" ], users(:one).homework_submissions.order(:task_index).pluck(:work)
+
+    get study_class_lesson_path(lesson)
+    assert_includes response.body, "Handed in · awaiting review"
+    assert_select ".handed-in pre", text: "x = 2 + 3"
+    assert_select ".handed-in button[data-copy*='Task 2: Set x.']"
+    assert_includes response.body, "the portal doesn't grade homework"
+    get portal_path
+    assert_select ".today-homework", 0
+    get class_lessons_path
+    assert_includes response.body, "Homework handed in · awaiting review"
+  end
 end

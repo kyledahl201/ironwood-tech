@@ -139,3 +139,35 @@
   body:has(.classroom) .toasts { bottom: auto; top: 12px; align-items: stretch; }
   body:has(.classroom) .toast { max-width: none; }
 }
+
+/* Study page: guide, flashcards, questions, homework */
+.study-jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.study-jump a { padding: 6px 14px; border: 1px solid var(--night-line); color: var(--linen); text-decoration: none; font-weight: 600; font-size: 15px; min-height: 36px; display: inline-flex; align-items: center; }
+.study-jump a:hover { border-color: var(--copper); }
+.study-grid { display: grid; gap: 24px; }
+@media (min-width: 960px) { .study-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
+.study-grid .panel { scroll-margin-top: 16px; }
+.guide-list { padding-left: 22px; margin: 0 0 16px; }
+.guide-list li { margin-bottom: 10px; }
+.flashcard { display: flex; flex-direction: column; gap: 12px; width: 100%; min-height: 220px; padding: 20px 24px; text-align: left; background: var(--linen); color: var(--midnight); border: 1.5px solid var(--midnight); border-left: 6px solid var(--copper); border-radius: var(--radius); font: inherit; cursor: pointer; transition: background .2s, color .2s; }
+.flashcard.is-flipped { background: var(--midnight); color: var(--linen); }
+.flash-side { font: 600 11px var(--font-body); letter-spacing: .3em; text-transform: uppercase; color: var(--copper-deep); }
+.flashcard.is-flipped .flash-side { color: var(--bone); }
+.flash-text { font: 22px/1.4 var(--font-heading); flex: 1; display: flex; align-items: center; }
+.flash-text code { font-size: .85em; }
+.flashcard.is-flipped .flash-text code { background: rgba(245, 243, 239, .1); border-color: var(--night-line); color: var(--linen); }
+.flash-tip { color: var(--muted); }
+.flashcard.is-flipped .flash-tip { color: rgba(245, 243, 239, .7); }
+.deck-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.deck-done { padding: 20px; background: var(--linen); border-left: 4px solid var(--copper); }
+.study-question { padding: 16px 0; border-top: 1px solid var(--rule); }
+.study-question:first-of-type { border-top: 0; }
+.status-pill { display: inline-block; padding: 4px 12px; border: 1.5px solid var(--midnight); font: 600 12px var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
+.lesson-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
+.today-homework { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.study-grid [hidden] { display: none !important; }
+.handed-in { margin-top: 16px; }
+.handed-in summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.handed-in h3 { font: 600 12px var(--font-body); letter-spacing: .2em; text-transform: uppercase; color: var(--copper-deep); margin: 14px 0 6px; }
+.handed-in pre { margin: 0; background: var(--night); color: var(--linen); padding: 10px 14px; overflow-x: auto; font: 14px/1.5 var(--font-code); border-left: 3px solid var(--copper); white-space: pre-wrap; overflow-wrap: anywhere; }
+.handed-in .btn { margin-top: 14px; }
