@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_11_054045) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_062431) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -179,6 +179,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_054045) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "study_records", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "class_lesson_id", null: false
+    t.json "known_cards", default: [], null: false
+    t.integer "cards_again", default: 0, null: false
+    t.integer "decks_finished", default: 0, null: false
+    t.datetime "deck_finished_at"
+    t.json "retry_first", default: {}, null: false
+    t.datetime "retried_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["class_lesson_id"], name: "index_study_records_on_class_lesson_id"
+    t.index ["user_id", "class_lesson_id"], name: "index_study_records_on_user_id_and_class_lesson_id", unique: true
+    t.index ["user_id"], name: "index_study_records_on_user_id"
+  end
+
   create_table "study_sessions", force: :cascade do |t|
     t.integer "user_id", null: false
     t.date "studied_on", null: false
@@ -258,6 +274,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_054045) do
   add_foreign_key "lesson_completions", "lessons"
   add_foreign_key "lessons", "courses"
   add_foreign_key "sessions", "users"
+  add_foreign_key "study_records", "class_lessons"
+  add_foreign_key "study_records", "users"
   add_foreign_key "study_sessions", "users"
   add_foreign_key "transcript_snapshots", "users"
   add_foreign_key "tutor_messages", "lessons"

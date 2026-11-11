@@ -21,6 +21,7 @@
             <% if open %>
               <span class="lesson-links">
                 <%= link_to "Study guide and flashcards", study_class_lesson_path(lesson) %>
+                <% if (summary = @studied[lesson.id]&.summary).present? %><span class="muted"><%= summary %></span><% end %>
                 <% if progress&.completed? && lesson.homework.any? %>
                   <% done = @handed_in[lesson.id].to_i %>
                   <%= link_to (done >= lesson.homework.size ? "Homework handed in · awaiting review" : "Homework: #{done} of #{lesson.homework.size} handed in"), homework_class_lesson_path(lesson) %>

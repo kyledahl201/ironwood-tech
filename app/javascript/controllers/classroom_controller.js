@@ -253,6 +253,7 @@ export default class extends Controller {
 
   // Tell the server one step at a time, in order (it refuses to skip ahead).
   report(index, work) {
+    if (this.practice) return
     this.reporting = (this.reporting || Promise.resolve()).then(async () => {
       try {
         const body = this.homeworkValue ? { task_index: index - 1, work } : { step_index: index, hints_used: this.hintsUsed }
@@ -273,6 +274,7 @@ export default class extends Controller {
 
   // Go through a finished lesson again. The saved place on the server stays.
   replay() {
+    this.practice = true // nothing more is sent: the saved place and handed-in homework stay as they are
     this.stepsTarget.innerHTML = ""
     this.current = 0
     this.updateMeter()

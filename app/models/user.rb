@@ -8,6 +8,7 @@ class User < ApplicationRecord
   has_many :attempts, dependent: :destroy
   has_many :user_badges, dependent: :destroy
   has_many :class_progresses, dependent: :destroy
+  has_many :study_records, dependent: :destroy
   has_many :homework_submissions, dependent: :destroy
   has_many :courses, through: :enrollments
   has_many :tutor_messages, dependent: :destroy

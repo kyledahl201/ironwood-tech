@@ -211,19 +211,71 @@ class ClassroomTest < ActionDispatch::IntegrationTest
 
     post homework_class_lesson_path(lesson), params: { task_index: 0, work: "x = 5" }, as: :json
     assert_equal({ "handed_in" => 1, "complete" => false }, response.parsed_body.slice("handed_in", "complete"))
-    post homework_class_lesson_path(lesson), params: { task_index: 0, work: "x = 2 + 3" }, as: :json # doing it again replaces the work
+    first_time = users(:one).homework_submissions.first.submitted_at
+    post homework_class_lesson_path(lesson), params: { task_index: 0, work: "x = 999 # changed after handing in" }, as: :json
+    assert_response :unprocessable_entity # handed-in work is locked
+    assert_equal "That task is already handed in.", response.parsed_body["error"]
     post homework_class_lesson_path(lesson), params: { task_index: 1, work: "x = 5\nx" }, as: :json
     assert response.parsed_body["complete"]
-    assert_equal [ "x = 2 + 3", "x = 5\nx" ], users(:one).homework_submissions.order(:task_index).pluck(:work)
+    post homework_class_lesson_path(lesson), params: { task_index: 1, work: "overwrite" }, as: :json
+    assert_response :unprocessable_entity
+    assert_equal [ "x = 5", "x = 5\nx" ], users(:one).homework_submissions.order(:task_index).pluck(:work)
+    assert_equal first_time, users(:one).homework_submissions.order(:task_index).first.submitted_at
 
     get study_class_lesson_path(lesson)
     assert_includes response.body, "Handed in · awaiting review"
-    assert_select ".handed-in pre", text: "x = 2 + 3"
+    assert_select ".handed-in pre", text: "x = 5"
+    assert_select ".handed-in .handed-in-task", text: "Set x.", count: 2
     assert_select ".handed-in button[data-copy*='Task 2: Set x.']"
     assert_includes response.body, "the portal doesn't grade homework"
     get portal_path
     assert_select ".today-homework", 0
     get class_lessons_path
     assert_includes response.body, "Homework handed in · awaiting review"
+  end
+
+  test "flashcards and question retries are recorded, apart from the class score" do
+    lesson(lesson_number: 1)
+    lesson.update!(flashcards: [ { "front" => "A", "back" => "1" }, { "front" => "B", "back" => "2" } ])
+    sign_in_as users(:one)
+    post quiz_class_lesson_path(lesson), params: { step: 3, choice: 1, retry: true }, as: :json
+    assert_response :forbidden # no retries before class is finished
+    finish lesson # answers the class question right the first time
+
+    post study_card_class_lesson_path(lesson), params: { card: 0, result: "again" }, as: :json
+    post study_card_class_lesson_path(lesson), params: { card: 0, result: "known" }, as: :json
+    post study_card_class_lesson_path(lesson), params: { card: 0, result: "known" }, as: :json # counted once
+    post study_card_class_lesson_path(lesson), params: { card: 7, result: "known" }, as: :json # no such card
+    assert_equal({ "known" => [ 0 ], "done" => false, "decks_finished" => 0 }, response.parsed_body.slice("known", "done", "decks_finished"))
+    record = lesson.study_records.find_by!(user: users(:one))
+    assert_equal [ 1, 1, "Flashcards 1 of 2 known" ], [ record.cards_known, record.cards_again, record.summary ]
+
+    get study_class_lesson_path(lesson) # a reload brings the deck back where it was
+    assert_select "[data-study-known-value='[0]']"
+
+    post study_card_class_lesson_path(lesson), params: { card: 1, result: "known" }, as: :json
+    assert response.parsed_body["done"]
+    assert_equal 1, record.reload.decks_finished
+    assert_not_nil record.deck_finished_at
+    post study_restart_class_lesson_path(lesson), params: { what: "deck" }, as: :json
+    assert_equal [ [], 1 ], [ record.reload.known_cards, record.decks_finished ]
+
+    post quiz_class_lesson_path(lesson), params: { step: 3, choice: 0, retry: true }, as: :json # wrong on retry
+    post quiz_class_lesson_path(lesson), params: { step: 3, choice: 1, retry: true }, as: :json # only the first counts
+    assert_equal "0 of 1 right on the first try this round", response.parsed_body["summary"]
+    assert_equal [ 0, 1 ], [ record.reload.retry_right, record.retry_total ]
+    progress = lesson.progress_for(users(:one))
+    assert_equal [ 1, 1 ], [ progress.quiz_right, progress.quiz_total ] # the class score is untouched
+
+    get study_class_lesson_path(lesson)
+    assert_includes response.body, "Deck finished 1 time"
+    assert_includes response.body, "Retry: 0 of 1 right on the first try this round."
+    assert_includes response.body, "first answers were right 1 of 1 times"
+    get class_lessons_path
+    assert_includes response.body, "Deck finished 1 time · Questions 0 of 1 right on retry"
+
+    post study_restart_class_lesson_path(lesson), params: { what: "questions" }
+    assert_redirected_to study_class_lesson_path(lesson, anchor: "questions")
+    assert_equal 0, record.reload.retry_total
   end
 end

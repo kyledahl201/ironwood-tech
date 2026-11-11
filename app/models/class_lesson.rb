@@ -7,6 +7,7 @@ class ClassLesson < ApplicationRecord
 
   has_many :class_progresses, dependent: :destroy
   has_many :homework_submissions, dependent: :destroy
+  has_many :study_records, dependent: :destroy
 
   validates :slug, :course_code, :lesson_number, :title, presence: true
   validates :slug, uniqueness: true, format: { with: /\A[a-z0-9-]+\z/ }

@@ -35,6 +35,8 @@ Rails.application.routes.draw do
       post :progress
       post :quiz
       get :study
+      post "study/card", action: :sort_card, as: :study_card
+      post "study/restart", action: :restart_study, as: :study_restart
       get :homework
       post :homework, action: :hand_in
     end

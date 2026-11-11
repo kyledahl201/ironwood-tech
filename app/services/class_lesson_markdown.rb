@@ -10,7 +10,7 @@ class ClassLessonMarkdown
   end
 
   def attributes
-    meta = @front.lines.to_h { |l| k, v = l.split(":", 2); [ k.strip, v.to_s.strip ] }
+    meta = @front.lines.to_h { |l| k, v = l.split(":", 2); [ k.strip, v.to_s.strip.sub(/\A"(.*)"\z/, '\1') ] }
     {
       slug: meta.fetch("id") { raise FormatError, "front matter needs an id" },
       course_code: meta.fetch("course") { raise FormatError, "front matter needs a course" },

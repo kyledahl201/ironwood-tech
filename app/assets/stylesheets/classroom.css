@@ -171,3 +171,8 @@
 .handed-in h3 { font: 600 12px var(--font-body); letter-spacing: .2em; text-transform: uppercase; color: var(--copper-deep); margin: 14px 0 6px; }
 .handed-in pre { margin: 0; background: var(--night); color: var(--linen); padding: 10px 14px; overflow-x: auto; font: 14px/1.5 var(--font-code); border-left: 3px solid var(--copper); white-space: pre-wrap; overflow-wrap: anywhere; }
 .handed-in .btn { margin-top: 14px; }
+.study-record { margin: 12px 0 0; }
+.inline-form { display: inline; margin-left: 8px; }
+.inline-form .link-button { min-height: 0; text-decoration: underline; text-decoration-color: var(--copper); }
+.handed-in-task { font-size: 15px; margin-bottom: 6px; }
+.handed-in-task > :last-child { margin-bottom: 0; }

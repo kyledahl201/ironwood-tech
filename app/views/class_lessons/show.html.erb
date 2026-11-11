@@ -144,11 +144,11 @@
         <% if @homework %>
           <p class="eyebrow">Homework handed in</p>
           <h2>Awaiting review by <%= professor %></h2>
-          <p>Every task ran and passed its checks, and your work is saved. The checks here are self-checked practice: <%= professor %> reviews what you wrote and gives the grade in class.</p>
+          <p>Every task ran and passed its checks, and your work is saved and locked. The checks here are self-checked practice: <%= professor %> reviews what you wrote and gives the grade in class.</p>
           <div class="actions">
             <%= link_to "Back to Today", portal_path, class: "btn btn-copper" %>
             <%= link_to "Study guide and flashcards", study_class_lesson_path(@lesson), class: "btn btn-outline" %>
-            <button type="button" class="link-button" data-action="classroom#replay">Do it again</button>
+            <button type="button" class="link-button" data-action="classroom#replay">Practise it again (what you handed in stays as it is)</button>
           </div>
         <% else %>
           <p class="eyebrow">Class finished</p>

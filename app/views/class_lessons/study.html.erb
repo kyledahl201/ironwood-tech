@@ -9,7 +9,9 @@
   </nav>
 </div></header>
 
-<section class="section" data-controller="study" data-study-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"><div class="wrap study-grid">
+<section class="section" data-controller="study" data-study-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"
+         data-study-card-url-value="<%= study_card_class_lesson_path(@lesson) %>" data-study-restart-url-value="<%= study_restart_class_lesson_path(@lesson) %>"
+         data-study-known-value="<%= @record.known_cards.to_json %>"><div class="wrap study-grid">
   <div class="panel" id="guide">
     <h2>Study guide</h2>
     <% if @lesson.study_guide.any? %>
@@ -37,6 +39,7 @@
         <p><strong>Deck done.</strong> You said every card back.</p>
         <button type="button" class="btn btn-outline" data-action="study#restart">Shuffle and go again</button>
       </div>
+      <p class="small muted study-record"><%= @record.decks_finished.zero? ? "Your sorting is saved as you go, so you can stop and come back." : "Deck finished #{pluralize(@record.decks_finished, 'time')}, last on #{@record.deck_finished_at.to_fs(:short)}. Sent back as \"again later\" #{pluralize(@record.cards_again, 'time')} so far." %></p>
       <ul hidden><% @lesson.flashcards.each do |card| %><li data-study-target="source"><span><%= markdown_inline card["front"] %></span><span><%= markdown_inline card["back"] %></span></li><% end %></ul>
     </div>
   <% end %>
@@ -48,7 +51,9 @@
     <% elsif @quizzes.empty? %>
       <p class="muted">This lesson had no quick questions.</p>
     <% else %>
-      <p class="small muted">In class your first answers were right <%= @progress.quiz_right %> of <%= @progress.quiz_total %> times. Try them again cold.</p>
+      <p class="small muted">In class your first answers were right <%= @progress.quiz_right %> of <%= @progress.quiz_total %> times. That score stays as it is. Try them again cold; retries are scored separately.</p>
+      <p class="small study-record"><strong data-study-target="retry"><%= @record.retry_total.zero? ? "Retry: not tried yet." : "Retry: #{@record.retry_right} of #{@record.retry_total} right on the first try this round." %></strong>
+        <% if @record.retry_total.positive? %><%= button_to "Start a new round", study_restart_class_lesson_path(@lesson), params: { what: "questions" }, class: "link-button small", form_class: "inline-form" %><% end %></p>
       <% @quizzes.each do |step, number| %>
         <div class="study-question" data-step="<%= number %>">
           <div class="prose"><%= markdown step["text"] %></div>
@@ -78,10 +83,11 @@
           <summary>What I handed in</summary>
           <% @submissions.each do |sub| %>
             <h3>Task <%= sub.task_index + 1 %> · <%= sub.submitted_at.to_fs(:short) %></h3>
+            <div class="handed-in-task prose"><%= markdown @lesson.homework[sub.task_index]&.fetch("text", "") %></div>
             <pre><%= sub.work %></pre>
           <% end %>
           <button type="button" class="btn btn-outline" data-action="study#copy" data-copy="<%= report %>">Copy for <%= professor %></button>
-          <p class="small muted">Paste it to <%= professor %> in class to get it reviewed and graded.</p>
+          <p class="small muted">Handed-in work is locked, so <%= professor %> reviews exactly what you handed in. Paste it to <%= professor %> in class to get it reviewed and graded.</p>
         </details>
       <% else %>
         <p><%= @handed_in.zero? ? "#{pluralize(total, 'task')} to do in the workbench. Each one is checked as you work, and your work is saved for #{professor}." : "#{@handed_in} of #{total} tasks handed in." %></p>

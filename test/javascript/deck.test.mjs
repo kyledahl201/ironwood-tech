@@ -27,3 +27,11 @@ test("a deck you never get right never finishes", () => {
   for (let i = 0; i < 10; i++) deck.again()
   assert.deepEqual([deck.done, deck.known], [false, 0])
 })
+
+test("cards already known are left out after a reload", () => {
+  const deck = new Deck(4, () => 0.999, [0, 2])
+  assert.deepEqual([deck.pile, deck.tally, deck.done], [[1, 3], "2 of 4 known", false])
+  deck.gotIt(); deck.gotIt()
+  assert.equal(deck.done, true)
+  assert.equal(new Deck(2, Math.random, [0, 1]).done, true)
+})

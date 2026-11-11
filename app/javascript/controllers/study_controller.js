@@ -5,20 +5,29 @@ import { Deck } from "lib/deck"
 // The study page: flashcards the student sorts into "got it" and "again
 // later", and the questions from class, checked on the server like in class.
 export default class extends Controller {
-  static targets = ["source", "deck", "card", "side", "text", "tip", "tally", "flipButton", "againButton", "knownButton", "done"]
-  static values = { quizUrl: String }
+  static targets = ["source", "deck", "card", "side", "text", "tip", "tally", "flipButton", "againButton", "knownButton", "done", "retry"]
+  static values = { quizUrl: String, cardUrl: String, restartUrl: String, known: Array }
 
   connect() {
-    if (this.hasCardTarget) this.restart()
+    if (this.hasCardTarget) this.deal(this.knownValue)
   }
+
+  // Tell the server what was studied. If it can't be reached, studying still works.
+  record(url, body) { postJSON(url, body).catch(() => {}) }
 
   // Flashcards ------------------------------------------------------------------
 
   restart() {
-    this.cards = new Deck(this.sourceTargets.length)
-    this.deckTarget.hidden = false
-    this.doneTarget.hidden = true
-    this.show(false)
+    this.record(this.restartUrlValue, { what: "deck" })
+    this.deal([])
+  }
+
+  deal(known) {
+    this.cards = new Deck(this.sourceTargets.length, Math.random, known)
+    this.deckTarget.hidden = this.cards.done
+    this.doneTarget.hidden = !this.cards.done
+    this.tallyTarget.textContent = this.cards.tally
+    if (!this.cards.done) this.show(false)
   }
 
   show(flipped) {
@@ -36,12 +45,14 @@ export default class extends Controller {
   flip() { this.show(!this.flipped) }
 
   again() {
+    this.record(this.cardUrlValue, { card: this.cards.current, result: "again" })
     this.cards.again()
     this.show(false)
     this.cardTarget.focus({ preventScroll: true })
   }
 
   gotIt() {
+    this.record(this.cardUrlValue, { card: this.cards.current, result: "known" })
     this.cards.gotIt()
     this.tallyTarget.textContent = this.cards.tally
     if (this.cards.done) {
@@ -72,10 +83,11 @@ export default class extends Controller {
     const question = button.closest(".study-question")
     let data
     try {
-      data = await postJSON(this.quizUrlValue, { step: Number(question.dataset.step), choice: Number(button.dataset.choice) })
+      data = await postJSON(this.quizUrlValue, { step: Number(question.dataset.step), choice: Number(button.dataset.choice), retry: true })
     } catch (_) {
       return
     }
+    if (data.summary && this.hasRetryTarget) this.retryTarget.textContent = `Retry: ${data.summary}.`
     button.disabled = true
     button.classList.add(data.right ? "is-right" : "is-wrong")
     button.querySelector(".quiz-mark").textContent = data.right ? "✓" : "✗"
