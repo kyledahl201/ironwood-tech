@@ -2,7 +2,8 @@
 <% if badges.any? %>
   <div class="celebration" role="dialog" aria-modal="true" aria-labelledby="celebration-title" data-controller="celebration">
     <div class="celebration-card">
-      <%= image_tag "brand/sentry-full.svg", alt: "Sentry, cheering", class: "celebration-sentry", width: 120, height: 150 %>
+      <% sleepy = badges.map(&:key) == [ "comeback" ] %>
+      <%= image_tag "brand/sentry-#{sleepy ? "sleepy" : "cheering"}.svg", alt: sleepy ? "Sentry, waking up" : "Sentry, cheering", class: "celebration-sentry", width: 140, height: 140 %>
       <p class="eyebrow varsity-small">Badge earned</p>
       <% badges.each do |b| %>
         <div class="celebration-badge">

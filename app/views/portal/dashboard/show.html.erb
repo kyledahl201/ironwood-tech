@@ -109,7 +109,7 @@
       <% if @badges.any? %>
         <ul class="badge-row"><% @badges.each do |b| %><li title="<%= b.definition.name %>: <%= b.definition.description %>"><%= badge_image(b.key, size: 56) %></li><% end %></ul>
       <% else %>
-        <p class="muted">No badges yet. The first one is closer than it looks.</p>
+        <div class="empty-sentry"><%= image_tag "brand/sentry-watching.svg", alt: "", width: 96, height: 96 %><p class="muted">No badges yet. The first one is closer than it looks.</p></div>
       <% end %>
     </div>
 

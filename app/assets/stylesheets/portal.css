@@ -235,7 +235,7 @@
 .toast-pass { border-left-color: var(--copper); }
 .toast-fail { border-left-color: var(--bone); }
 .toast-egg { border-left-color: var(--bone); }
-.toast-sentry { width: 32px; height: 40px; flex: none; }
+.toast-sentry { width: 44px; height: 44px; flex: none; }
 body.is-konami .brand-mark img, body.is-konami .lockup img { animation: spin 1.2s ease-in-out 2; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -266,3 +266,5 @@ tr.is-new td { background: #FBF1E6; }
 .stack-vars { font-family: var(--font-code); white-space: pre-wrap; }
 .stack-return { margin-left: auto; font-weight: 600; color: var(--bone); }
 .stack-return::before { content: "↩ "; }
+.empty-sentry { display: flex; align-items: center; gap: 16px; }
+.empty-sentry p { margin: 0; }

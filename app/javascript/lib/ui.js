@@ -33,10 +33,12 @@ export function celebrate(badges) {
   const card = document.createElement("div")
   card.className = "celebration-card"
   const sentry = document.createElement("img")
-  sentry.src = document.body.dataset.eggsSentryValue || ""
-  sentry.alt = "Sentry, cheering"
+  // Prof. Duarte: cheering for a badge, sleepy for coming back after a break.
+  const sleepy = badges.length === 1 && badges[0].key === "comeback"
+  sentry.src = (sleepy ? document.body.dataset.sentrySleepy : document.body.dataset.sentryCheering) || ""
+  sentry.alt = sleepy ? "Sentry, waking up" : "Sentry, cheering"
   sentry.className = "celebration-sentry"
-  sentry.width = 120; sentry.height = 150
+  sentry.width = 140; sentry.height = 140
   const eyebrow = document.createElement("p")
   eyebrow.className = "eyebrow varsity-small"
   eyebrow.textContent = badges.length > 1 ? "Badges earned" : "Badge earned"
