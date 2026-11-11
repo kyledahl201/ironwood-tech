@@ -11,6 +11,7 @@ Ironwood is not an accredited school and grants no degrees or credit. The facult
 | Public page | One page about the school, plus privacy. Search engines are told not to index it unless `ALLOW_INDEXING=1` |
 | Accounts | Invite-only sign-up, sign in and password reset (Rails 8 authentication) |
 | Today | The dashboard: today's class or lesson, the next gate countdown, the crest tree that lights up with progress, a 26-week study heatmap and a forgiving streak |
+| Classroom | Lessons scripted by the faculty and played step by step: the professor's board on top, a workbench underneath with a practice Terminal (a pretend computer in the browser), a Ruby console and a Ruby editor. Tasks are checked as you type, hints come one at a time, "on your Mac" steps check pasted output, and quiz answers are checked on the server. Finishing a lesson counts as taught |
 | Code lab | Ruby exercises written by the faculty, with a real editor (CodeMirror), Ruby running in the browser (ruby.wasm), automatic checks, a line-by-line output diff and hints one at a time. Exercises open after their lesson is taught. No solutions are stored |
 | Visualizers | Step-through tools in one frame: a loop tracer, a hash lookup and a method call stack |
 | Rewards | Badges for real milestones (no points or leaderboards), Sentry the owl, and a few easter eggs |
@@ -45,6 +46,8 @@ The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or pr
 The editor bundle (`app/javascript/lab/editor.js`) and the Ruby worker (`public/lab/ruby-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
 
 The Ruby binary (`public/lab/ruby.wasm`, about 30 MB) is not committed. `bin/fetch-ruby-wasm` downloads the pinned version and refuses it unless its SHA-256 matches. The Docker build runs it, so the binary always ships with the site. The worker checks the same SHA-256 before running Ruby, whether it came from this site or from the jsDelivr fallback.
+
+Classroom lessons live in `db/seeds/lessons/*.md`, one file per lesson, in the faculty's lesson-script format (steps, checks and hints, never solutions). `ClassLessonMarkdown` parses them and `bin/rails db:seed` loads them.
 
 Exercises live in `db/seeds/exercises/*.md`, one file per exercise, in the faculty's format. Re-run `bin/rails db:seed` after adding one.
 

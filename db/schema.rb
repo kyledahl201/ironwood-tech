@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_11_040402) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_054045) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -23,6 +23,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_040402) do
     t.index ["exercise_id"], name: "index_attempts_on_exercise_id"
     t.index ["user_id", "exercise_id", "passed"], name: "index_attempts_on_user_id_and_exercise_id_and_passed"
     t.index ["user_id"], name: "index_attempts_on_user_id"
+  end
+
+  create_table "class_lessons", force: :cascade do |t|
+    t.string "slug", null: false
+    t.string "course_code", null: false
+    t.integer "lesson_number", null: false
+    t.string "title", null: false
+    t.string "professor"
+    t.integer "minutes"
+    t.json "steps", default: [], null: false
+    t.json "study_guide", default: [], null: false
+    t.json "flashcards", default: [], null: false
+    t.json "homework", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_code", "lesson_number"], name: "index_class_lessons_on_course_code_and_lesson_number"
+    t.index ["slug"], name: "index_class_lessons_on_slug", unique: true
+  end
+
+  create_table "class_progresses", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "class_lesson_id", null: false
+    t.integer "step_index", default: 0, null: false
+    t.datetime "completed_at"
+    t.json "quiz_first", default: {}, null: false
+    t.integer "hints_used", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["class_lesson_id"], name: "index_class_progresses_on_class_lesson_id"
+    t.index ["user_id", "class_lesson_id"], name: "index_class_progresses_on_user_id_and_class_lesson_id", unique: true
+    t.index ["user_id"], name: "index_class_progresses_on_user_id"
   end
 
   create_table "course_records", force: :cascade do |t|
@@ -91,6 +122,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_040402) do
     t.index ["slug"], name: "index_exercises_on_slug", unique: true
   end
 
+  create_table "homework_submissions", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "class_lesson_id", null: false
+    t.integer "task_index", null: false
+    t.text "work", null: false
+    t.datetime "submitted_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["class_lesson_id"], name: "index_homework_submissions_on_class_lesson_id"
+    t.index ["user_id", "class_lesson_id", "task_index"], name: "index_homework_on_user_lesson_task", unique: true
+    t.index ["user_id"], name: "index_homework_submissions_on_user_id"
+  end
+
   create_table "invites", force: :cascade do |t|
     t.string "token", null: false
     t.string "note"
@@ -143,6 +187,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_040402) do
     t.string "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "source", default: "manual", null: false
+    t.integer "seconds", default: 0, null: false
+    t.string "activity"
     t.index ["user_id", "studied_on"], name: "index_study_sessions_on_user_id_and_studied_on"
     t.index ["user_id"], name: "index_study_sessions_on_user_id"
   end
@@ -198,9 +245,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_040402) do
 
   add_foreign_key "attempts", "exercises"
   add_foreign_key "attempts", "users"
+  add_foreign_key "class_progresses", "class_lessons"
+  add_foreign_key "class_progresses", "users"
   add_foreign_key "course_records", "users"
   add_foreign_key "enrollments", "courses"
   add_foreign_key "enrollments", "users"
+  add_foreign_key "homework_submissions", "class_lessons"
+  add_foreign_key "homework_submissions", "users"
   add_foreign_key "invites", "users", column: "created_by_id"
   add_foreign_key "invites", "users", column: "used_by_id"
   add_foreign_key "lesson_completions", "enrollments"

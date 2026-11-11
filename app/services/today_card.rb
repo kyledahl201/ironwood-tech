@@ -8,12 +8,20 @@ class TodayCard
     "Day %{day}. Sentry has been waiting. Patiently."
   ].freeze
 
-  attr_reader :title, :detail, :professor, :action_label, :action_path, :kind
+  attr_reader :title, :detail, :professor, :action_label, :action_path, :kind, :class_lesson, :minutes
 
   def initialize(user, records:, enrollments:, stats:)
     @user, @stats = user, stats
     @snapshot = user.transcript_snapshot
-    if (record = records.find(&:in_progress?))
+    if (@class_lesson = ClassLesson.next_for(user))
+      started = @class_lesson.progress_for(user)&.step_index.to_i.positive?
+      @kind = :classroom
+      @title = "#{@class_lesson.course_code} · Lesson #{@class_lesson.lesson_number}"
+      @detail = @class_lesson.title
+      @professor = @class_lesson.professor
+      @minutes = @class_lesson.minutes
+      @action_label = started ? "Resume class" : "Start class"
+    elsif (record = records.find(&:in_progress?))
       @kind = :class
       @title = "#{record.code} #{record.title}"
       @detail = record.next_lesson
@@ -40,6 +48,7 @@ class TodayCard
     pool = pool.reject { |g| g.start_with?("Morning") } unless now.hour < 12
     pool = pool.reject { |g| g.start_with?("Good evening") } unless now.hour >= 17
     pool = pool.reject { |g| g.include?("%{hours}") } if hours.zero?
+    pool = [ "Welcome back, %{name}. One step today is enough." ] if pool.empty?
     format(pool[now.yday % pool.size], name: @user.first_name, day: day, hours: hours)
   end
 

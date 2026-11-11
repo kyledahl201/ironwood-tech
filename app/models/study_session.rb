@@ -6,6 +6,11 @@ class StudySession < ApplicationRecord
   validates :note, length: { maximum: 200 }
   validate :not_in_the_future
 
+  SOURCES = %w[manual auto].freeze
+  validates :source, inclusion: { in: SOURCES }
+
+  scope :manual, -> { where(source: "manual") }
+  scope :auto, -> { where(source: "auto") }
   scope :recent, -> { order(studied_on: :desc, created_at: :desc) }
 
   private

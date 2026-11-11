@@ -29,6 +29,14 @@ Rails.application.routes.draw do
     end
   end
 
+  # The classroom: scripted lessons played step by step
+  resources :class_lessons, only: %i[index show], path: "classroom" do
+    member do
+      post :progress
+      post :quiz
+    end
+  end
+
   # Code lab and visualizers
   resources :exercises, only: %i[index show], path: "lab" do
     resources :attempts, only: :create
