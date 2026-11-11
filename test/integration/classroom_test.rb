@@ -279,34 +279,63 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_equal 0, record.reload.retry_total
   end
 
+  def pulse(seconds, activity: "class", course: "CS 101")
+    post portal_pulse_path, params: { seconds: seconds, course_code: course, activity: activity }, as: :json
+    response.parsed_body
+  end
+
   test "time is logged by itself, and never faster than the clock" do
-    sign_in_as users(:one)
-    freeze_time do
-      post portal_pulse_path, params: { seconds: 30, course_code: "CS 101", activity: "class" }, as: :json
-      assert_equal({ "minutes" => 1, "today_label" => "1 min logged today" }, response.parsed_body.slice("minutes", "today_label"))
-      session = users(:one).study_sessions.auto.sole
-      assert_equal [ "CS 101", "class", 30, Time.zone.today ], [ session.course_code, session.activity, session.seconds, session.studied_on ]
+    user = users(:one)
+    sign_in_as user
+    auto = -> { user.study_sessions.auto.order(:activity).pluck(:activity, :seconds, :minutes) }
+    start = Time.current.change(hour: 12, usec: 0) # midday, so the test never crosses midnight
 
-      post portal_pulse_path, params: { seconds: 60, course_code: "CS 101", activity: "class" }, as: :json # sent again at once
-      assert_equal 35, session.reload.seconds # only the few seconds of slack are added
+    travel_to(start) do
+      assert_equal({ "today_minutes" => 0, "today_label" => "Your time here is logged by itself" }, pulse(0).slice("today_minutes", "today_label"))
+      assert_equal 0, StudySession.count # a report of no time records nothing
+      pulse(-30)
+      assert_equal 0, StudySession.count
+
+      assert_equal 0, pulse(5)["today_minutes"] # a 5-second visit logs 0 minutes
+      assert_equal [ [ "class", 5, 0 ] ], auto.call
+      assert_equal 0, ProgressStats.new(user).minutes_by_day.values.sum
+      get portal_study_sessions_path
+      assert_select ".log-list li", 0 # and it does not show up as a session
+      assert_select ".log-total strong", "0"
+
+      pulse(60) # sent again in the same second: nothing is added
+      assert_equal [ [ "class", 5, 0 ] ], auto.call
     end
 
-    travel 30.seconds do
-      post portal_pulse_path, params: { seconds: 30, course_code: "CS 101", activity: "class" }, as: :json
-    end
-    travel 10.minutes do
-      post portal_pulse_path, params: { seconds: 5000, course_code: "CS 101", activity: "class" }, as: :json # one report adds 90 s at most
-      session = users(:one).study_sessions.auto.sole
-      assert_equal [ 155, 3 ], [ session.seconds, session.minutes ]
+    travel_to(start + 30.seconds) { pulse(30) }
+    assert_equal [ [ "class", 35, 0 ] ], auto.call
+    travel_to(start + 60.seconds) { assert_equal "1 min logged today", pulse(30)["today_label"] }
+    assert_equal [ [ "class", 65, 1 ] ], auto.call
 
-      post portal_pulse_path, params: { seconds: 40, course_code: "CS 101", activity: "homework" }, as: :json
-      post portal_pulse_path, params: { seconds: 40, course_code: "CS 101", activity: "made-up" }, as: :json
-      assert_equal %w[class homework study], users(:one).study_sessions.auto.order(:activity).pluck(:activity)
-      assert_equal 5, ProgressStats.new(users(:one)).minutes_by_day.values.sum # feeds the heatmap and hours
+    travel_to(start + 10.minutes) do
+      pulse(5000) # one report adds 90 seconds at most
+      assert_equal [ [ "class", 155, 2 ] ], auto.call
     end
+
+    # Two windows open side by side: homework and a study page report the same half minute.
+    travel_to(start + 10.minutes + 30.seconds) do
+      pulse(30, activity: "homework")
+      pulse(30, activity: "study")
+      pulse(30, activity: "made-up") # an unknown activity counts as study, and is capped the same way
+    end
+    assert_equal [ [ "class", 155, 2 ], [ "homework", 30, 1 ] ], auto.call # 185 seconds is 3 minutes, once
+    travel_to(start + 10.minutes + 50.seconds) do
+      pulse(30, activity: "study") # only the 20 seconds that passed
+      assert_equal [ [ "class", 155, 2 ], [ "homework", 30, 1 ], [ "study", 20, 0 ] ], auto.call
+      assert_equal 205, user.study_sessions.auto.sum(:seconds)
+      assert_equal 3, ProgressStats.new(user).minutes_by_day.values.sum # 205 seconds: 3 minutes on the heatmap, not 5
+      assert_operator user.study_sessions.auto.sum(:seconds), :<=, 10.minutes + 50.seconds
+    end
+
     sign_out
-    post portal_pulse_path, params: { seconds: 30 }, as: :json
-    assert_equal 3, StudySession.count
+    assert_no_difference -> { StudySession.sum(:seconds) } do
+      post portal_pulse_path, params: { seconds: 30 }, as: :json
+    end
   end
 
   test "pages that count time say so, and the lab no longer asks you to log it" do
@@ -326,7 +355,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
   test "offline time is added with one tap, and the log shows what was automatic" do
     TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
     sign_in_as users(:one)
-    post portal_pulse_path, params: { seconds: 60, course_code: "CS 101", activity: "class" }, as: :json
+    pulse(60)
 
     get portal_study_sessions_path
     assert_select "form.quick-add select", 0 # no dropdowns

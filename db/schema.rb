@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_11_062431) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_063749) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -256,6 +256,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_062431) do
     t.string "name"
     t.integer "role", default: 0, null: false
     t.boolean "share_in_study_hall", default: false, null: false
+    t.datetime "last_pulse_at"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 

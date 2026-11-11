@@ -5,7 +5,7 @@ module Portal
   class StudySessionsController < ApplicationController
     def index
       @today = Time.zone.today
-      @sessions = current_user.study_sessions.recent.limit(150).to_a
+      @sessions = current_user.study_sessions.logged.recent.limit(150).to_a
       @days = @sessions.group_by(&:studied_on)
       @today_minutes = @days[@today].to_a.sum(&:minutes)
       @codes = current_user.course_records.map(&:code)

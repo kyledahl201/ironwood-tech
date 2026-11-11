@@ -9,7 +9,7 @@ class ProgressStats
   end
 
   def minutes_by_day
-    @minutes_by_day ||= @user.study_sessions.where(studied_on: heatmap_start..@today).group(:studied_on).sum(:minutes)
+    @minutes_by_day ||= @user.study_sessions.logged.where(studied_on: heatmap_start..@today).group(:studied_on).sum(:minutes)
   end
 
   def active_days
