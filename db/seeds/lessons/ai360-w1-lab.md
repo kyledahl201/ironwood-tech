@@ -338,7 +338,7 @@ git add . && git status
 ## Step: mac
 One more habit before you commit: a **.env file**. It holds settings that belong to your machine and shouldn't go into git: next week's practice values, and from Week 3 your API key. Practise with something harmless now: your forecast location.
 
-Create `.env` in the project folder with three settings, and copy it to `.env.example`, which **is** committed so others know which settings to provide. Install `python-dotenv`. Then change `weather_brief.py` so it calls `load_dotenv()` at the start of the main block and reads `HOME_LAT`, `HOME_LON` and `PLACE_NAME` with `os.environ.get(...)`, instead of using hard-coded values. Finally, run it and ask git what it's ignoring.
+Create `.env` in the project folder with your three real settings. Then write `.env.example` **by hand**, with the same names and placeholder values. That file **is** committed, so others know which settings to provide. The rule: **never copy `.env` into it.** From Week 3 your `.env` holds an API key, and a copied example file would push that key to GitHub. Install `python-dotenv`. Then change `weather_brief.py` so it calls `load_dotenv()` at the start of the main block and reads `HOME_LAT`, `HOME_LON` and `PLACE_NAME` with `os.environ.get(...)`, instead of using hard-coded values. Finally, run it and ask git what it's ignoring.
 
 ### Run
 ```
@@ -346,7 +346,15 @@ cd ~/code/agentic-ai-portfolio/week-01-weather-brief
 ```
 
 ```
-printf "HOME_LAT=41.88\nHOME_LON=-87.63\nPLACE_NAME=Chicago\n" > .env && cp .env .env.example
+printf "HOME_LAT=41.88\nHOME_LON=-87.63\nPLACE_NAME=Chicago\n" > .env
+```
+
+```
+printf "HOME_LAT=0.0\nHOME_LON=0.0\nPLACE_NAME=Your town\n" > .env.example
+```
+
+```
+cat .env.example
 ```
 
 ```
@@ -364,6 +372,9 @@ cd .. && git add . && git status --ignored
 ### Checks
 | type | call / input | expected |
 |---|---|---|
+| output_matches | - | `^HOME_LAT=0\.0$` |
+| output_matches | - | `^HOME_LON=0\.0$` |
+| output_matches | - | `^PLACE_NAME=Your town$` |
 | output_matches | - | `^Forecast for ` |
 | output_matches | - | `new file:\s+week-01-weather-brief/\.env\.example` |
 | output_matches | - | `^Ignored files:` |
@@ -373,7 +384,8 @@ cd .. && git add . && git status --ignored
 1. `ModuleNotFoundError: No module named 'dotenv'` means `python-dotenv` went into a different Python. Is `(.venv)` still in your prompt?
 2. `os.environ.get` returns **text**. Latitude and longitude still work as text in the request params, but a number you do math with would need `float(...)`.
 3. If `.env` shows up under "Changes to be committed" instead of "Ignored files", your `.gitignore` is missing the `.env` line or is in the wrong folder. Run `git rm --cached week-01-weather-brief/.env`, fix the `.gitignore`, and run the last command again.
-4. Remember to explain in your README that people should copy `.env.example` to `.env` before running the program.
+4. `.env.example` must show placeholders only: `HOME_LAT=0.0`, `HOME_LON=0.0`, `PLACE_NAME=Your town`. If `cat .env.example` shows your real values, it was copied from `.env`. Write it again by hand with the placeholder line above. Never `cp .env .env.example`.
+5. Remember to explain in your README that people should copy `.env.example` to `.env` before running the program.
 
 ## Step: mac
 Commit your first project and show the log.
@@ -409,7 +421,7 @@ Homework is below. Next week: what's actually going on inside a large language m
 - Always pass `timeout=` to network calls and call `raise_for_status()`.
 - `try:` / `except (KeyError, IndexError):` turns a crash into a clear fallback.
 - `.gitignore` keeps `.venv/` and `.env` out of git. Every project gets a README.
-- Machine-specific settings go in `.env` (never committed), read with `load_dotenv()` and `os.environ.get`. Commit a `.env.example` with the same names.
+- Machine-specific settings go in `.env` (never committed), read with `load_dotenv()` and `os.environ.get`. Commit a `.env.example` with the same names and placeholder values, written by hand. Never copy `.env` into it.
 - The course needs Python 3.11 or newer. Build each venv with it.
 
 ## Flashcards

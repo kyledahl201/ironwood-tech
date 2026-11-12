@@ -492,6 +492,22 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the .env step writes the example file by hand and refuses one copied from .env" do
+    lesson = ClassLessonMarkdown.parse(Rails.root.join("db/seeds/lessons/ai360-w1-lab.md").read)
+    step = lesson[:steps].find { |s| s["kind"] == "mac" && s["run"].to_a.any? { |c| c.include?(".env.example") } }
+
+    assert step, "the lab should have a .env step"
+    assert step["run"].none? { |c| c.match?(/cp\s+\.env\s/) }, "the step must not copy .env into the example"
+    assert_includes step["run"], "cat .env.example"
+
+    checks = step["checks"].map { |c| Regexp.new(c["expected"]) }
+    placeholders = "HOME_LAT=0.0\nHOME_LON=0.0\nPLACE_NAME=Your town\n"
+    copied = "HOME_LAT=41.88\nHOME_LON=-87.63\nPLACE_NAME=Chicago\n"
+    rest = "Forecast for Chicago\nChanges to be committed:\n\tnew file:   week-01-weather-brief/.env.example\n\nIgnored files:\n\tweek-01-weather-brief/.env\n"
+    assert checks.all? { |c| c.match?(placeholders + rest) }
+    assert_not checks.all? { |c| c.match?(copied + rest) }, "a copied example file must not pass"
+  end
+
   test "the classroom list offers the kit for its course only, and the workbench has Copy for my tutor" do
     lesson(lesson_number: 1)
     python = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
