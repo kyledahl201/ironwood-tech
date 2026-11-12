@@ -17,7 +17,7 @@
         <p class="eyebrow"><%= @current ? "Your class" : (@begun ? "A good next class" : "A good first class") %></p>
         <h2><%= @recommended.title %></h2>
         <p><%= @recommended.tour? ? "A short tour with Sentry, the school's lookout. You'll run a few commands in the practice Terminal and see how steps, checks and hints work." : entry&.tagline %></p>
-        <p class="meta"><%= [ (@recommended.tour? ? nil : "#{@recommended.course_code} · Lesson #{@recommended.lesson_number}"), (@recommended.professor && "#{@recommended.professor} (AI tutor)"), (@recommended.minutes && "about #{@recommended.minutes} minutes"), "#{@recommended.steps.size} steps" ].compact.join(" · ") %></p>
+        <p class="meta"><%= [ (@recommended.tour? ? nil : "#{entry&.program} · #{@recommended.course_code} · Lesson #{@recommended.lesson_number}"), (@recommended.professor && "#{@recommended.professor} (AI tutor)"), (@recommended.minutes && "about #{@recommended.minutes} minutes"), "#{@recommended.steps.size} steps" ].compact.join(" · ") %></p>
         <p class="actions">
           <%= link_to (@current ? "Resume class" : "Start this class"), class_lesson_path(@recommended), class: "btn btn-copper btn-lg" %>
           <%= link_to "Show full course list", courses_path, class: "btn btn-outline btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %>
@@ -28,7 +28,7 @@
     <% end %>
     <% if @begun %>
       <h2 class="welcome-list-head">All courses</h2>
-      <%= render "courses/list", entries: @entries, current_code: @current&.course_code, prefix: "page" %>
+      <%= render "courses/list", entries: @entries, current_code: @current&.course_code, prefix: "page", heading: 3 %>
     <% end %>
     <p class="small muted" style="margin-top:24px">Checks in the classroom run in your browser, so they are self-checked practice. Your professors give the grades. Professors here are AI tutor personas, not people.</p>
   </div></section>

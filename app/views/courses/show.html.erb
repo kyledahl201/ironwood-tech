@@ -2,7 +2,7 @@
 <% content_for :description, @entry.tagline %>
 <header class="page-head"><div class="wrap">
   <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Courses", courses_path %></li><li aria-current="page"><%= @entry.title %></li></ol></nav>
-  <p class="eyebrow"><%= [ (@entry.code unless @entry.tour? || @entry.code.blank?), @entry.level ].compact.join(" · ") %></p>
+  <p class="eyebrow"><%= [ (@entry.program unless @entry.program == Catalog::OTHER), (@entry.code unless @entry.tour? || @entry.code.blank?) ].compact.join(" · ") %></p>
   <h1><%= @entry.title %></h1>
   <p class="lede"><%= @entry.tagline %></p>
 </div></header>
@@ -10,6 +10,7 @@
 <section class="section"><div class="wrap course-layout">
   <div>
     <dl class="facts">
+      <% unless @entry.program == Catalog::OTHER %><dt>Program</dt><dd><%= @entry.program %></dd><% end %>
       <% if @entry.level.present? %><dt>Level</dt><dd><%= @entry.level %></dd><% end %>
       <% if @entry.time.present? %><dt>Time</dt><dd><%= @entry.time %></dd><% end %>
       <dt>Tutor</dt><dd><%= @course ? tutor_label(@course).upcase_first : "#{@entry.professor}, an AI tutor" %></dd>
