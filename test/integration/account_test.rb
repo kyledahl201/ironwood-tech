@@ -25,7 +25,7 @@ class AccountTest < ActionDispatch::IntegrationTest
     assert_equal "Sam Newname", user.name
     assert_equal "sam.new@example.com", user.email_address
     assert user.authenticate("password"), "an empty new password keeps the old one"
-    assert_equal "Saved.", flash[:notice]
+    assert_equal "Saved. You now sign in as sam.new@example.com.", flash[:notice]
     sign_out
     post session_path, params: { email_address: "sam.new@example.com", password: "password" }
     assert_redirected_to portal_url
@@ -56,6 +56,26 @@ class AccountTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_select ".errors", text: /doesn't match/
     assert users(:one).reload.authenticate("password")
+  end
+
+  test "text in only one new password box is a mismatch, never a quiet save" do
+    sign_in_as users(:one)
+    change name: "Sam Student", email_address: "one@example.com", password: "", password_confirmation: "a-brand-new-password", current_password: "password"
+    assert_response :unprocessable_entity
+    assert_select ".errors", text: /Password can't be blank when you've typed it in the repeat box/
+    change name: "Sam Student", email_address: "one@example.com", password: "a-brand-new-password", password_confirmation: "", current_password: "password"
+    assert_response :unprocessable_entity
+    assert_select ".errors", text: /doesn't match/
+    assert users(:one).reload.authenticate("password")
+    assert_equal 1, users(:one).sessions.count
+  end
+
+  test "a name change alone says only Saved, and a password change says so" do
+    sign_in_as users(:one)
+    change name: "Sam Renamed", email_address: "one@example.com", password: "", password_confirmation: "", current_password: "password"
+    assert_equal "Saved.", flash[:notice]
+    change name: "Sam Renamed", email_address: "sam.two@example.com", password: "a-brand-new-password", password_confirmation: "a-brand-new-password", current_password: "password"
+    assert_equal "Saved. You now sign in as sam.two@example.com. Your password is changed, and other devices have been signed out.", flash[:notice]
   end
 
   test "a new password signs out other devices and keeps this one" do

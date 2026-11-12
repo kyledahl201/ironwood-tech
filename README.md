@@ -38,7 +38,23 @@ bin/fetch-sqlite              # SQLite for the classroom's SQL tools (checksumme
 bin/dev                       # http://localhost:3000
 ```
 
-The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. It does this once: when an owner already exists it is left alone, so the owner can change their email and password on the Account page (`/portal/account`) and keep them across restarts. Optional settings:
+The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. It does this once: when an owner already exists it is left alone, so the owner can change their email and password on the Account page (`/portal/account`) and keep them across restarts.
+
+### If the owner is locked out (Docker install)
+
+The Mac install sends no email, so "Forgot your password?" can't help. From Terminal, with the portal container running:
+
+```
+# Which email does the owner sign in with? (catches a typo made on the Account page)
+docker exec ironwood-portal bin/rails runner 'puts User.admin.pluck(:email_address)'
+
+# Set the owner's email
+docker exec ironwood-portal bin/rails runner 'User.admin.first.update!(email_address: ARGV[0])' you@example.com
+
+# Set a new owner password. It asks for it and doesn't show or save what you type.
+docker exec -it ironwood-portal bin/rails runner 'require "io/console"; User.admin.first.update!(password: IO.console.getpass("New owner password (10+ characters): ")); puts "Password changed."'
+```
+ Optional settings:
 
 - `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
 - `TUTOR_MODEL` picks the tutor's model: `claude-sonnet-5-5` (the default, cheaper) or `claude-opus-5-5`. Any other value uses the default.
