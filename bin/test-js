@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # JavaScript tests for the classroom and the code lab (Node's built-in runner).
 # The first group needs nothing but Node. The second runs the Ruby harness in
-# real Ruby and the Python harness in real Python (Pyodide), so it needs
+# real Ruby, the Python harness in real Python (Pyodide) and the SQL bench on
+# real SQLite (sql.js), so it needs
 # vendor/lab-src dependencies and the checksummed Ruby binary.
 set -euo pipefail
 cd "$(dirname "$0")/.."

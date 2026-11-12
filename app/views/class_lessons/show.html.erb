@@ -12,7 +12,8 @@
      data-classroom-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"
      data-classroom-about-value="<%= [ (@lesson.course_code unless @lesson.tour?), (@lesson.tour? ? nil : "Lesson #{@lesson.lesson_number}"), @lesson.title, @lesson.professor ].compact.join(" · ") %>"
      data-classroom-runtimes-value="<%= { ruby: { name: "Ruby", worker: "/lab/ruby-worker.js", runtime: brand.ruby_wasm_url, megabytes: runtime_megabytes("ruby.wasm") },
-                                          python: { name: "Python", worker: "/lab/python-worker.js", runtime: "/lab/pyodide/", megabytes: runtime_megabytes("pyodide/*") } }.to_json %>"
+                                          python: { name: "Python", worker: "/lab/python-worker.js", runtime: "/lab/pyodide/", megabytes: runtime_megabytes("pyodide/*") },
+                                          sql: { name: "SQL", worker: "/lab/sql-worker.js", runtime: "/lab/sqlite/", megabytes: runtime_megabytes("sqlite/*") } }.to_json %>"
      data-classroom-first-try-line-value="<%= SentryLines::PASS_FIRST_TRY %>"
      data-classroom-pass-lines-value="<%= SentryLines::PASS.to_json %>">
 
@@ -41,6 +42,8 @@
           <option value="ruby" <%= "selected" if default_mode == "ruby" %>>Ruby editor</option>
           <option value="pyrepl" <%= "selected" if default_mode == "pyrepl" %>>Python console</option>
           <option value="python" <%= "selected" if default_mode == "python" %>>Python editor</option>
+          <option value="sqlrepl" <%= "selected" if default_mode == "sqlrepl" %>>SQL console</option>
+          <option value="sql" <%= "selected" if default_mode == "sql" %>>SQL editor</option>
         </select>
       </label>
       <span class="bench-status" data-classroom-target="status" role="status">Ready</span>
@@ -57,7 +60,7 @@
       </form>
     </div>
 
-    <% { "irb" => [ "Ruby", "irb>" ], "pyrepl" => [ "Python", ">>>" ] }.each do |mode, (language, prompt)| %>
+    <% { "irb" => [ "Ruby", "irb>" ], "pyrepl" => [ "Python", ">>>" ], "sqlrepl" => [ "SQL", "sql>" ] }.each do |mode, (language, prompt)| %>
       <div class="tool tool-term" data-classroom-target="pane" data-mode="<%= mode %>" data-action="click->classroom#focusEntry" hidden>
         <div class="term-lines" aria-live="polite" aria-label="<%= language %> console output"></div>
         <form class="term-entry" data-action="submit->classroom#enter">
@@ -121,7 +124,9 @@
             <% if step["kind"] == "try" %>
               <p class="step-where small"><%= { "terminal" => "Type it in the practice Terminal below and press Enter.", "irb" => "Type it in the Ruby console below and press Enter.", "ruby" => "Write it in the Ruby editor below, then press Check.",
                                            "pyrepl" => "Type it in the Python console below and press Enter. After an indented block, press Enter on an empty line to run it.",
-                                           "python" => "Write it in the Python editor below, then press Check." }[step["mode"]] %></p>
+                                           "python" => "Write it in the Python editor below, then press Check.",
+                                           "sqlrepl" => "Type it in the SQL console below, end it with a semicolon, and press Enter.",
+                                           "sql" => "Write it in the SQL editor below, then press Check." }[step["mode"]] %></p>
             <% end %>
             <ul class="chips" data-role="chips">
               <% step["checks"].each do |check| %>

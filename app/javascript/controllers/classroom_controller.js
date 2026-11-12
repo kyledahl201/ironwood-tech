@@ -7,7 +7,7 @@ import { buildTutorNote } from "lib/tutor_note"
 
 // The classroom. The professor's steps play in the board on top; the student
 // works in the bench underneath (practice Terminal, and a console and an editor
-// each for Ruby and Python).
+// each for Ruby, Python and SQL).
 // A step with a task opens the next one when its checks pass. Checks run in
 // the browser, so they are self-checked practice; the server keeps the place.
 const TOOLS = {
@@ -17,8 +17,14 @@ const TOOLS = {
   pyrepl: { kind: "console", language: "python", name: "Python", prompt: ">>>", more: "...", arrow: "",
             note: "Python runs in your browser. Variables last until you reset." },
   ruby: { kind: "editor", language: "ruby", name: "Ruby", note: "Ruby runs in your browser." },
-  python: { kind: "editor", language: "python", name: "Python", note: "Python runs in your browser. Standard library only: no pip, files or internet." }
+  python: { kind: "editor", language: "python", name: "Python", note: "Python runs in your browser. Standard library only: no pip, files or internet." },
+  sqlrepl: { kind: "console", language: "sql", name: "SQL", prompt: "sql>", more: "...>", arrow: "", thing: "changes", greeting: "SQL console. End each statement with a semicolon and press Enter. Type .tables to see the tables.",
+             note: "A practice database in your browser: a small made-up library (books, members, loans). Changes last until you reset." },
+  sql: { kind: "editor", language: "sql", name: "SQL", note: "A practice database in your browser (books, members, loans). Every run starts from a fresh copy." }
 }
+// How a stopped run is described, for languages where "loop" and "variables" don't fit.
+const WORDS = { sql: { runaway: "Look for a query that never ends, like a recursive one with nothing to stop it.",
+                       kept: "your earlier statements were run again, so your changes are back", lost: "the practice database is back to how it started" } }
 const CONSOLES = Object.keys(TOOLS).filter(mode => TOOLS[mode].kind === "console")
 const isEditor = mode => TOOLS[mode]?.kind === "editor"
 
@@ -47,7 +53,7 @@ export default class extends Controller {
     this.cursor.terminal = this.typed.terminal.length
 
     this.print("terminal", "Practice terminal. Type help to see what it knows.", "term-note")
-    CONSOLES.forEach(mode => this.print(mode, `${TOOLS[mode].name} console. Type a line of ${TOOLS[mode].name} and press Enter.`, "term-note"))
+    CONSOLES.forEach(mode => this.print(mode, TOOLS[mode].greeting || `${TOOLS[mode].name} console. Type a line of ${TOOLS[mode].name} and press Enter.`, "term-note"))
     this.termPromptTarget.textContent = this.sim.prompt
 
     this.fit()
@@ -83,7 +89,7 @@ export default class extends Controller {
   runner(language) {
     if (!this.runners[language]) {
       const { name, worker, runtime, megabytes } = this.runtimesValue[language]
-      this.runners[language] = new CodeRunner({ name, workerUrl: worker, runtimeUrl: runtime, megabytes, onStatus: (text, tone) => {
+      this.runners[language] = new CodeRunner({ name, workerUrl: worker, runtimeUrl: runtime, megabytes, words: WORDS[language], onStatus: (text, tone) => {
         this.statuses[language] = [text, tone]
         if (TOOLS[this.mode]?.language === language) this.setStatus(text, tone)
       } })
@@ -416,7 +422,7 @@ export default class extends Controller {
     } catch (_) {
       // No clipboard access: show the text so it can be selected and copied by hand.
       this.outputTarget.textContent = note
-      if (tool.kind !== "editor") this.setMode(TOOLS[mode].language === "python" ? "python" : "ruby", {})
+      if (tool.kind !== "editor") this.setMode(Object.keys(TOOLS).find(m => isEditor(m) && TOOLS[m].language === tool.language) || "ruby", {})
       toast("Copying isn't allowed here. The text is in the Output box: select it and copy it.", { sentry: false })
     }
     button.blur()
@@ -576,7 +582,7 @@ export default class extends Controller {
     // for the rest (an end in Ruby; in Python, a blank line ends a block).
     this.prompt(mode).textContent = runner.partial ? tool.more : tool.prompt
     if (result.incomplete) return
-    this.print(mode, (result.stdout || "").replace(/\n$/, ""))
+    this.print(mode, (result.stdout || "").replace(/\n$/, ""), tool.language === "sql" ? "term-table" : "")
     if (result.error) {
       this.print(mode, result.error.friendly, "term-error")
       this.print(mode, result.error.raw, "term-raw")
@@ -620,8 +626,8 @@ export default class extends Controller {
       this.print("terminal", "A fresh practice computer.", "term-note")
       this.termPromptTarget.textContent = this.sim.prompt
     } else if (TOOLS[mode].kind === "console") {
-      const { name, prompt } = TOOLS[mode]
-      if (!confirm(`Start the ${name} console over? Its variables will be gone.`)) return
+      const { name, prompt, thing = "variables" } = TOOLS[mode]
+      if (!confirm(`Start the ${name} console over? Its ${thing} will be gone.`)) return
       await this.runnerFor(mode).resetConsole()
       this.prompt(mode).textContent = prompt
       this.lines(mode).innerHTML = ""
@@ -677,6 +683,7 @@ export default class extends Controller {
   showOutput(result) {
     const out = this.outputTarget
     out.textContent = ""
+    out.classList.toggle("is-table", TOOLS[this.mode]?.language === "sql")
     if (result.stdout) out.append(document.createTextNode(result.stdout))
     if (result.error) {
       const err = document.createElement("span")
@@ -690,7 +697,7 @@ export default class extends Controller {
     if (!result.stdout && !result.error) {
       const none = document.createElement("span")
       none.className = "console-muted"
-      none.textContent = "(your code printed nothing)"
+      none.textContent = TOOLS[this.mode]?.language === "sql" ? "(nothing to show. Add a SELECT to see rows)" : "(your code printed nothing)"
       out.append(none)
     }
   }

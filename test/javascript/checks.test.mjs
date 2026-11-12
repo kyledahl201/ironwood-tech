@@ -89,3 +89,17 @@ test("in the console, value_is asks the live Ruby and reports what the value is 
   assert.deepEqual(asked.map(c => c.call), ["hours", "rate", "name"])
   assert.equal(await ok(checks[0], { commands: [] }), false) // no Ruby loaded
 })
+
+test("SQL row checks are answered by the database: the worker's in the editor, the live one in the console", async () => {
+  const checks = [{ type: "rows_are", call: "", expected: "[[5]]" }, { type: "columns_are", call: "", expected: "still_out" }, { type: "source_matches", expected: "(?i)is\\s+null" }]
+  const editor = await evaluateChecks(checks, { code: "SELECT count(*) AS still_out FROM loans WHERE returned_on = NULL", result: { stdout: "", checks: [{ ok: false, actual: "1 row: [0]" }, { ok: true, actual: "columns still_out" }, null] } })
+  assert.deepEqual(editor.map(o => o.ok), [false, true, false])
+  assert.equal(editor[0].actual, "gave 1 row: [0]")
+
+  const asked = []
+  const runner = { values: async list => { asked.push(...list); return [{ ok: true, actual: "1 row: [5]" }, { ok: false, actual: "columns count(*)" }] } }
+  const live = await evaluateChecks(checks, { commands: ["select count(*) from loans where returned_on is null;"], outputs: [], runner })
+  assert.deepEqual(live.map(o => o.ok), [true, false, true])
+  assert.equal(live[1].actual, "now columns count(*)")
+  assert.deepEqual(asked.map(c => c.type), ["rows_are", "columns_are"])
+})

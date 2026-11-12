@@ -81,3 +81,20 @@ test("messages name the language the runner was made for", async () => {
   assert.match(stopped.error.friendly, /Python was restarted, so anything set in the console is gone\./)
   runner.dispose()
 })
+
+test("a language can describe a stopped run in its own words", async () => {
+  const log = { started: 0, terminated: 0, workers: [] }
+  const words = { runaway: "Look for a query that never ends.", kept: "your earlier statements were run again, so your changes are back", lost: "the practice database is back to how it started" }
+  const runner = new CodeRunner({ name: "SQL", workerUrl: "x", runtimeUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log), words })
+  await runner.warm()
+  assert.equal((await runner.line("loop")).error.friendly, "That ran for more than 0 seconds, so it was stopped. Look for a query that never ends. SQL was restarted, so the practice database is back to how it started.")
+  await runner.line("UPDATE members SET town = 'Avery';")
+  const stopped = await runner.line("loop")
+  assert.match(stopped.error.friendly, /SQL was restarted and your earlier statements were run again, so your changes are back\.$/)
+  await runner.restoring
+  // Ruby and Python keep their own wording.
+  const ruby = new CodeRunner({ workerUrl: "x", runtimeUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log) })
+  await ruby.warm()
+  assert.match((await ruby.line("loop")).error.friendly, /Look for a loop that never ends\. Ruby was restarted, so anything set in the console is gone\./)
+  runner.dispose(); ruby.dispose()
+})

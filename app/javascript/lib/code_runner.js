@@ -1,12 +1,15 @@
-// Talks to a language worker for the classroom: Ruby (public/lab/ruby-worker.js)
-// or Python (public/lab/python-worker.js). Both speak the same messages.
+// Talks to a language worker for the classroom: Ruby (public/lab/ruby-worker.js),
+// Python (public/lab/python-worker.js) or SQL (public/lab/sql-worker.js). They
+// all speak the same messages.
 // run() starts clean each time. The console keeps one interpreter alive so
 // variables last between lines; if a line runs away, the worker is stopped
 // and the earlier lines are replayed so nothing the student set is lost.
 const TIMEOUT_MS = 6000
 
 export class CodeRunner {
-  constructor({ name = "Ruby", workerUrl, runtimeUrl, megabytes = null, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker }) {
+  constructor({ name = "Ruby", workerUrl, runtimeUrl, megabytes = null, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker, words = {} }) {
+    // How to describe a stopped run; SQL has statements and changes, not loops and variables.
+    this.words = { runaway: "Look for a loop that never ends.", kept: "your earlier lines were run again, so your variables are back", lost: "anything set in the console is gone", ...words }
     this.timeoutMs = timeoutMs
     this.WorkerClass = WorkerClass
     this.workerUrl = workerUrl
@@ -129,10 +132,10 @@ export class CodeRunner {
     this.restoring = this.restore(lines).then(() => this.onStatus("Ready", "ok"))
     const seconds = Math.round(this.timeoutMs / 1000)
     const kept = lines.length
-      ? ` ${this.name} was restarted and your earlier lines were run again, so your variables are back.`
-      : ` ${this.name} was restarted, so anything set in the console is gone.`
+      ? ` ${this.name} was restarted and ${this.words.kept}.`
+      : ` ${this.name} was restarted, so ${this.words.lost}.`
     return { stdout: "", stopped: true, error: {
-      friendly: `That ran for more than ${seconds} seconds, so it was stopped. Look for a loop that never ends.${kept}`, raw: "" } }
+      friendly: `That ran for more than ${seconds} seconds, so it was stopped. ${this.words.runaway}${kept}`, raw: "" } }
   }
 
   dispose() { this.worker?.terminate() }

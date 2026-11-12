@@ -59,7 +59,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     get class_lesson_path(python)
     assert_response :success
-    assert_select "select[data-classroom-target=mode] option", 5
+    assert_select "select[data-classroom-target=mode] option", 7
     assert_select "select[data-classroom-target=mode] option[value=pyrepl][selected]", text: "Python console"
     assert_select "select[data-classroom-target=mode] option[value=python]", text: "Python editor"
     assert_select ".tool[data-mode=pyrepl] input#pyrepl-input[aria-label='Type a line of Python and press Enter']"
@@ -79,6 +79,86 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     record = ClassLesson.new(attrs)
     assert_not record.valid?
     assert_match(/step 3 uses checks that don't work in python: cwd_is/, record.errors.full_messages.to_sentence)
+  end
+
+  test "a SQL lesson parses, plays in the SQL tools, and loads SQLite only from this site" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("sql_lesson.md").read)
+    assert_equal [ nil, "sqlrepl", "sql" ], attrs[:steps].map { |s| s["mode"] }
+    assert_equal "SELECT name\nFROM members\n", attrs[:steps][2]["starter"]
+    console, editor = attrs[:steps][1]["checks"], attrs[:steps][2]["checks"]
+    assert_equal [ "The only column is name", "The columns are name, town", "Your result has the right rows", "nobody was removed", "You typed the right command" ], console.map { |c| c["label"] }
+    assert_equal '[["Made Up", "Nowhere"]]', console[2]["expected"]
+    assert_equal [ "SELECT count(*) FROM members", "[[6]]" ], console[3].values_at("call", "expected")
+    assert_equal "Your result has the right rows, in the right order", editor[0]["label"]
+    assert_equal [ [ "Made Up" ], [ nil ], [ 3.5 ] ], JSON.parse(editor[0]["expected"])
+    assert_equal "sql", attrs[:homework][0]["mode"]
+    lesson = ClassLesson.create!(attrs)
+
+    sign_in_as users(:one)
+    get class_lesson_path(lesson)
+    assert_response :success
+    assert_select "select[data-classroom-target=mode] option[value=sqlrepl][selected]", text: "SQL console"
+    assert_select "select[data-classroom-target=mode] option[value=sql]", text: "SQL editor"
+    assert_select ".tool[data-mode=sqlrepl] input#sqlrepl-input[aria-label='Type a line of SQL and press Enter']"
+    assert_select ".tool[data-mode=sqlrepl] label.term-prompt", text: "sql>"
+    assert_select ".tool-editor[data-mode=editor]", 1 # one editor serves every language
+    runtimes = JSON.parse(css_select(".classroom").first["data-classroom-runtimes-value"])
+    assert_equal({ "name" => "SQL", "worker" => "/lab/sql-worker.js", "runtime" => "/lab/sqlite/" }, runtimes["sql"].except("megabytes"))
+    assert_includes response.body, "end it with a semicolon"
+    assert_includes response.body, "Write it in the SQL editor below, then press Check."
+    assert_no_match(/\[\[&quot;Made Up|Made Up&quot;, &quot;Nowhere/, css_select(".chips").map(&:to_s).join) # the rows a check expects are not printed on the page's chips
+    assert File.exist?(Rails.root.join("public/lab/sql-worker.js")), "the SQL worker is committed"
+    assert_no_match(/cdn|jsdelivr|unpkg|sql\.js\.org/i, File.read(Rails.root.join("vendor/lab-src/sql-worker.js")).gsub(/^\/\/.*$/, ""))
+  end
+
+  test "SQL checks only go where they can work, and their rows must be readable" do
+    parsed = -> { ClassLessonMarkdown.parse(file_fixture("sql_lesson.md").read) }
+    errors = ->(attrs) { ClassLesson.new(attrs).tap(&:valid?).errors.full_messages.to_sentence }
+    assert ClassLesson.new(parsed.call).valid?
+
+    attrs = parsed.call
+    attrs[:steps][2]["checks"] << { "type" => "method_returns", "call" => "x", "expected" => "1", "label" => "x" }
+    assert_match(/step 3 uses checks that don't work in sql: method_returns/, errors.call(attrs))
+
+    attrs = parsed.call
+    attrs[:steps][1]["checks"] << { "type" => "value_is", "call" => "x", "expected" => "1", "label" => "x" }
+    assert_match(/step 2 uses checks that don't work in sqlrepl: value_is/, errors.call(attrs))
+
+    attrs = parsed.call
+    attrs[:steps][1]["mode"] = "irb"
+    assert_match(/step 2 uses checks that don't work in irb: columns_are, columns_are, rows_any_order, rows_are/, errors.call(attrs))
+
+    [ "[[1], ", "7", '{"a": 1}', "[1, 2]", "[[[1]]]", "" ].each do |bad|
+      attrs = parsed.call
+      attrs[:steps][2]["checks"][0]["expected"] = bad
+      assert_match(/step 3 has rows that aren't a JSON list of rows/, errors.call(attrs), bad.inspect)
+    end
+
+    attrs = parsed.call
+    attrs[:homework][0]["checks"][0]["expected"] = "oops"
+    assert_match(/step 4 has rows that aren't a JSON list of rows/, errors.call(attrs)) # homework is checked too
+
+    mac = ClassLessonMarkdown.parse(file_fixture("lesson.md").read)
+    step = mac[:steps].find { |s| s["kind"] == "mac" }
+    if step
+      step["checks"] << { "type" => "rows_are", "call" => "", "expected" => "[[1]]", "label" => "x" }
+      assert_match(/is an on-your-Mac step, which can't use rows_are/, errors.call(mac))
+    end
+  end
+
+  test "the SQL tour is seeded as a tour and never prints a finished query" do
+    text = Rails.root.join("db/seeds/lessons/demo-sql.md").read
+    lesson = ClassLesson.new(ClassLessonMarkdown.parse(text))
+    assert lesson.valid?, lesson.errors.full_messages.to_sentence
+    assert lesson.tour?
+    assert_equal %w[sqlrepl sql], lesson.steps.filter_map { |s| s["mode"] }.uniq
+    tasks = lesson.steps.select { |s| s["kind"] == "try" }
+    assert_equal 6, tasks.size
+    assert tasks.all? { |s| s["hints"].any? }
+    # Hints and starters nudge; none holds a whole statement that would pass.
+    (tasks.flat_map { |s| s["hints"] } + tasks.filter_map { |s| s["starter"] }).each do |nudge|
+      assert_no_match(/select\b[^`]*\bfrom\b[^`]*\bwhere\b|update\s+members\s+set/i, nudge.gsub(/^--.*$/, ""))
+    end
   end
 
   test "tours are always open, and Today only points at courses the student is taking" do
@@ -127,7 +207,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".classroom[data-controller~=classroom]"
     assert_select "template[data-classroom-target=template]", 6
-    assert_select "select[data-classroom-target=mode] option", 5
+    assert_select "select[data-classroom-target=mode] option", 7
     assert_select ".mac-runs li", 2
     assert_includes response.body, "Prof. Example"
     assert_includes response.body, "(AI tutor)"

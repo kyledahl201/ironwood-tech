@@ -209,3 +209,15 @@
 .kit summary { cursor: pointer; min-height: 32px; }
 .kit ol { margin: 12px 0; padding-left: 22px; }
 .kit li { margin: 4px 0; }
+
+/* SQL results are tables: keep each row on one line and let a wide one scroll sideways. */
+.term-line.term-table { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+.console-body.is-table { white-space: pre; }
+
+/* On a phone, what a missed check found goes under its label instead of squeezing it. */
+@media (max-width: 560px) {
+  .step .chips .chip { flex-wrap: wrap; }
+  .step .chips .chip .chip-label { flex: 1 1 55%; min-width: 0; }
+  .step .chips .chip .chip-word { order: 2; }
+  .step .chips .chip .chip-detail { order: 3; flex: 0 0 calc(100% - 30px); margin-left: 30px; max-height: 6.5em; overflow: auto; }
+}

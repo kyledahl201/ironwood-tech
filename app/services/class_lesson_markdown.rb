@@ -101,6 +101,7 @@ class ClassLessonMarkdown
       when "stdout" then unquote(raw).gsub("\\n", "\n")
       when "source_matches", "command_matches", "output_matches" then raw[/`(.+)`/, 1] || raw.strip
       when "method_stdout_empty" then nil
+      when "rows_are", "rows_any_order" then raw[/`(.+)`/, 1] || raw.strip
       else unquote(raw)
       end
     end
@@ -121,6 +122,9 @@ class ClassLessonMarkdown
       when "dir_exists" then "The folder #{value} exists"
       when "file_contains" then "#{call} contains #{value}"
       when "value_is" then "#{call} is #{value}"
+      when "rows_are" then note || (call.present? ? "#{call} gives the right rows" : "Your result has the right rows, in the right order")
+      when "rows_any_order" then note || (call.present? ? "#{call} gives the right rows" : "Your result has the right rows")
+      when "columns_are" then value.to_s.include?(",") ? "The columns are #{value}" : "The only column is #{value}"
       else type.to_s
       end
     end
