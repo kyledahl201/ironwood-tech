@@ -11,7 +11,7 @@ Ironwood is not an accredited school and grants no degrees or credit. The facult
 | Public page | One page about the school, plus privacy. Search engines are told not to index it unless `ALLOW_INDEXING=1` |
 | Accounts | Invite-only sign-up, sign in and password reset (Rails 8 authentication) |
 | Today | The dashboard: today's class or lesson, the next gate countdown, the crest tree that lights up with progress, a 26-week study heatmap and a forgiving streak |
-| Classroom | Lessons scripted by the faculty and played step by step: the professor's board on top, a workbench underneath with a practice Terminal (a pretend computer in the browser), a Ruby console and a Ruby editor. Tasks are checked as you type, hints come one at a time, "on your Mac" steps check pasted output, and quiz answers are checked on the server. Finishing a lesson counts as taught. Each lesson also has a study page (study guide, flashcards, the questions from class again) and homework that plays in the same workbench; handed-in homework waits for the professor, who grades it |
+| Classroom | Lessons scripted by the faculty and played step by step: the professor's board on top, a workbench underneath with a practice Terminal (a pretend computer in the browser), a console and an editor for Ruby, and a console and an editor for Python. Tasks are checked as you type, hints come one at a time, "on your Mac" steps check pasted output, and quiz answers are checked on the server. Finishing a lesson counts as taught. Each lesson also has a study page (study guide, flashcards, the questions from class again) and homework that plays in the same workbench; handed-in homework waits for the professor, who grades it |
 | Code lab | Ruby exercises written by the faculty, with a real editor (CodeMirror), Ruby running in the browser (ruby.wasm), automatic checks, a line-by-line output diff and hints one at a time. Exercises open after their lesson is taught. No solutions are stored |
 | Visualizers | Step-through tools in one frame: a loop tracer, a hash lookup and a method call stack |
 | Rewards | Badges for real milestones (no points or leaderboards), Sentry the owl, and a few easter eggs |
@@ -31,7 +31,8 @@ You need Ruby 3.3 and SQLite.
 ```sh
 bundle install
 bin/rails db:prepare          # creates the database and seeds courses and exercises
-bin/fetch-ruby-wasm           # Ruby for the code lab (checksummed)
+bin/fetch-ruby-wasm           # Ruby for the code lab and classroom (checksummed)
+bin/fetch-pyodide             # Python for the classroom (checksummed)
 bin/dev                       # http://localhost:3000
 ```
 
@@ -43,9 +44,11 @@ The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or pr
 
 ## Code lab assets
 
-The editor bundle (`app/javascript/lab/editor.js`) and the Ruby worker (`public/lab/ruby-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
+The editor bundle (`app/javascript/lab/editor.js`) and the Ruby and Python workers (`public/lab/ruby-worker.js`, `public/lab/python-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
 
 The Ruby binary (`public/lab/ruby.wasm`, about 30 MB) is not committed. `bin/fetch-ruby-wasm` downloads the pinned version and refuses it unless its SHA-256 matches. The Docker build runs it, so the binary always ships with the site. The worker checks the same SHA-256 before running Ruby, whether it came from this site or from the jsDelivr fallback.
+
+Python is Pyodide, pinned in `vendor/lab-src/package.json`. `bin/fetch-pyodide` downloads the same version into `public/lab/pyodide` (about 13 MB, not committed) and refuses it unless the package's SHA-512 matches; the Docker build runs it. Python is only ever loaded from this site, never from a CDN. In the browser it has the standard library only: no pip, files or internet, so lessons do those parts as "on your Mac" steps.
 
 Classroom lessons live in `db/seeds/lessons/*.md`, one file per lesson, in the faculty's lesson-script format (steps, checks and hints, never solutions). `ClassLessonMarkdown` parses them and `bin/rails db:seed` loads them.
 
@@ -55,7 +58,7 @@ Exercises live in `db/seeds/exercises/*.md`, one file per exercise, in the facul
 
 ```sh
 bin/rails test
-bin/test-js                   # practice Terminal, checks, and the Ruby console in real Ruby (needs Node)
+bin/test-js                   # practice Terminal, checks, and the Ruby and Python harnesses in real Ruby and Python (needs Node)
 bin/rubocop
 bin/brakeman
 ```

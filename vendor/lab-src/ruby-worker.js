@@ -34,7 +34,7 @@ async function loadVerified(url) {
 
 self.onmessage = async ({ data }) => {
   try {
-    modulePromise ||= loadVerified(data.wasmUrl)
+    modulePromise ||= loadVerified(data.runtimeUrl || data.wasmUrl)
     const module = await modulePromise
     if (data.console) {
       self.postMessage({ id: data.id, ok: true, result: await consoleCall(module, data) })

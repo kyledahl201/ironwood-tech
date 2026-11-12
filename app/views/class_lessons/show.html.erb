@@ -10,8 +10,8 @@
      data-classroom-store-value="iw-class-<%= current_user.id %>-<%= @lesson.slug %>"
      data-classroom-progress-url-value="<%= @homework ? homework_class_lesson_path(@lesson) : progress_class_lesson_path(@lesson) %>"
      data-classroom-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"
-     data-classroom-worker-url-value="/lab/ruby-worker.js"
-     data-classroom-wasm-url-value="<%= brand.ruby_wasm_url %>"
+     data-classroom-runtimes-value="<%= { ruby: { name: "Ruby", worker: "/lab/ruby-worker.js", runtime: brand.ruby_wasm_url },
+                                          python: { name: "Python", worker: "/lab/python-worker.js", runtime: "/lab/pyodide/" } }.to_json %>"
      data-classroom-first-try-line-value="<%= SentryLines::PASS_FIRST_TRY %>"
      data-classroom-pass-lines-value="<%= SentryLines::PASS.to_json %>">
 
@@ -38,6 +38,8 @@
           <option value="terminal" <%= "selected" if default_mode == "terminal" %>>Practice Terminal</option>
           <option value="irb" <%= "selected" if default_mode == "irb" %>>Ruby console</option>
           <option value="ruby" <%= "selected" if default_mode == "ruby" %>>Ruby editor</option>
+          <option value="pyrepl" <%= "selected" if default_mode == "pyrepl" %>>Python console</option>
+          <option value="python" <%= "selected" if default_mode == "python" %>>Python editor</option>
         </select>
       </label>
       <span class="bench-status" data-classroom-target="status" role="status">Ready</span>
@@ -53,15 +55,17 @@
       </form>
     </div>
 
-    <div class="tool tool-term" data-classroom-target="pane" data-mode="irb" data-action="click->classroom#focusEntry" hidden>
-      <div class="term-lines" data-classroom-target="irbLines" aria-live="polite" aria-label="Ruby console output"></div>
-      <form class="term-entry" data-action="submit->classroom#enter">
-        <label class="term-prompt" for="irb-input" data-classroom-target="irbPrompt">irb&gt;</label>
-        <input id="irb-input" type="text" data-classroom-target="irbInput" data-action="keydown->classroom#entryKey" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type a line of Ruby and press Enter">
-      </form>
-    </div>
+    <% { "irb" => [ "Ruby", "irb>" ], "pyrepl" => [ "Python", ">>>" ] }.each do |mode, (language, prompt)| %>
+      <div class="tool tool-term" data-classroom-target="pane" data-mode="<%= mode %>" data-action="click->classroom#focusEntry" hidden>
+        <div class="term-lines" aria-live="polite" aria-label="<%= language %> console output"></div>
+        <form class="term-entry" data-action="submit->classroom#enter">
+          <label class="term-prompt" for="<%= mode %>-input"><%= prompt %></label>
+          <input id="<%= mode %>-input" type="text" data-action="keydown->classroom#entryKey" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type a line of <%= language %> and press Enter">
+        </form>
+      </div>
+    <% end %>
 
-    <div class="tool tool-editor" data-classroom-target="pane" data-mode="ruby" hidden>
+    <div class="tool tool-editor" data-classroom-target="pane" data-mode="editor" hidden>
       <div class="editor-host" data-classroom-target="editor"><textarea class="editor-fallback" aria-label="Code editor" spellcheck="false"></textarea></div>
       <div class="editor-side">
         <div class="bench-actions">
@@ -113,7 +117,9 @@
         <% if %w[try mac].include?(step["kind"]) %>
           <div class="step-extra">
             <% if step["kind"] == "try" %>
-              <p class="step-where small"><%= { "terminal" => "Type it in the practice Terminal below and press Enter.", "irb" => "Type it in the Ruby console below and press Enter.", "ruby" => "Write it in the Ruby editor below, then press Check." }[step["mode"]] %></p>
+              <p class="step-where small"><%= { "terminal" => "Type it in the practice Terminal below and press Enter.", "irb" => "Type it in the Ruby console below and press Enter.", "ruby" => "Write it in the Ruby editor below, then press Check.",
+                                           "pyrepl" => "Type it in the Python console below and press Enter. After an indented block, press Enter on an empty line to run it.",
+                                           "python" => "Write it in the Python editor below, then press Check." }[step["mode"]] %></p>
             <% end %>
             <ul class="chips" data-role="chips">
               <% step["checks"].each do |check| %>

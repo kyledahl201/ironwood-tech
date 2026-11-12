@@ -1,15 +1,17 @@
-// Talks to the Ruby worker (public/lab/ruby-worker.js) for the classroom.
-// run() uses a fresh Ruby each time. The console keeps one Ruby alive so
+// Talks to a language worker for the classroom: Ruby (public/lab/ruby-worker.js)
+// or Python (public/lab/python-worker.js). Both speak the same messages.
+// run() starts clean each time. The console keeps one interpreter alive so
 // variables last between lines; if a line runs away, the worker is stopped
 // and the earlier lines are replayed so nothing the student set is lost.
 const TIMEOUT_MS = 6000
 
-export class RubyRunner {
-  constructor({ workerUrl, wasmUrl, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker }) {
+export class CodeRunner {
+  constructor({ name = "Ruby", workerUrl, runtimeUrl, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker }) {
     this.timeoutMs = timeoutMs
     this.WorkerClass = WorkerClass
     this.workerUrl = workerUrl
-    this.wasmUrl = wasmUrl
+    this.name = name            // "Ruby" or "Python", for messages
+    this.runtimeUrl = runtimeUrl // where the worker loads the language from
     this.onStatus = onStatus
     this.id = 0
     this.queue = Promise.resolve()
@@ -25,16 +27,16 @@ export class RubyRunner {
       if (data.ready) return
       if (data.id === this.id && this.pending) { const done = this.pending; this.pending = null; done(data) }
     }
-    this.worker.onerror = () => this.onStatus("Ruby didn't load. Refresh to try again.", "bad")
+    this.worker.onerror = () => this.onStatus(`${this.name} didn't load. Refresh to try again.`, "bad")
   }
 
-  // Compile Ruby in the background so the first line is quick.
+  // Load the language in the background so the first line is quick.
   warm() {
     if (this.warming) return this.warming
-    this.onStatus("Loading Ruby…", "busy")
-    this.warming = this.send({ code: "nil", checks: [] }, 90000)
+    this.onStatus(`Loading ${this.name}…`, "busy")
+    this.warming = this.send({ code: "", checks: [] }, 90000)
       .then(() => { this.loaded = true; this.onStatus("Ready", "ok") })
-      .catch(e => { this.warming = null; this.onStatus(e.message === "timeout" ? "Ruby is slow to load. Try again." : e.message, "bad") })
+      .catch(e => { this.warming = null; this.onStatus(e.message === "timeout" ? `${this.name} is slow to load. Try again.` : e.message, "bad") })
     return this.warming
   }
 
@@ -49,7 +51,7 @@ export class RubyRunner {
         reject(new Error("timeout"))
       }, limit ?? (this.loaded ? this.timeoutMs : 90000))
       this.pending = data => { clearTimeout(timer); this.loaded = true; data.ok ? resolve(data.result) : reject(new Error(data.error)) }
-      this.worker.postMessage({ id, wasmUrl: this.wasmUrl, ...message })
+      this.worker.postMessage({ id, runtimeUrl: this.runtimeUrl, ...message })
     }))
     this.queue = job.catch(() => {})
     return job
@@ -109,8 +111,8 @@ export class RubyRunner {
     this.restoring = this.restore(lines).then(() => this.onStatus("Ready", "ok"))
     const seconds = Math.round(this.timeoutMs / 1000)
     const kept = lines.length
-      ? " Ruby was restarted and your earlier lines were run again, so your variables are back."
-      : " Ruby was restarted, so anything set in the console is gone."
+      ? ` ${this.name} was restarted and your earlier lines were run again, so your variables are back.`
+      : ` ${this.name} was restarted, so anything set in the console is gone.`
     return { stdout: "", stopped: true, error: {
       friendly: `That ran for more than ${seconds} seconds, so it was stopped. Look for a loop that never ends.${kept}`, raw: "" } }
   }

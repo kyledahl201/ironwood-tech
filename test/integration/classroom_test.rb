@@ -49,6 +49,53 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_raises(ClassLessonMarkdown::FormatError) { ClassLessonMarkdown.parse("no front matter") }
   end
 
+  test "a Python lesson parses, plays in the Python tools, and loads Python only from this site" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read)
+    assert_equal "Made up: Python", attrs[:title]
+    assert_equal [ nil, "pyrepl", "python" ], attrs[:steps].map { |s| s["mode"] }
+    assert_equal "def made_up(n):\n    pass\n", attrs[:steps][2]["starter"] # indenting is kept
+    python = ClassLesson.create!(attrs)
+
+    sign_in_as users(:one)
+    get class_lesson_path(python)
+    assert_response :success
+    assert_select "select[data-classroom-target=mode] option", 5
+    assert_select "select[data-classroom-target=mode] option[value=pyrepl][selected]", text: "Python console"
+    assert_select "select[data-classroom-target=mode] option[value=python]", text: "Python editor"
+    assert_select ".tool[data-mode=pyrepl] input#pyrepl-input[aria-label='Type a line of Python and press Enter']"
+    assert_select ".tool[data-mode=irb] input#irb-input"
+    assert_select ".tool-editor[data-mode=editor]", 1 # one editor serves both languages
+    runtimes = JSON.parse(css_select(".classroom").first["data-classroom-runtimes-value"])
+    assert_equal({ "name" => "Python", "worker" => "/lab/python-worker.js", "runtime" => "/lab/pyodide/" }, runtimes["python"])
+    assert_equal "/lab/ruby-worker.js", runtimes["ruby"]["worker"]
+    assert_includes response.body, "press Enter on an empty line to run it"
+    assert File.exist?(Rails.root.join("public/lab/python-worker.js")), "the Python worker is committed"
+  end
+
+  test "a check that can't work in a step's tool is refused" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read)
+    attrs[:steps][2]["checks"] << { "type" => "cwd_is", "expected" => "~/x", "label" => "x" }
+    record = ClassLesson.new(attrs)
+    assert_not record.valid?
+    assert_match(/step 3 uses checks that don't work in python: cwd_is/, record.errors.full_messages.to_sentence)
+  end
+
+  test "tours are always open, and Today only points at courses the student is taking" do
+    TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
+    in_progress = users(:one).course_records.select(&:in_progress?).map(&:code)
+    assert in_progress.any?
+    assert_not_includes in_progress, "AI 360"
+    ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    tour = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("lesson.md").read).merge(slug: "zz-tour", course_code: "TOUR", lesson_number: 2))
+    assert tour.unlocked_for?(users(:one))
+    assert_nil ClassLesson.next_for(users(:one)) # the only open lesson is in a course not in progress
+    sign_in_as users(:one)
+    get class_lessons_path
+    assert_select "a[href=?]", class_lesson_path("zz-py") # still there to open by choice
+
+    assert_equal "zz-py", ClassLesson.next_for(users(:two)).slug # no transcript yet: any open lesson is offered
+  end
+
   test "every lesson the faculty wrote loads" do
     paths = Dir[Rails.root.join("db/seeds/lessons/*.md")]
     assert paths.any?
@@ -79,7 +126,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".classroom[data-controller~=classroom]"
     assert_select "template[data-classroom-target=template]", 6
-    assert_select "select[data-classroom-target=mode] option", 3
+    assert_select "select[data-classroom-target=mode] option", 5
     assert_select ".mac-runs li", 2
     assert_includes response.body, "Prof. Example"
     assert_includes response.body, "(AI tutor)"
