@@ -13,7 +13,9 @@ export default class extends Controller {
   disconnect() { this.observer?.disconnect() }
 
   reset(event) {
-    if (event.detail.success) this.element.reset()
+    if (!event.detail.success) return
+    this.element.reset()
+    this.element.querySelector("textarea")?.focus({ preventScroll: true }) // ready for the next question
   }
 
   scroll() { this.log.scrollTop = this.log.scrollHeight }

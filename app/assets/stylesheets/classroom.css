@@ -258,3 +258,90 @@
   .bench .bench-bar .link-button { white-space: nowrap; flex: none; }
   .bench .bench-status { overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* The course list: one list for the Courses page, the welcome screen and "Switch class". */
+.course-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--rule); }
+.course-pick { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: center; padding: 18px 4px; border-bottom: 1px solid var(--rule); }
+.course-pick.is-current { border-left: 4px solid var(--copper); padding-left: 16px; background: var(--white); }
+.course-pick .eyebrow { margin: 0 0 4px; }
+.course-pick h3 { margin: 0; font-size: 22px; }
+.course-pick h3 a { color: var(--midnight); text-decoration: none; }
+.course-pick h3 a:hover { text-decoration: underline; text-decoration-color: var(--copper); }
+.course-tagline { margin: 4px 0 0; }
+.course-pick .meta { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.course-pick.is-going .course-state, .course-pick.is-finished .course-state { color: var(--midnight); font-weight: 600; }
+.course-pick-act { display: flex; align-items: center; gap: 16px; }
+.course-pick-act form { margin: 0; }
+.course-pick-act .btn { min-width: 108px; justify-content: center; }
+.course-more-toggle { display: inline-flex; align-items: center; text-decoration: none; }
+.course-more-toggle::after { content: "▾"; margin-left: 6px; font-size: 12px; }
+.course-more-toggle[aria-expanded=true]::after { content: "▴"; }
+.course-more { grid-column: 1 / -1; background: var(--white); border: 1px solid var(--rule); border-left: 4px solid var(--copper); padding: 16px 20px; }
+.course-more[hidden] { display: none; }
+.course-more ul { margin: 0 0 12px; padding-left: 22px; }
+.course-more p { margin: 0; }
+.course-more-head { font-weight: 600; margin: 0 0 4px !important; }
+.course-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; margin: 0 0 12px; }
+.course-facts dt { font-weight: 600; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.course-facts dd { margin: 0; }
+@media (max-width: 640px) {
+  .course-pick { grid-template-columns: 1fr; }
+  .course-pick-act { justify-content: space-between; }
+  .course-facts { grid-template-columns: 1fr; gap: 0; }
+  .course-facts dd { margin-bottom: 8px; }
+}
+
+/* The list drawn over the page. */
+.course-dialog { width: min(1040px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid var(--midnight); background: var(--linen); color: var(--midnight); overflow: hidden; }
+.course-dialog[open] { display: flex; flex-direction: column; }
+.course-dialog::backdrop { background: rgba(20, 33, 61, .6); }
+.course-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; background: var(--white); border-bottom: 1px solid var(--rule); flex: none; }
+.course-dialog-head h2 { margin: 0; font-size: 24px; }
+.course-dialog-body { position: relative; min-height: 0; flex: 1; display: flex; }
+.course-dialog-scroll { overflow-y: auto; overscroll-behavior: contain; padding: 0 20px 20px; flex: 1; min-width: 0; }
+.course-dialog .course-list { border-top: 0; }
+.course-dialog-aside { display: none; }
+/* With a mouse and room to spare, pointing at a course shows its details beside the list. */
+@media (hover: hover) and (min-width: 900px) {
+  .course-dialog-scroll { padding-right: 400px; min-height: 420px; }
+  .course-dialog-aside { display: block; position: absolute; top: 20px; right: 20px; width: 360px; margin: 0; padding: 16px 20px; border: 1px dashed var(--rule); }
+  .course-dialog .course-more-toggle { display: none; }
+  .course-dialog .course-pick:hover .course-more, .course-dialog .course-pick:focus-within .course-more {
+    display: block; position: absolute; top: 20px; right: 20px; width: 360px; max-height: calc(100% - 40px); overflow-y: auto; z-index: 1; box-shadow: 0 6px 24px rgba(20, 33, 61, .12); }
+  /* Pointing wins over where the keyboard is. */
+  .course-dialog .course-list:hover .course-pick:focus-within:not(:hover) .course-more { display: none; }
+  .course-dialog .course-pick:hover, .course-dialog .course-pick:focus-within { background: var(--white); }
+}
+
+/* The welcome screen. */
+.welcome-first { background: var(--white); border: 1px solid var(--rule); border-top: 4px solid var(--copper); padding: 24px; max-width: 760px; }
+.welcome-first h2 { margin: 0 0 8px; }
+.welcome-first .meta { color: var(--muted); font-size: 14px; margin: 0; }
+.welcome-list-head { margin-top: 40px; }
+
+/* Tools in the lesson bar, and the professor's chat. */
+.classroom > * { grid-column: 1; }
+.class-tools { grid-column: 2; grid-row: 3; display: flex; gap: 8px; justify-content: flex-end; }
+.class-meter { grid-row: 1 / span 2; }
+.class-tools .btn { white-space: nowrap; background: var(--white); }
+.class-tools .btn[aria-expanded=true] { background: var(--midnight); color: var(--linen); }
+.classroom .class-tutor { grid-column: 2; grid-row: 1 / -1; border-width: 0 0 0 1px; min-height: 0; position: static; max-height: none; }
+.class-tutor[hidden] { display: none; }
+.class-tutor-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.class-tutor .link-button.light { color: var(--linen); }
+.class-tutor .tutor-log { min-height: 0; align-content: start; }
+.tutor-alert { margin: 0; color: #9B2335; font-weight: 600; font-size: 14px; }
+.tutor-alert:empty { display: none; }
+.tutor-send-work { display: flex; gap: 8px; align-items: baseline; }
+.tutor-send-work input { flex: none; }
+.tutor-off { border-top: 1px solid var(--rule); padding: 16px; }
+.tutor-off p { margin: 0 0 8px; }
+@media (min-width: 1000px) { .classroom.has-tutor { grid-template-columns: minmax(0, 1fr) min(400px, 36vw); } }
+@media (max-width: 999.98px) {
+  .classroom .class-tutor { position: fixed; inset: 0; z-index: 40; border: 0; }
+}
+@media (max-width: 640px) {
+  .class-meter { grid-row: auto; }
+  .class-tools { grid-column: 1; grid-row: auto; justify-content: flex-start; }
+  .class-tools .btn { flex: 1; justify-content: center; min-height: 40px; }
+}

@@ -1,0 +1,14 @@
+<%# The full course list, drawn over the page. Opened by any [data-action="course-dialog#open"] inside the same controller.
+    locals: entries, current_code %>
+<dialog class="course-dialog" data-course-dialog-target="dialog" aria-labelledby="course-dialog-title" data-action="click->course-dialog#backdrop">
+  <div class="course-dialog-head">
+    <h2 id="course-dialog-title"><%= local_assigns[:current_code] ? "Switch class" : "All courses" %></h2>
+    <button type="button" class="link-button" data-action="course-dialog#close">Close</button>
+  </div>
+  <div class="course-dialog-body">
+    <div class="course-dialog-scroll">
+      <%= render "courses/list", entries: entries, current_code: local_assigns[:current_code], prefix: "pick" %>
+    </div>
+    <p class="course-dialog-aside muted" aria-hidden="true">Point at a course to see what it covers. Press Start to open it in the classroom.</p>
+  </div>
+</dialog>

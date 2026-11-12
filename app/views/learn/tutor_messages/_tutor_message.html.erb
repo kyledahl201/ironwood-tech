@@ -1,4 +1,4 @@
 <div class="msg msg-<%= tutor_message.role %><%= " msg-pending" if tutor_message.pending? %>" id="<%= dom_id(tutor_message) %>">
-  <div class="msg-who"><%= tutor_message.role == "user" ? "You" : tutor_message.lesson.course.tutor_name %></div>
+  <div class="msg-who"><%= tutor_message.role == "user" ? "You" : tutor_message.tutor_name %></div>
   <% if tutor_message.pending? %><p><em>Thinking…</em></p><% else %><%= markdown tutor_message.content %><% end %>
 </div>

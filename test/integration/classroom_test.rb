@@ -322,14 +322,18 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     lesson
     sign_in_as users(:one)
     get class_lesson_path(lesson)
-    assert_redirected_to class_lessons_path # lesson 1 hasn't happened yet
+    assert_redirected_to course_path("cs-101") # lesson 1 hasn't happened yet: back to the course, which says when it opens
+    follow_redirect!
+    assert_select ".flash, [role=alert], [role=status]", text: /opens when CS 101 lesson 1 is finished/
 
     TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
     users(:one).course_records.find_by(code: "CS 101").update!(lessons_done: 1)
     get portal_path
     assert_select "a.btn[href=?]", class_lesson_path(lesson), text: "Start class"
     get class_lessons_path
-    assert_select "a[href=?]", class_lesson_path(lesson)
+    assert_redirected_to class_lesson_path(lesson) # the Classroom tab opens the class this student is in
+    get course_path("cs-101")
+    assert_select ".ex-list a[href=?]", class_lesson_path(lesson)
 
     get class_lesson_path(lesson)
     assert_response :success
@@ -486,7 +490,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "the portal doesn't grade homework"
     get portal_path
     assert_select ".today-homework", 0
-    get class_lessons_path
+    get course_path("cs-101")
     assert_includes response.body, "Homework handed in · awaiting review"
   end
 
@@ -527,7 +531,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Deck finished 1 time"
     assert_includes response.body, "Retry: 0 of 1 right on the first try this round."
     assert_includes response.body, "first answers were right 1 of 1 times"
-    get class_lessons_path
+    get course_path("cs-101")
     assert_includes response.body, "Deck finished 1 time · Questions 0 of 1 right on retry"
 
     post study_restart_class_lesson_path(lesson), params: { what: "questions" }
@@ -716,11 +720,13 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_not checks.all? { |c| c.match?(copied + rest) }, "a copied example file must not pass"
   end
 
-  test "the classroom list offers the kit for its course only, and the workbench has Copy for my tutor" do
+  test "a course page offers the kit for its course only, and the workbench has Copy for my tutor" do
     lesson(lesson_number: 1)
     python = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
     sign_in_as users(:one)
-    get class_lessons_path
+    get course_path("cs-101")
+    assert_select "details.kit", 0
+    get course_path("ai-360")
     assert_select "details.kit", 1
     assert_select "details.kit a[href=?]", tutor_kit_path("ai-360"), text: "Download the tutor kit"
     assert_select "details.kit a[href=?]", tutor_kit_file_path("ai-360", "WEEK-02.md")

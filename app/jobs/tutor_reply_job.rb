@@ -7,10 +7,9 @@ class TutorReplyJob < ApplicationJob
     placeholder = TutorMessage.find(placeholder_id)
     return unless placeholder.pending?
 
-    lesson = placeholder.lesson
-    reply = Tutor.new(course: lesson.course, lesson: lesson, user: placeholder.user).reply
+    reply = Tutor.for(placeholder).reply
     placeholder.update!(content: reply, pending: false)
-    placeholder.broadcast_replace_to [ placeholder.user, lesson ],
+    placeholder.broadcast_replace_to [ placeholder.user, placeholder.home ],
       partial: "learn/tutor_messages/tutor_message", locals: { tutor_message: placeholder }
   end
 end

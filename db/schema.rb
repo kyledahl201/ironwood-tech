@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_11_063749) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_12_182137) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -227,12 +227,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_063749) do
 
   create_table "tutor_messages", force: :cascade do |t|
     t.integer "user_id", null: false
-    t.integer "lesson_id", null: false
+    t.integer "lesson_id"
     t.string "role", null: false
     t.text "content", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "pending", default: false, null: false
+    t.integer "class_lesson_id"
+    t.text "context"
+    t.boolean "homework", default: false, null: false
+    t.index ["class_lesson_id"], name: "index_tutor_messages_on_class_lesson_id"
     t.index ["lesson_id"], name: "index_tutor_messages_on_lesson_id"
     t.index ["user_id"], name: "index_tutor_messages_on_user_id"
   end
@@ -279,6 +283,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_11_063749) do
   add_foreign_key "study_records", "users"
   add_foreign_key "study_sessions", "users"
   add_foreign_key "transcript_snapshots", "users"
+  add_foreign_key "tutor_messages", "class_lessons"
   add_foreign_key "tutor_messages", "lessons"
   add_foreign_key "tutor_messages", "users"
   add_foreign_key "user_badges", "users"

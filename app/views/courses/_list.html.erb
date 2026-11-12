@@ -1,0 +1,32 @@
+<%# The one course list. Used by the Courses page, the classroom's "Switch class" and the welcome screen.
+    locals: entries, current_code (the course the student is in class for, if any), prefix (unique per list on a page) %>
+<% current_code = local_assigns[:current_code]; prefix = local_assigns.fetch(:prefix, "course") %>
+<ul class="course-list" data-controller="disclosure">
+  <% entries.each do |entry| %>
+    <% state = entry.state %>
+    <li class="course-pick is-<%= state %><%= " is-current" if current_code && entry.code == current_code %>">
+      <div class="course-pick-main">
+        <p class="eyebrow"><%= [ (entry.code unless entry.tour? || entry.code.blank?), (entry.professor.to_s.match?(/tutor/i) ? "AI tutor" : (entry.professor.present? ? "#{entry.professor} (AI tutor)" : nil)) ].compact.join(" · ") %></p>
+        <h3><%= link_to entry.title, course_path(entry) %></h3>
+        <% if entry.tagline.present? %><p class="course-tagline"><%= entry.tagline %></p><% end %>
+        <p class="meta"><span class="course-state"><%= current_code && entry.code == current_code && state == :new ? entry.status_line.sub("Not started · ", "") : entry.status_line %></span><% if current_code && entry.code == current_code %> · <strong>You are in this class now</strong><% end %></p>
+      </div>
+      <div class="course-pick-act">
+        <%= render "courses/launch", entry: entry, size: "" %>
+        <%= link_to course_path(entry), class: "link-button course-more-toggle", role: "button", aria: { expanded: false, controls: "#{prefix}-#{entry.slug}-more" }, data: { action: "disclosure#toggle keydown->disclosure#key" } do %>Details<span class="visually-hidden"> of <%= entry.title %></span><% end %>
+      </div>
+      <div class="course-more" id="<%= prefix %>-<%= entry.slug %>-more" hidden>
+        <dl class="course-facts">
+          <% if entry.level.present? %><dt>Level</dt><dd><%= entry.level %></dd><% end %>
+          <% if entry.time.present? %><dt>Time</dt><dd><%= entry.time %></dd><% end %>
+          <dt>How it's taught</dt><dd><%= [ ("#{pluralize(entry.lessons.size, entry.tour? ? 'tour' : 'class')} in the classroom, one step at a time" if entry.classroom?), ("#{pluralize(entry.course.lessons.size, 'reading lesson')} with an AI tutor" if entry.course&.lessons&.any?) ].compact.to_sentence.upcase_first %></dd>
+        </dl>
+        <% if entry.outcomes.any? %>
+          <p class="course-more-head">What you'll be able to do</p>
+          <ul><% entry.outcomes.each do |outcome| %><li><%= outcome %></li><% end %></ul>
+        <% end %>
+        <p class="small"><%= link_to "See every class in #{entry.title}", course_path(entry) %></p>
+      </div>
+    </li>
+  <% end %>
+</ul>

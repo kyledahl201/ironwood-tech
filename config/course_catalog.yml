@@ -1,0 +1,40 @@
+# The classroom courses, in the order the course list shows them. A course here
+# is every classroom lesson that carries its code (db/seeds/lessons/*.md).
+# `reading` names an online course (courses.slug) that belongs to the same
+# course, so the two show as one row. Published online courses that no entry
+# names are added to the end of the list by themselves.
+- slug: start-here
+  code: TOUR
+  title: "Start here: a tour of the classroom"
+  professor: Sentry
+  level: Brand new, no experience needed
+  time: About 10 minutes a tour
+  tagline: See how class works here before you pick a course. Short tours of the practice Terminal and each workbench.
+  outcomes:
+    - Move through a class one step at a time
+    - Use the practice Terminal and the code workbenches
+    - Know what the checks and hints do, and what they don't
+- slug: cs-090
+  code: CS 090
+  title: Computing Orientation
+  professor: Prof. Hale
+  level: Beginner, no coding needed
+  time: Three classes, about 30 minutes each
+  tagline: Get your Mac ready for programming. The Terminal, Homebrew, a modern Ruby, and your first Ruby file.
+  outcomes:
+    - Find your way around folders and files in the Terminal
+    - Install tools with Homebrew and check their versions
+    - Write and run a Ruby file of your own
+- slug: cs-101
+  code: CS 101
+  title: Intro to Programming in Ruby
+  professor: Prof. Hale
+  level: Beginner, after CS 090
+  time: About 30 minutes a class
+  tagline: The building blocks of every program, in Ruby. Values, variables, methods, arrays, loops and decisions.
+  outcomes:
+    - Store and change values with variables and strings
+    - Write methods, and tell puts from return
+    - Loop over arrays and make decisions with if and else
+- code: AI 360
+  reading: agentic-ai-bootcamp
