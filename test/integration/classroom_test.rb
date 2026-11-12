@@ -172,6 +172,43 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "a git lesson parses its repository checks and plays in the practice Terminal" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("git_lesson.md").read)
+    checks = attrs[:steps][0]["checks"]
+    assert_equal [ "~/made-up", "made-up", "spare", "3", "1", nil, "(?i)^add ", "spare", "docs/made-up.md" ], checks.map { |c| c["expected"] }
+    assert_equal [ "~/made-up is a Git project", "You are on the branch made-up", "a spare branch is waiting", "This branch has at least 3 commits", "This branch has at least 1 commit", "Nothing is left to commit",
+                   "the message starts with Add", "spare is merged into the branch you are on", "docs/made-up.md is in the last commit" ], checks.map { |c| c["label"] }
+    lesson = ClassLesson.create!(attrs)
+    sign_in_as users(:one)
+    get class_lesson_path(lesson)
+    assert_response :success
+    assert_select "select[data-classroom-target=mode] option[value=terminal][selected]"
+
+    # Repository checks need the practice Terminal: not an editor, and not a real Mac.
+    bad = ClassLessonMarkdown.parse(file_fixture("js_lesson.md").read)
+    bad[:steps][2]["checks"] << { "type" => "git_clean", "label" => "x" }
+    assert_match(/step 3 uses checks that don't work in js: git_clean/, ClassLesson.new(bad).tap(&:valid?).errors.full_messages.to_sentence)
+    bad = ClassLessonMarkdown.parse(file_fixture("git_lesson.md").read)
+    bad[:steps][0]["kind"] = "mac"
+    assert_match(/step 1 is an on-your-Mac step, which can't use git_repo_is/, ClassLesson.new(bad).tap(&:valid?).errors.full_messages.to_sentence)
+    bad = ClassLessonMarkdown.parse(file_fixture("git_lesson.md").read)
+    bad[:steps][0]["checks"][3]["expected"] = "a few"
+    assert_match(/step 1 has a git_commits check without a number of commits/, ClassLesson.new(bad).tap(&:valid?).errors.full_messages.to_sentence)
+  end
+
+  test "the git tour is seeded as a tour and its hints never hand over a whole command line" do
+    lesson = ClassLesson.new(ClassLessonMarkdown.parse(Rails.root.join("db/seeds/lessons/demo-git.md").read))
+    assert lesson.valid?, lesson.errors.full_messages.to_sentence
+    assert lesson.tour?
+    assert_equal %w[terminal], lesson.steps.filter_map { |s| s["mode"] }.uniq
+    tasks = lesson.steps.select { |s| s["kind"] == "try" }
+    assert_equal 6, tasks.size
+    assert tasks.all? { |s| s["hints"].any? }
+    tasks.flat_map { |s| s["hints"] }.each do |nudge|
+      assert_no_match(/mkdir notes|cd notes|git add plan|git add \.|git commit -m "|git switch -c ideas|git switch main|git merge ideas/, nudge)
+    end
+  end
+
   test "a SQL lesson parses, plays in the SQL tools, and loads SQLite only from this site" do
     attrs = ClassLessonMarkdown.parse(file_fixture("sql_lesson.md").read)
     assert_equal [ nil, "sqlrepl", "sql" ], attrs[:steps].map { |s| s["mode"] }

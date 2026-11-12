@@ -53,6 +53,8 @@ Python is Pyodide, pinned in `vendor/lab-src/package.json`. `bin/fetch-pyodide` 
 
 JavaScript needs no download: the browser is the runtime. The student's code runs in a Web Worker (`vendor/lab-src/js-harness.js`), away from the page, with `console.log` captured.
 
+The practice Terminal (`app/javascript/lib/terminal_sim.js`) is a pretend computer written in plain JavaScript, with its own Git: a staging area, commits, branches, merges and real conflicts. It has no remotes, so pushing and pulling stay on the student's Mac.
+
 The web page editor (`web` mode) needs no download either. The student's HTML and CSS are drawn in a sandboxed frame (`sandbox="allow-same-origin"`, so no script runs, plus a content policy that fetches nothing from outside), and the page checks read that frame (`app/javascript/lib/page_preview.js`). Its tests run on jsdom, a dev dependency of `vendor/lab-src`.
 
 SQL is SQLite compiled for the browser (sql.js), pinned in `vendor/lab-src/package.json`. `bin/fetch-sqlite` downloads the same version's binary into `public/lab/sqlite` (under 1 MB, not committed) and refuses it unless its SHA-256 matches; the Docker build runs it, and the worker checks the same hash before running it. It is only ever loaded from this site. Every fresh database starts with a small made-up library (`books`, `members`, `loans`) defined in `vendor/lab-src/sql-harness.js`.

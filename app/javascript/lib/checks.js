@@ -46,6 +46,9 @@ export async function evaluateChecks(checks, context) {
         const text = sim?.read(check.call)
         return { ok: text != null && text.includes(check.expected), actual: text == null ? "that file isn't there yet" : null }
       }
+      case "git_repo_is": return { ok: !!sim?.repos[sim.resolve(check.expected)], actual: sim?.gitState() ? `the Git project you are in starts at ${sim.display(sim.gitState().root)}` : "this folder isn't a git repository yet" }
+      case "git_branch_is": case "git_branch_exists": case "git_commits": case "git_clean": case "git_message_matches": case "git_merged": case "git_tracked":
+        return gitCheck(check, sim?.gitState())
       case "stdout": {
         const want = normalize(check.expected)
         if (inEditor) return { ok: !result.error && normalize(result.stdout) === want, actual: result.error ? null : `printed ${JSON.stringify(normalize(result.stdout))}` }
@@ -73,6 +76,24 @@ export async function evaluateChecks(checks, context) {
     })
   }
   return outcomes
+}
+
+// Practice git checks look at the repository the student is standing in.
+function gitCheck(check, git) {
+  if (!git) return { ok: false, actual: "this folder isn't a git repository yet" }
+  const want = String(check.expected ?? "")
+  switch (check.type) {
+    case "git_branch_is": return { ok: git.branch === want, actual: `you are on ${git.branch}` }
+    case "git_branch_exists": return { ok: git.branches.includes(want), actual: git.branches.length ? `the branches are ${git.branches.join(", ")}` : "there are no commits yet, so no branches" }
+    case "git_commits": return { ok: git.commits >= Number(want), actual: `this branch has ${git.commits}` }
+    case "git_clean": {
+      const left = [git.repo.merging ? "a merge isn't finished" : null, git.staged.length ? `${git.staged.length} staged` : null, git.unstaged.length ? `${git.unstaged.length} changed` : null, git.untracked.length ? `${git.untracked.length} untracked` : null].filter(Boolean)
+      return { ok: git.clean, actual: left.join(", ") }
+    }
+    case "git_message_matches": return { ok: git.message != null && matches(check.expected, [git.message]), actual: git.message == null ? "there are no commits yet" : `the last message is “${git.message}”` }
+    case "git_merged": return { ok: want !== git.branch && git.merged(want), actual: want === git.branch ? `you are on ${want} itself. Stand on the branch that should receive its work` : git.branches.includes(want) ? `${want} has work that ${git.branch} doesn't have yet` : `there is no branch called ${want}` }
+    case "git_tracked": return { ok: want in git.tree, actual: git.head ? "it isn't in the last commit" : "there are no commits yet" }
+  }
 }
 
 const source = (code, commands) => code ?? commands.join("\n")

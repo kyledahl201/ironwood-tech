@@ -12,7 +12,7 @@ export class TerminalSim {
     this.root = dir({ Users: dir({ [user]: dir({ Desktop: dir(), Documents: dir(), Downloads: dir() }) }) })
     this.cwd = this.home
     this.history = []
-    this.repos = {}   // path => { staged: [], commits: [{ id, message, files }] }
+    this.repos = {}   // path => { branch, branches: { name: commit id }, commits: { id: { message, files, parents } }, index, merging }
   }
 
   // State that survives a page reload.
@@ -125,6 +125,8 @@ export class TerminalSim {
   }
 
   // Practice git ----------------------------------------------------------------
+  // A small, honest git: an index, commits with parents, branches, merges with
+  // real conflicts. No remotes: pushing and pulling need GitHub and a real Terminal.
 
   repoPath() {
     let at = this.cwd
@@ -144,62 +146,363 @@ export class TerminalSim {
     return out
   }
 
+  // The repository at a path, brought up to today's shape if it was saved by an older classroom.
+  repo(root) {
+    const repo = this.repos[root]
+    if (repo && Array.isArray(repo.commits)) {
+      const commits = {}
+      repo.commits.forEach((c, n) => { commits[c.id] = { ...c, n, parents: n ? [repo.commits[n - 1].id] : [] } })
+      const last = repo.commits.at(-1)
+      const files = this.filesUnder(root)
+      const index = { ...(last?.files || {}) }
+      ;(repo.staged || []).forEach(f => { if (f in files) index[f] = files[f] })
+      this.repos[root] = { branch: "main", branches: last ? { main: last.id } : {}, commits, index, made: repo.commits.length, merging: null }
+    }
+    return this.repos[root]
+  }
+
+  // Where a repository stands, for the classroom's checks and for git status.
+  gitState(root = this.repoPath()) {
+    const repo = root && this.repo(root)
+    if (!repo) return null
+    const head = repo.branches[repo.branch] || null
+    const tree = head ? repo.commits[head].files : {}
+    const ignored = ignoreRules(this.read(`${root}/.gitignore`))
+    const all = this.filesUnder(root)
+    const files = Object.fromEntries(Object.entries(all).filter(([f]) => f in repo.index || !ignored(f)))
+    const names = new Set([...Object.keys(tree), ...Object.keys(repo.index), ...Object.keys(files)])
+    const staged = [], unstaged = [], untracked = []
+    ;[...names].sort().forEach(f => {
+      if (repo.index[f] !== tree[f]) staged.push([f in repo.index ? (f in tree ? "modified" : "new file") : "deleted", f])
+      if (f in repo.index && files[f] !== repo.index[f]) unstaged.push([f in files ? "modified" : "deleted", f])
+      if (!(f in repo.index) && f in files) untracked.push(f)
+    })
+    const history = this.ancestors(repo, head)
+    return { root, repo, head, tree, files, staged, unstaged, untracked, history,
+             branch: repo.branch, branches: Object.keys(repo.branches).sort(), commits: history.length,
+             clean: !staged.length && !unstaged.length && !untracked.length && !repo.merging,
+             message: head ? repo.commits[head].message : null,
+             merged: name => !!repo.branches[name] && history.some(c => c.id === repo.branches[name]) }
+  }
+
+  // A commit and everything before it, newest first.
+  ancestors(repo, id) {
+    const seen = new Set(), queue = id ? [id] : []
+    while (queue.length) {
+      const at = queue.pop()
+      if (seen.has(at)) continue
+      seen.add(at)
+      queue.push(...repo.commits[at].parents)
+    }
+    return [...seen].map(c => repo.commits[c]).sort((a, b) => b.n - a.n)
+  }
+
+  // Makes the folder match a commit: tracked files that left are removed, the rest written.
+  checkOut(root, from, to) {
+    Object.keys(from).filter(f => !(f in to)).forEach(f => { if (this.isFile(`${root}/${f}`)) { const { dir: folder, name } = this.parent(`${root}/${f}`); delete folder.children[name] } })
+    Object.entries(to).forEach(([f, content]) => {
+      let at = root
+      f.split("/").slice(0, -1).forEach(part => { at += `/${part}`; const { dir: folder, name } = this.parent(at); if (!folder.children[name]) folder.children[name] = dir() })
+      this.write(`${root}/${f}`, content)
+    })
+  }
+
+  commit(repo, message, files, parents) {
+    const n = repo.made++
+    const id = hash(JSON.stringify(files) + message + n)
+    repo.commits[id] = { id, n, message, files: { ...files }, parents }
+    repo.branches[repo.branch] = id
+    repo.index = { ...files }
+    return id
+  }
+
   git(args) {
     const sub = args[0]
-    if (!sub) return "usage: git <command>\n\nPractice commands: init, status, add, commit, log"
+    if (!sub || sub === "help" || sub === "--help") return `usage: git <command>\n\nPractice commands: ${GIT_KNOWS}`
+    if (sub === "--version" || sub === "version") return "git version 2.54.0 (practice terminal)"
     if (sub === "init") {
       if (this.repos[this.cwd]) return `Reinitialized existing Git repository in ${this.cwd}/.git/`
-      this.repos[this.cwd] = { staged: [], commits: [] }
+      this.repos[this.cwd] = { branch: "main", branches: {}, commits: {}, index: {}, made: 0, merging: null }
       return `Initialized empty Git repository in ${this.cwd}/.git/`
     }
-    const root = this.repoPath()
-    if (!root) return "fatal: not a git repository (or any of the parent directories): .git"
-    const repo = this.repos[root]
-    const files = this.filesUnder(root)
-    const last = repo.commits.at(-1)?.files || {}
-    const changed = Object.keys(files).filter(f => files[f] !== last[f]).sort()
-    const staged = repo.staged.filter(f => changed.includes(f))
-    const unstaged = changed.filter(f => !staged.includes(f))
+    if (GIT_NEEDS_GITHUB.includes(sub)) return `git ${sub} talks to another computer (like GitHub), and the practice terminal has none. It comes later, in the Terminal app on your Mac.`
+    const state = this.gitState()
+    if (!state) return "fatal: not a git repository (or any of the parent directories): .git"
+    const command = GIT[sub]
+    if (!command && GIT_LATER.includes(sub)) return `git ${sub} is a real git command, but practice git doesn't have it. It comes later, in the Terminal app on your Mac.\n\nPractice git knows: ${GIT_KNOWS}`
+    if (!command) return `git: '${sub}' is not a git command. See 'git --help'.\n\nPractice git knows: ${GIT_KNOWS}`
+    return command.call(this, args.slice(1), state)
+  }
+}
 
-    if (sub === "status") {
-      const lines = ["On branch main"]
-      if (!repo.commits.length) lines.push("", "No commits yet")
-      if (staged.length) lines.push("", "Changes to be committed:", ...staged.map(f => `\t${f in last ? "modified:   " : "new file:   "}${f}`))
-      const modified = unstaged.filter(f => f in last), fresh = unstaged.filter(f => !(f in last))
-      if (modified.length) lines.push("", "Changes not staged for commit:", ...modified.map(f => `\tmodified:   ${f}`))
-      if (fresh.length) lines.push("", "Untracked files:", ...fresh.map(f => `\t${f}`))
-      if (!changed.length) lines.push(repo.commits.length ? "nothing to commit, working tree clean" : "nothing to commit (create/copy files and use \"git add\" to track)")
-      return lines.join("\n")
-    }
-    if (sub === "add") {
-      const what = args.slice(1)
-      if (!what.length) return "Nothing specified, nothing added."
-      for (const item of what) {
-        if (item === "." || item === "-A" || item === "--all") { repo.staged = changed.slice(); continue }
-        const rel = this.resolve(item).slice(root.length + 1)
-        const hits = changed.filter(f => f === rel || f.startsWith(rel + "/"))
-        if (!hits.length && !(rel in files)) return `fatal: pathspec '${item}' did not match any files`
-        repo.staged = [...new Set([...repo.staged, ...hits])]
+const GIT_KNOWS = "init, status, add, commit, log, diff, branch, switch, checkout, merge, restore, rm"
+const GIT_NEEDS_GITHUB = ["push", "pull", "clone", "fetch", "remote"]
+// Real commands that practice git leaves for the real Terminal.
+const GIT_LATER = ["stash", "reset", "rebase", "tag", "mv", "revert", "cherry-pick", "show", "blame", "bisect", "config", "reflog", "clean", "worktree", "submodule"]
+// The closing line of git status when nothing is staged.
+const nothingAdded = ({ unstaged }) => unstaged.length ? "no changes added to commit (use \"git add\" and/or \"git commit -a\")" : "nothing added to commit but untracked files present (use \"git add\" to track)"
+const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`
+
+// .gitignore, the everyday parts: a name, a folder/, or *.ending per line.
+function ignoreRules(text) {
+  const rules = String(text || "").split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"))
+  return file => rules.some(rule => {
+    const parts = file.split("/")
+    if (rule.endsWith("/")) return parts.slice(0, -1).includes(rule.slice(0, -1))
+    if (rule.startsWith("*")) return parts.at(-1).endsWith(rule.slice(1))
+    return parts.includes(rule.replace(/^\//, "")) || file === rule.replace(/^\//, "")
+  })
+}
+
+// The lines that left and the lines that came, the way git diff shows them.
+function lineDiff(before, after) {
+  const a = before === undefined ? [] : before.replace(/\n$/, "").split("\n"), b = after === undefined ? [] : after.replace(/\n$/, "").split("\n")
+  const table = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0))
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) table[i][j] = a[i] === b[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1])
+  const out = []
+  let i = 0, j = 0
+  while (i < a.length || j < b.length) {
+    if (i < a.length && j < b.length && a[i] === b[j]) { out.push(` ${a[i]}`); i++; j++ }
+    else if (i < a.length && (j >= b.length || table[i + 1][j] >= table[i][j + 1])) out.push(`-${a[i++]}`) // what left comes first, as git shows it
+    else out.push(`+${b[j++]}`)
+  }
+  return out
+}
+
+// Groups those lines into hunks with three lines of context, each under an
+// @@ -start,count +start,count @@ header: where the hunk sits in the old file and in the new.
+function hunks(before, after) {
+  const lines = lineDiff(before, after)
+  const changed = lines.map((l, n) => l[0] === " " ? -1 : n).filter(n => n >= 0)
+  if (!changed.length) return []
+  const spans = []
+  changed.forEach(n => { const last = spans.at(-1); if (last && n - 3 <= last[1] + 1) last[1] = Math.min(lines.length - 1, n + 3); else spans.push([Math.max(0, n - 3), Math.min(lines.length - 1, n + 3)]) })
+  const range = (start, size) => `${size === 0 ? start - 1 : start}${size === 1 ? "" : `,${size}`}`
+  return spans.flatMap(([from, to]) => {
+    const old = lines.slice(0, from).filter(l => l[0] !== "+").length + 1, fresh = lines.slice(0, from).filter(l => l[0] !== "-").length + 1
+    const part = lines.slice(from, to + 1)
+    return [`@@ -${range(old, part.filter(l => l[0] !== "+").length)} +${range(fresh, part.filter(l => l[0] !== "-").length)} @@`, ...part]
+  })
+}
+
+function diffText(pairs) {
+  return pairs.map(([file, before, after]) => [
+    `diff --git a/${file} b/${file}`,
+    before === undefined ? "new file mode 100644" : after === undefined ? "deleted file mode 100644" : null,
+    `--- ${before === undefined ? "/dev/null" : `a/${file}`}`, `+++ ${after === undefined ? "/dev/null" : `b/${file}`}`,
+    ...hunks(before, after)
+  ].filter(l => l !== null).join("\n")).join("\n")
+}
+
+const GIT = {
+  status(_args, { repo, staged, unstaged, untracked, head }) {
+    const lines = [`On branch ${repo.branch}`]
+    const conflicts = repo.merging?.conflicts || []
+    if (repo.merging) lines.push(conflicts.length ? "You have unmerged paths.\n  (fix conflicts and run \"git commit\")\n  (use \"git merge --abort\" to abort the merge)" : "All conflicts fixed but you are still merging.\n  (use \"git commit\" to conclude merge)")
+    if (!head) lines.push("", "No commits yet")
+    const settled = staged.filter(([, f]) => !conflicts.includes(f))
+    if (settled.length) lines.push("", "Changes to be committed:", head ? "  (use \"git restore --staged <file>...\" to unstage)" : "  (use \"git rm --cached <file>...\" to unstage)", ...settled.map(([kind, f]) => `\t${`${kind}:`.padEnd(12)}${f}`))
+    if (conflicts.length) lines.push("", "Unmerged paths:", "  (use \"git add <file>...\" to mark resolution)", ...conflicts.map(f => `\tboth modified:   ${f}`))
+    const loose = unstaged.filter(([, f]) => !conflicts.includes(f))
+    if (loose.length) lines.push("", "Changes not staged for commit:", `  (use "git add${loose.some(([kind]) => kind === "deleted") ? "/rm" : ""} <file>..." to update what will be committed)`, "  (use \"git restore <file>...\" to discard changes in working directory)", ...loose.map(([kind, f]) => `\t${`${kind}:`.padEnd(12)}${f}`))
+    if (untracked.length) lines.push("", "Untracked files:", "  (use \"git add <file>...\" to include in what will be committed)", ...untracked.map(f => `\t${f}`))
+    if (!staged.length && !repo.merging) lines.push(...(unstaged.length || untracked.length ? ["", nothingAdded({ unstaged, untracked })] : [head ? "nothing to commit, working tree clean" : "nothing to commit (create/copy files and use \"git add\" to track)"]))
+    return lines.join("\n")
+  },
+
+  add(args, { root, repo, files, unstaged, untracked }) {
+    if (!args.length) return "Nothing specified, nothing added."
+    const pending = [...unstaged.map(([, f]) => f), ...untracked]
+    for (const item of args) {
+      const everything = item === "-A" || item === "--all"
+      const rel = everything ? "" : this.resolve(item).slice(root.length + 1)
+      const hits = pending.filter(f => rel === "" || f === rel || f.startsWith(`${rel}/`))
+      if (!hits.length && rel !== "" && !(rel in files) && !Object.keys(files).some(f => f.startsWith(`${rel}/`))) {
+        const all = this.filesUnder(root)
+        if (rel in all) return `The following paths are ignored by one of your .gitignore files:\n${rel}`
+        return `fatal: pathspec '${item}' did not match any files`
       }
+      hits.forEach(f => { if (f in files) repo.index[f] = files[f]; else delete repo.index[f] })
+      if (repo.merging) repo.merging.conflicts = repo.merging.conflicts.filter(f => !hits.includes(f) && f !== rel)
+    }
+    return ""
+  },
+
+  rm(args, { root, repo, files, tree }) {
+    const targets = plain(args).filter(a => !a.startsWith("--"))
+    if (!targets.length) return "usage: git rm file_name"
+    const cached = args.includes("--cached"), force = args.some(a => a === "--force" || /^-[a-zA-Z]*f/.test(a))
+    const rels = targets.map(item => this.resolve(item).slice(root.length + 1))
+    const missing = targets.find((_, i) => !(rels[i] in repo.index))
+    if (missing) return `fatal: pathspec '${missing}' did not match any files`
+    // Like git, never throw away work that no commit holds: refuse first, before touching anything.
+    if (!force) {
+      const edited = rels.filter(f => f in files && files[f] !== repo.index[f])
+      const staged = rels.filter(f => repo.index[f] !== tree[f])
+      const list = found => found.map(f => `    ${f}`).join("\n")
+      const many = found => found.length > 1 ? "the following files have" : "the following file has"
+      if (cached) {
+        const both = edited.filter(f => staged.includes(f))
+        if (both.length) return `error: ${many(both)} staged content different from both the\nfile and the HEAD:\n${list(both)}\n(use -f to force removal)`
+      } else {
+        if (edited.length) return `error: ${many(edited)} local modifications:\n${list(edited)}\n(use --cached to keep the file, or -f to force removal)`
+        if (staged.length) return `error: ${many(staged)} changes staged in the index:\n${list(staged)}\n(use --cached to keep the file, or -f to force removal)`
+      }
+    }
+    for (const [i, item] of targets.entries()) {
+      const rel = rels[i]
+      delete repo.index[rel]
+      if (!cached && this.isFile(item)) { const { dir: folder, name } = this.parent(item); delete folder.children[name] }
+    }
+    return targets.map(f => `rm '${f}'`).join("\n")
+  },
+
+  commit(args, state) {
+    const { repo, head, tree } = state
+    if (args.includes("--amend")) return "Practice git doesn't rewrite commits. Make a new commit instead."
+    const flag = args.findIndex(a => /^-a?m$/.test(a))
+    let message = flag >= 0 ? args[flag + 1] : null
+    if (args.some(a => a === "-a" || a === "-am")) state.unstaged.forEach(([kind, f]) => { if (kind === "deleted") delete repo.index[f]; else repo.index[f] = state.files[f] })
+    if (repo.merging) {
+      if (repo.merging.conflicts.length) return `error: Committing is not possible because you have unmerged files.\nFix them, then use 'git add <file>' to mark each one as fixed.\n${repo.merging.conflicts.map(f => `U\t${f}`).join("\n")}`
+      message ||= `Merge branch '${repo.merging.name}'`
+      const id = this.commit(repo, message, repo.index, [head, repo.merging.target])
+      repo.merging = null
+      return `[${repo.branch} ${id}] ${message}`
+    }
+    if (!message) return "Practice git needs a message: git commit -m \"what changed\""
+    const changed = [...new Set([...Object.keys(tree), ...Object.keys(repo.index)])].filter(f => repo.index[f] !== tree[f])
+    if (!changed.length) return state.unstaged.length || state.untracked.length ? GIT.status.call(this, [], state) : `On branch ${repo.branch}\nnothing to commit, working tree clean`
+    const id = this.commit(repo, message, repo.index, head ? [head] : [])
+    return `[${repo.branch} ${head ? "" : "(root-commit) "}${id}] ${message}\n ${count(changed.length, "file")} changed`
+  },
+
+  log(args, { repo, head, history }) {
+    if (!head) return `fatal: your current branch '${repo.branch}' does not have any commits yet`
+    const oneline = args.includes("--oneline")
+    const names = id => {
+      const here = Object.keys(repo.branches).filter(b => repo.branches[b] === id).sort((a, b) => (b === repo.branch) - (a === repo.branch) || a.localeCompare(b))
+      return here.length ? ` (${here.map(b => b === repo.branch ? `HEAD -> ${b}` : b).join(", ")})` : ""
+    }
+    const limit = Number((args.find(a => /^-\d+$/.test(a)) || "").slice(1)) || history.length
+    return history.slice(0, limit).map(c => oneline ? `${c.id}${names(c.id)} ${c.message}`
+      : [`commit ${c.id}${names(c.id)}`, c.parents.length > 1 ? `Merge: ${c.parents.join(" ")}` : null, `Author: ${this.user}`, "", `    ${c.message}`].filter(l => l !== null).join("\n")).join(oneline ? "\n" : "\n\n")
+  },
+
+  diff(args, { repo, tree, files, staged, unstaged }) {
+    if (args.includes("--staged") || args.includes("--cached")) return diffText(staged.map(([, f]) => [f, tree[f], repo.index[f]]))
+    return diffText(unstaged.map(([, f]) => [f, repo.index[f], files[f]]))
+  },
+
+  branch(args, { repo, head, merged }) {
+    const flag = args.find(a => /^-[dD]$|^--delete$/.test(a)), name = plain(args).find(a => !a.startsWith("--"))
+    if (flag) {
+      if (!name) return "fatal: branch name required"
+      if (!repo.branches[name]) return `error: branch '${name}' not found`
+      if (name === repo.branch) return `error: cannot delete branch '${name}': you are on it. Switch to another branch first.`
+      if (flag !== "-D" && !merged(name)) return `error: the branch '${name}' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D ${name}'`
+      const was = repo.branches[name]
+      delete repo.branches[name]
+      return `Deleted branch ${name} (was ${was}).`
+    }
+    if (!name) return [...new Set([...Object.keys(repo.branches), ...(head ? [] : [])])].sort().map(b => `${b === repo.branch ? "*" : " "} ${b}`).join("\n")
+    if (!/^[\w./-]+$/.test(name) || name.startsWith("-")) return `fatal: '${name}' is not a valid branch name`
+    if (!head) return `fatal: not a valid object name: '${repo.branch}'. Make a first commit, then branch from it.`
+    if (repo.branches[name]) return `fatal: a branch named '${name}' already exists`
+    repo.branches[name] = head
+    return ""
+  },
+
+  switch(args, state, verb = "switch") {
+    const { root, repo, head, tree, staged, unstaged } = state
+    const create = args.find(a => a === "-c" || a === "-b" || a === "--create")
+    const name = plain(args).find(a => !a.startsWith("--"))
+    if (!name) return `fatal: missing branch name; try git ${verb} ${verb === "switch" ? "-c" : "-b"} new-branch-name`
+    if (repo.merging) return "fatal: you are in the middle of a merge. Finish it with git commit, or stop it with git merge --abort."
+    if (create) {
+      if (!/^[\w./-]+$/.test(name)) return `fatal: '${name}' is not a valid branch name`
+      if (repo.branches[name]) return `fatal: a branch named '${name}' already exists`
+      if (head) repo.branches[name] = head
+      repo.branch = name
+      return `Switched to a new branch '${name}'`
+    }
+    if (name === repo.branch) return `Already on '${name}'`
+    if (!repo.branches[name]) return verb === "checkout" && this.isFile(name) ? `Practice git restores a file with: git restore ${name}` : `fatal: invalid reference: ${name}`
+    const to = repo.commits[repo.branches[name]].files
+    const differs = [...new Set([...Object.keys(tree), ...Object.keys(to)])].filter(f => tree[f] !== to[f])
+    const dirty = [...staged, ...unstaged].map(([, f]) => f).filter(f => differs.includes(f))
+    if (dirty.length) return `error: Your local changes to the following files would be overwritten by ${verb === "switch" ? "checkout" : verb}:\n${[...new Set(dirty)].map(f => `\t${f}`).join("\n")}\nPlease commit your changes before you switch branches.`
+    const carried = Object.fromEntries(Object.keys(repo.index).filter(f => repo.index[f] !== tree[f]).map(f => [f, repo.index[f]]))
+    this.checkOut(root, Object.fromEntries(differs.filter(f => f in tree).map(f => [f, tree[f]])), Object.fromEntries(differs.filter(f => f in to).map(f => [f, to[f]])))
+    repo.index = { ...to, ...carried }
+    repo.branch = name
+    return `Switched to branch '${name}'`
+  },
+
+  checkout(args, state) { return GIT.switch.call(this, args, state, "checkout") },
+
+  restore(args, { root, repo, tree, files }) {
+    const fromIndex = args.includes("--staged")
+    const targets = plain(args).filter(a => !a.startsWith("--"))
+    if (!targets.length) return "fatal: you must specify path(s) to restore"
+    for (const item of targets) {
+      const rel = this.resolve(item).slice(root.length + 1)
+      const source = fromIndex ? tree : repo.index
+      const known = [...new Set([...Object.keys(source), ...Object.keys(fromIndex ? repo.index : files)])].filter(f => rel === "" || f === rel || f.startsWith(`${rel}/`)).filter(f => fromIndex || f in repo.index)
+      if (!known.length) return `error: pathspec '${item}' did not match any file(s) known to git`
+      known.forEach(f => {
+        if (fromIndex) { if (f in tree) repo.index[f] = tree[f]; else delete repo.index[f] }
+        else this.checkOut(root, {}, { [f]: repo.index[f] })
+      })
+    }
+    return ""
+  },
+
+  merge(args, state) {
+    const { root, repo, head, tree, staged, unstaged, history } = state
+    if (args.includes("--abort")) {
+      if (!repo.merging) return "fatal: There is no merge to abort (MERGE_HEAD missing)."
+      this.checkOut(root, repo.index, tree)
+      repo.merging.conflicts.forEach(f => { if (!(f in tree) && this.isFile(`${root}/${f}`)) { const { dir: folder, name } = this.parent(`${root}/${f}`); delete folder.children[name] } })
+      repo.index = { ...tree }
+      repo.merging = null
       return ""
     }
-    if (sub === "commit") {
-      const flag = args.indexOf("-m")
-      if (flag < 0 || !args[flag + 1]) return "Practice git needs a message: git commit -m \"what changed\""
-      if (!staged.length) return changed.length ? "no changes added to commit (use \"git add\")" : "nothing to commit, working tree clean"
-      const snapshot = { ...last }
-      staged.forEach(f => { snapshot[f] = files[f] })
-      const id = hash(JSON.stringify(snapshot) + args[flag + 1] + repo.commits.length)
-      repo.commits.push({ id, message: args[flag + 1], files: snapshot })
-      repo.staged = []
-      return `[main ${repo.commits.length === 1 ? "(root-commit) " : ""}${id}] ${args[flag + 1]}\n ${staged.length} file${staged.length === 1 ? "" : "s"} changed`
+    const said = args.indexOf("-m")
+    const name = plain(args).find((a, n) => !a.startsWith("--") && (said < 0 || args.indexOf(a) !== said + 1))
+    if (!name) return "fatal: name the branch to merge in: git merge branch-name"
+    if (repo.merging) return "fatal: You have not concluded your merge. Finish it with git commit, or stop it with git merge --abort."
+    const target = repo.branches[name]
+    if (!target) return `merge: ${name} - not something we can merge`
+    if (history.some(c => c.id === target)) return "Already up to date."
+    if (staged.length || unstaged.length) return "error: Your local changes would be overwritten by merge.\nPlease commit your changes before you merge."
+    const theirs = repo.commits[target].files
+    const theirHistory = this.ancestors(repo, target)
+    const summary = (from, to) => { const changed = [...new Set([...Object.keys(from), ...Object.keys(to)])].filter(f => from[f] !== to[f]); return [...changed.map(f => ` ${f}`), ` ${count(changed.length, "file")} changed`].join("\n") }
+    if (!head || theirHistory.some(c => c.id === head)) {
+      this.checkOut(root, tree, theirs)
+      repo.branches[repo.branch] = target
+      repo.index = { ...theirs }
+      return `Updating ${head || "(nothing)"}..${target}\nFast-forward\n${summary(tree, theirs)}`
     }
-    if (sub === "log") {
-      if (!repo.commits.length) return "fatal: your current branch 'main' does not have any commits yet"
-      const oneline = args.includes("--oneline")
-      return repo.commits.slice().reverse().map(c => oneline ? `${c.id} ${c.message}` : `commit ${c.id}\nAuthor: ${this.user}\n\n    ${c.message}`).join(oneline ? "\n" : "\n\n")
+    const base = history.find(c => theirHistory.some(t => t.id === c.id))?.files || {}
+    const result = {}, conflicts = []
+    ;[...new Set([...Object.keys(tree), ...Object.keys(theirs)])].sort().forEach(f => {
+      const [b, o, t] = [base[f], tree[f], theirs[f]]
+      const pick = o === t || t === b ? o : o === b ? t : null
+      if (pick === null) { conflicts.push(f); result[f] = `<<<<<<< HEAD\n${o ?? ""}=======\n${t ?? ""}>>>>>>> ${name}\n` }
+      else if (pick !== undefined) result[f] = pick
+    })
+    this.checkOut(root, tree, result)
+    if (!conflicts.length) {
+      const message = said >= 0 && args[said + 1] ? args[said + 1] : `Merge branch '${name}'`
+      this.commit(repo, message, result, [head, target])
+      return `Merge made by the 'ort' strategy.\n${summary(tree, result)}`
     }
-    return `Practice git knows init, status, add, commit and log. '${sub}' comes later, on your real Terminal.`
+    repo.index = { ...result }
+    conflicts.forEach(f => { if (f in tree) repo.index[f] = tree[f]; else delete repo.index[f] })
+    repo.merging = { name, target, conflicts }
+    return [...conflicts.map(f => `Auto-merging ${f}\nCONFLICT (content): Merge conflict in ${f}`), "Automatic merge failed; fix conflicts and then commit the result."].join("\n")
   }
 }
 
@@ -243,7 +546,7 @@ const COMMANDS = {
   date() { return new Date().toString().replace(/ GMT.*/, "") },
   clear() { return { output: "", clear: true } },
   history() { return this.history.map((h, i) => `${String(i + 1).padStart(5)}  ${h}`).join("\n") },
-  help() { return "Practice commands: pwd ls cd mkdir touch cat echo cp mv rm rmdir clear whoami date history ruby git\nSend output to a file with > (replace) or >> (add to the end)." },
+  help() { return `Practice commands: pwd ls cd mkdir touch cat echo cp mv rm rmdir clear whoami date history ruby git\nPractice git: ${GIT_KNOWS}\nSend output to a file with > (replace) or >> (add to the end).` },
   echo(args) { return args.join(" ") },
 
   ls(args) {
