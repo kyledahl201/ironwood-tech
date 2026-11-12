@@ -33,6 +33,15 @@ module ApplicationHelper
   end
 
   # "Prof. Tomas Reyes, an AI tutor" or, for an unnamed persona, "an AI tutor".
+  # How big a language download is, in whole megabytes, measured from the
+  # files this site ships in public/lab. nil when they aren't there.
+  def runtime_megabytes(glob)
+    (@@runtime_megabytes ||= {})[glob] ||= begin
+      bytes = Dir[Rails.public_path.join("lab", glob)].sum { |path| File.size(path) }
+      bytes.zero? ? nil : (bytes / 1_000_000.0).round
+    end
+  end
+
   def tutor_label(course)
     name = course.tutor_name.to_s
     name.start_with?("Prof.") ? "#{name}, an AI tutor" : "an AI tutor"

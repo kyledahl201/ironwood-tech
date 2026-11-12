@@ -10,8 +10,9 @@
      data-classroom-store-value="iw-class-<%= current_user.id %>-<%= @lesson.slug %>"
      data-classroom-progress-url-value="<%= @homework ? homework_class_lesson_path(@lesson) : progress_class_lesson_path(@lesson) %>"
      data-classroom-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"
-     data-classroom-runtimes-value="<%= { ruby: { name: "Ruby", worker: "/lab/ruby-worker.js", runtime: brand.ruby_wasm_url },
-                                          python: { name: "Python", worker: "/lab/python-worker.js", runtime: "/lab/pyodide/" } }.to_json %>"
+     data-classroom-about-value="<%= [ (@lesson.course_code unless @lesson.tour?), (@lesson.tour? ? nil : "Lesson #{@lesson.lesson_number}"), @lesson.title, @lesson.professor ].compact.join(" · ") %>"
+     data-classroom-runtimes-value="<%= { ruby: { name: "Ruby", worker: "/lab/ruby-worker.js", runtime: brand.ruby_wasm_url, megabytes: runtime_megabytes("ruby.wasm") },
+                                          python: { name: "Python", worker: "/lab/python-worker.js", runtime: "/lab/pyodide/", megabytes: runtime_megabytes("pyodide/*") } }.to_json %>"
      data-classroom-first-try-line-value="<%= SentryLines::PASS_FIRST_TRY %>"
      data-classroom-pass-lines-value="<%= SentryLines::PASS.to_json %>">
 
@@ -44,6 +45,7 @@
       </label>
       <span class="bench-status" data-classroom-target="status" role="status">Ready</span>
       <span class="bench-safe small" data-classroom-target="safe">Practice computer. Nothing here touches your Mac.</span>
+      <button type="button" class="link-button light small" data-action="classroom#copyForTutor" title="Copy this task, your work and the checks, to paste into a chat with your professor">Copy for my tutor</button>
       <button type="button" class="link-button light small" data-action="classroom#resetTool" title="Start this tool over">Reset</button>
     </div>
 

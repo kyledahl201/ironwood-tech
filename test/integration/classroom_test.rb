@@ -66,7 +66,8 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_select ".tool[data-mode=irb] input#irb-input"
     assert_select ".tool-editor[data-mode=editor]", 1 # one editor serves both languages
     runtimes = JSON.parse(css_select(".classroom").first["data-classroom-runtimes-value"])
-    assert_equal({ "name" => "Python", "worker" => "/lab/python-worker.js", "runtime" => "/lab/pyodide/" }, runtimes["python"])
+    assert_equal({ "name" => "Python", "worker" => "/lab/python-worker.js", "runtime" => "/lab/pyodide/" }, runtimes["python"].except("megabytes"))
+    assert runtimes["python"].key?("megabytes") # the size of the download, for the first-load message (nil when the files aren't fetched)
     assert_equal "/lab/ruby-worker.js", runtimes["ruby"]["worker"]
     assert_includes response.body, "press Enter on an empty line to run it"
     assert File.exist?(Rails.root.join("public/lab/python-worker.js")), "the Python worker is committed"
@@ -422,5 +423,65 @@ class ClassroomTest < ActionDispatch::IntegrationTest
 
     get portal_path
     assert_select ".quick-log form.quick-add button[name='study_session[minutes]']", 6
+  end
+
+  test "a course's tutor kit downloads as a zip of the faculty's files, and holds no answers" do
+    kit = TutorKit.for("AI 360")
+    assert_equal "README.md", kit.names.first
+    assert_includes kit.names, "PROJECT-INSTRUCTIONS.md"
+    assert_nil TutorKit.for("CS 101")
+    assert_nil TutorKit.for("../..")
+
+    # No file in the kit defines a function a lesson asks the student to write.
+    lessons = Dir[Rails.root.join("db/seeds/lessons/ai360-*.md")].map { |path| ClassLessonMarkdown.parse(File.read(path)) }
+    asked = lessons.flat_map { |l| l[:steps] + l[:homework] }.flat_map { |s| Array(s["checks"]) }
+                   .filter_map { |c| c["call"].to_s[/\A([a-z_]\w*)\(/, 1] if c["type"] == "method_returns" }.uniq - %w[sum len max min round]
+    assert_operator asked.size, :>, 10
+    kit.files.each do |path|
+      text = File.read(path)
+      asked.each { |name| assert_no_match(/def #{name}\b/, text, "#{File.basename(path)} defines #{name}") }
+    end
+
+    get tutor_kit_path("ai-360")
+    assert_redirected_to new_session_path # signed-in students only
+    ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    sign_in_as users(:one)
+    get tutor_kit_path("ai-360")
+    assert_response :success
+    assert_equal "application/zip", response.media_type
+    assert_match(/ironwood-ai-360-tutor-kit\.zip/, response.headers["Content-Disposition"])
+
+    # Read the first file back out of the zip by hand.
+    zip = response.body.b
+    signature, _version, _flags, method, _time, _date, crc, packed, size, name_length, _extra = zip.unpack("VvvvvvVVVvv")
+    assert_equal [ 0x04034b50, 8 ], [ signature, method ]
+    assert_equal "ironwood-ai-360-tutor-kit/README.md", zip[30, name_length]
+    readme = Zlib::Inflate.new(-Zlib::MAX_WBITS).inflate(zip[30 + name_length, packed])
+    assert_equal File.binread(kit.files.first), readme
+    assert_equal [ readme.bytesize, Zlib.crc32(readme) ], [ size, crc ]
+    assert_equal kit.files.size, zip.scan([ 0x02014b50 ].pack("V")).size # one directory entry per file
+
+    get tutor_kit_file_path("ai-360", "WEEK-01.md")
+    assert_response :success
+    assert_equal File.read(Rails.root.join("db/tutor_kits/ai-360/WEEK-01.md")), response.body
+    get "/classroom/kits/ai-360/nope.md"
+    assert_response :not_found
+    get tutor_kit_path("cs-101")
+    assert_response :not_found
+  end
+
+  test "the classroom list offers the kit for its course only, and the workbench has Copy for my tutor" do
+    lesson(lesson_number: 1)
+    python = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    sign_in_as users(:one)
+    get class_lessons_path
+    assert_select "details.kit", 1
+    assert_select "details.kit a[href=?]", tutor_kit_path("ai-360"), text: "Download the tutor kit"
+    assert_select "details.kit a[href=?]", tutor_kit_file_path("ai-360", "WEEK-02.md")
+    assert_select "details.kit", text: /It holds no answers.*can't see the portal/m
+
+    get class_lesson_path(python)
+    assert_select ".bench-bar button[data-action='classroom#copyForTutor']", text: "Copy for my tutor"
+    assert_select ".classroom[data-classroom-about-value='AI 360 · Lesson 1 · Made up: Python · Prof. Example']"
   end
 end

@@ -3,6 +3,7 @@ import { toast, clearToasts, celebrate, postJSON, pick } from "lib/ui"
 import { CodeRunner } from "lib/code_runner"
 import { TerminalSim } from "lib/terminal_sim"
 import { evaluateChecks } from "lib/checks"
+import { buildTutorNote } from "lib/tutor_note"
 
 // The classroom. The professor's steps play in the board on top; the student
 // works in the bench underneath (practice Terminal, and a console and an editor
@@ -25,7 +26,7 @@ export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
                     "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton"]
   static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
-                    progressUrl: String, quizUrl: String, runtimes: Object,
+                    progressUrl: String, quizUrl: String, runtimes: Object, about: String,
                     firstTryLine: String, passLines: Array }
 
   connect() {
@@ -35,8 +36,7 @@ export default class extends Controller {
     this.attempt = this.freshAttempt()
     this.typed = { terminal: [] }  // what was typed, for the up arrow
     this.cursor = { terminal: 0 }
-    this.buffer = {}               // a console entry that isn't finished yet, per console
-    CONSOLES.forEach(mode => { this.typed[mode] = []; this.cursor[mode] = 0; this.buffer[mode] = "" })
+    CONSOLES.forEach(mode => { this.typed[mode] = []; this.cursor[mode] = 0 })
     this.hintsUsed = 0
     this.runners = {}              // one per language, made the first time it is needed
     this.statuses = {}
@@ -82,8 +82,8 @@ export default class extends Controller {
   // The runner for a language ("ruby" or "python"), started on first use.
   runner(language) {
     if (!this.runners[language]) {
-      const { name, worker, runtime } = this.runtimesValue[language]
-      this.runners[language] = new CodeRunner({ name, workerUrl: worker, runtimeUrl: runtime, onStatus: (text, tone) => {
+      const { name, worker, runtime, megabytes } = this.runtimesValue[language]
+      this.runners[language] = new CodeRunner({ name, workerUrl: worker, runtimeUrl: runtime, megabytes, onStatus: (text, tone) => {
         this.statuses[language] = [text, tone]
         if (TOOLS[this.mode]?.language === language) this.setStatus(text, tone)
       } })
@@ -386,6 +386,42 @@ export default class extends Controller {
     button.textContent = this.attempt.hints === 0 ? "Show a hint" : `Show another hint (${left} left)`
   }
 
+  // Copies where the student is, the task, their work and the checks, to paste
+  // into a chat with their professor (the Dean's thread, or their own Claude
+  // project set up from a course's tutor kit).
+  async copyForTutor(event) {
+    const button = event.currentTarget
+    const step = this.step
+    const article = this.article
+    const mode = this.mode
+    const tool = TOOLS[mode]
+    const task = step && !["teach", "show"].includes(step.kind)
+    const select = this.modeTarget
+    const note = buildTutorNote({
+      about: this.aboutValue,
+      place: step ? `${this.homeworkValue ? "Homework task" : "Step"} ${this.current + 1} of ${this.steps.length}` : (this.homeworkValue ? "Homework handed in" : "Class finished"),
+      task: article?.querySelector(".step-text")?.innerText,
+      tool: select.options[select.selectedIndex].text,
+      language: tool.language || "",
+      code: tool.kind === "editor" ? this.editor?.value : undefined,
+      output: tool.kind === "editor" && this.ranOnce ? this.outputTarget.innerText : undefined,
+      transcript: tool.kind === "editor" ? undefined : this.lines(mode).innerText,
+      checks: task ? [...article.querySelectorAll("[data-role=chips] .chip")].map(chip => ({
+        label: chip.querySelector(".chip-label").textContent, ok: chip.classList.contains("is-pass"), detail: chip.querySelector(".chip-detail")?.textContent })) : [],
+      hints: this.attempt.hints
+    })
+    try {
+      await navigator.clipboard.writeText(note)
+      toast("Copied. Paste it into a chat with your professor and add your question.", { sentry: false })
+    } catch (_) {
+      // No clipboard access: show the text so it can be selected and copied by hand.
+      this.outputTarget.textContent = note
+      if (tool.kind !== "editor") this.setMode(TOOLS[mode].language === "python" ? "python" : "ruby", {})
+      toast("Copying isn't allowed here. The text is in the Output box: select it and copy it.", { sentry: false })
+    }
+    button.blur()
+  }
+
   // "On your Mac" steps -------------------------------------------------------------
 
   async copy(event) {
@@ -532,19 +568,14 @@ export default class extends Controller {
 
   async runLine(mode, text) {
     const tool = TOOLS[mode]
-    this.print(mode, `${this.buffer[mode] ? tool.more : tool.prompt} ${text}`, "term-typed")
-    const source = this.buffer[mode] + text
-    if (!source.trim()) return
-    const result = await this.runnerFor(mode).line(source)
-    if (result.incomplete) {
-      // The language is waiting for the rest: an end, a quote or a bracket in
-      // Ruby; in Python, a blank line finishes an indented block.
-      this.buffer[mode] = source + "\n"
-      this.prompt(mode).textContent = tool.more
-      return
-    }
-    this.buffer[mode] = ""
-    this.prompt(mode).textContent = tool.prompt
+    const runner = this.runnerFor(mode)
+    this.print(mode, `${runner.partial ? tool.more : tool.prompt} ${text}`, "term-typed")
+    const result = await runner.type(text)
+    if (result.empty) return
+    // While an entry is unfinished the prompt shows the language is waiting
+    // for the rest (an end in Ruby; in Python, a blank line ends a block).
+    this.prompt(mode).textContent = runner.partial ? tool.more : tool.prompt
+    if (result.incomplete) return
     this.print(mode, (result.stdout || "").replace(/\n$/, ""))
     if (result.error) {
       this.print(mode, result.error.friendly, "term-error")
@@ -552,7 +583,7 @@ export default class extends Controller {
     } else if (result.value != null) {
       this.print(mode, `${tool.arrow}${result.value}`, "term-value")
     }
-    this.attempt.commands.push(source.trim())
+    this.attempt.commands.push(result.source.trim())
     if (result.error) this.attempt.outputs.push(result.error.raw || "") // a lesson may ask the student to cause an error and read it
     else this.attempt.outputs.push(result.stdout || "", result.value || "", `${result.stdout || ""}${result.value || ""}`)
   }
@@ -573,7 +604,7 @@ export default class extends Controller {
       input.value = this.sim.complete(input.value)
     } else if (event.ctrlKey && event.key.toLowerCase() === "c") {
       input.value = ""
-      if (TOOLS[mode].kind === "console") { this.buffer[mode] = ""; this.prompt(mode).textContent = TOOLS[mode].prompt }
+      if (TOOLS[mode].kind === "console") { this.runnerFor(mode).cancel(); this.prompt(mode).textContent = TOOLS[mode].prompt }
     } else if (event.ctrlKey && event.key.toLowerCase() === "l") {
       event.preventDefault()
       this.lines(mode).innerHTML = ""
@@ -592,7 +623,6 @@ export default class extends Controller {
       const { name, prompt } = TOOLS[mode]
       if (!confirm(`Start the ${name} console over? Its variables will be gone.`)) return
       await this.runnerFor(mode).resetConsole()
-      this.buffer[mode] = ""
       this.prompt(mode).textContent = prompt
       this.lines(mode).innerHTML = ""
       this.print(mode, `A fresh ${name} console.`, "term-note")
@@ -672,6 +702,7 @@ export default class extends Controller {
     this.setStatus("Running…", "busy")
     try {
       const result = await this.runnerFor(this.mode).run(this.editor.value, checks)
+      this.ranOnce = true
       this.showOutput(result)
       this.setStatus(result.error ? "Error" : "Ran", result.error ? "bad" : "ok")
       return result

@@ -6,7 +6,7 @@
 const TIMEOUT_MS = 6000
 
 export class CodeRunner {
-  constructor({ name = "Ruby", workerUrl, runtimeUrl, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker }) {
+  constructor({ name = "Ruby", workerUrl, runtimeUrl, megabytes = null, onStatus = () => {}, timeoutMs = TIMEOUT_MS, WorkerClass = globalThis.Worker }) {
     this.timeoutMs = timeoutMs
     this.WorkerClass = WorkerClass
     this.workerUrl = workerUrl
@@ -15,7 +15,9 @@ export class CodeRunner {
     this.onStatus = onStatus
     this.id = 0
     this.queue = Promise.resolve()
-    this.history = []   // console lines that ran without an error
+    this.megabytes = megabytes   // download size, for the first-load message
+    this.history = []   // console entries that ran without an error
+    this.partial = ""   // lines of a console entry that isn't finished yet
     this.loaded = false
     this.start()
   }
@@ -33,7 +35,7 @@ export class CodeRunner {
   // Load the language in the background so the first line is quick.
   warm() {
     if (this.warming) return this.warming
-    this.onStatus(`Loading ${this.name}…`, "busy")
+    this.onStatus(`Loading ${this.name}${this.megabytes ? ` (first time only, about ${this.megabytes} MB)` : ""}…`, "busy")
     this.warming = this.send({ code: "", checks: [] }, 90000)
       .then(() => { this.loaded = true; this.onStatus("Ready", "ok") })
       .catch(e => { this.warming = null; this.onStatus(e.message === "timeout" ? `${this.name} is slow to load. Try again.` : e.message, "bad") })
@@ -66,12 +68,27 @@ export class CodeRunner {
   async line(text) {
     try {
       const result = await this.send({ console: true, op: "eval", line: text })
-      if (!result.error) this.remember(text)
+      if (!result.error && !result.incomplete) this.remember(text) // only whole entries that ran are replayed later
       return result
     } catch (e) {
       return this.afterCrash(e)
     }
   }
+
+  // One line typed at the console. An entry can take several lines (a method,
+  // a loop, an open bracket): they are kept until the language says the entry
+  // is complete, then it runs as one. In Python a blank line ends a block, so
+  // the finished entry keeps its line breaks, and a replay runs it the same way.
+  async type(text) {
+    const source = this.partial + text
+    if (!source.trim()) return { empty: true }
+    const result = await this.line(source)
+    this.partial = result.incomplete ? `${source}\n` : ""
+    return { ...result, source }
+  }
+
+  // Give up on a half-typed entry (Ctrl+C).
+  cancel() { this.partial = "" }
 
   // Looks up values for value_is checks: [{ ok, expected, actual }].
   async values(checks) {
@@ -94,13 +111,14 @@ export class CodeRunner {
     for (const text of lines || []) {
       try {
         const result = await this.send({ console: true, op: "eval", line: text }, 20000)
-        if (!result.error) this.history.push(text)
+        if (!result.error && !result.incomplete) this.history.push(text)
       } catch (_) { break }
     }
   }
 
   async resetConsole() {
     this.history = []
+    this.partial = ""
     try { await this.send({ console: true, op: "reset" }) } catch (_) { /* a fresh worker is already clean */ }
   }
 
