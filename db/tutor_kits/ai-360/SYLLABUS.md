@@ -16,7 +16,7 @@ Ironwood Tech is a self-directed curriculum, not an accredited school. The certi
 Grading is in `RUBRIC.md`.
 
 ## Materials
-- A MacBook with Terminal and VS Code
+- A MacBook with Terminal, VS Code and Python 3.11 or newer (Week 1 covers installing it)
 - Claude Pro (for your tutor project)
 - From Week 3: a model API key with a monthly spend limit. Using the smallest model for labs usually keeps the whole course to a few dollars.
 - A free GitHub account for your public portfolio repo, `agentic-ai-portfolio`
@@ -24,7 +24,7 @@ Grading is in `RUBRIC.md`.
 ## The 14 weeks
 | Wk | Topic | You'll learn | Portfolio project |
 |---|---|---|---|
-| 1 | Python for AI work | Dicts, functions that return, f-strings, JSON in and out, calling a web API, virtual environments, pip, error handling | **weather-brief**: calls a free weather API, prints a 3-day summary, saves the raw JSON |
+| 1 | Python for AI work | Installing Python 3.11 or newer, dicts, functions that return, f-strings, JSON in and out, calling a web API, virtual environments, pip, `.env` settings, error handling | **weather-brief**: calls a free weather API, prints a 3-day summary, saves the raw JSON |
 | 2 | How LLMs work | Tokens, next-token prediction, context windows, temperature and sampling, cost per token, latency | **token-cost-estimator**: estimates tokens and cost across model sizes, plus a temperature experiment |
 | 3 | Calling a model, and prompt design | Your first API call with the Anthropic SDK, system prompts, roles, examples, output format, iterating on a prompt | **job-notes-cleaner**: turns messy made-up job notes into a clean summary, with prompt v1 to v4 in the README |
 | 4 | Structured output and tool use | JSON schemas, the tool-use loop, validating what the model asks for | **booking-assistant**: books appointments on a made-up calendar through tool calls |

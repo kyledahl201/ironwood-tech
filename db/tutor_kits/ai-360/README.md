@@ -5,7 +5,7 @@ This kit turns your own Claude project into Prof. Reyes, the bootcamp's AI tutor
 Prof. Reyes is an AI tutor persona, not a real person. Ironwood Tech is a self-directed curriculum, not an accredited school, and the certificate isn't academic credit.
 
 ## What you need
-- **A MacBook.** The labs use the Mac's Terminal and VS Code.
+- **A MacBook.** The labs use the Mac's Terminal and VS Code, with Python 3.11 or newer (Week 1 shows you how to install it if your Mac has an older one).
 - **A Claude Pro account** (or any plan that includes Projects).
 - **From Week 3 on: a model API key** with a monthly spend limit set before you make your first call. With the smallest model, the whole course usually costs a few dollars of API usage. Weeks 1 and 2 need no key.
 - About 6 hours a week.

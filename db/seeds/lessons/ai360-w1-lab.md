@@ -43,7 +43,7 @@ Every Python project you build should get its own **virtual environment** (venv)
 You create it once with `python3 -m venv .venv`, then **activate** it each time you open a new Terminal window. While it's active, `python` and `pip` mean the copies inside `.venv`.
 
 ## Step: mac
-Create the venv, activate it, and ask which `python` you're using now.
+Create the venv with your Python 3.11 or newer, activate it, and ask which `python` you're using now and its version. A venv copies the interpreter that created it, so creating it with an old Python would lock this project to that old Python.
 
 ### Run
 ```
@@ -58,14 +58,20 @@ source .venv/bin/activate
 which python
 ```
 
+```
+python --version
+```
+
 ### Checks
 | type | call / input | expected |
 |---|---|---|
 | output_matches | - | `week-01-weather-brief/\.venv/bin/python$` |
+| output_matches | - | `^Python 3\.(1[1-9]\|[2-9][0-9])\.` |
 
 ### Hints
 1. After `source`, your prompt should start with `(.venv)`. If it doesn't, run the `source` line again.
 2. Make sure you're still inside `week-01-weather-brief` when you create the venv. Check with `pwd`.
+3. If the version is 3.9 or 3.10, the venv was built with an old Python. Run `deactivate`, delete the folder with `rm -rf .venv`, check that `python3 --version` shows Python 3.11 or newer (Lesson 1 covers installing it), and create the venv again.
 
 ## Step: quiz
 You open a brand-new Terminal window tomorrow and `cd` into this project. What do you need to do before running it?
@@ -134,6 +140,7 @@ python -c "import requests; r = requests.get('https://api.open-meteo.com/v1/fore
 ### Hints
 1. Copy the whole line with the copy button. One missing quote breaks it.
 2. If you see `ConnectionError` or a timeout, check your Wi-Fi and run it again.
+3. Seeing `NotOpenSSLWarning ... LibreSSL` at the top? That means this venv was built with the Mac's old 3.9 Python, whose security library is out of date. It's only a warning, but it means you're on the wrong interpreter. Rebuild the venv with Python 3.11 or newer (see the venv step's hints).
 
 ## Step: teach
 Read your trace. Inside `"daily"` there are **parallel lists**: `time` holds the dates, `temperature_2m_max` the highs, and `temperature_2m_min` the lows. Item 0 of each list is the same day, item 1 is the next day, and so on.
@@ -329,6 +336,46 @@ git add . && git status
 2. If `README.md` is missing, save it in VS Code (into `week-01-weather-brief`) and run `git add .` again.
 
 ## Step: mac
+One more habit before you commit: a **.env file**. It holds settings that belong to your machine and shouldn't go into git: next week's practice values, and from Week 3 your API key. Practise with something harmless now: your forecast location.
+
+Create `.env` in the project folder with three settings, and copy it to `.env.example`, which **is** committed so others know which settings to provide. Install `python-dotenv`. Then change `weather_brief.py` so it calls `load_dotenv()` at the start of the main block and reads `HOME_LAT`, `HOME_LON` and `PLACE_NAME` with `os.environ.get(...)`, instead of using hard-coded values. Finally, run it and ask git what it's ignoring.
+
+### Run
+```
+cd ~/code/agentic-ai-portfolio/week-01-weather-brief
+```
+
+```
+printf "HOME_LAT=41.88\nHOME_LON=-87.63\nPLACE_NAME=Chicago\n" > .env && cp .env .env.example
+```
+
+```
+pip install python-dotenv && pip freeze > requirements.txt
+```
+
+```
+python weather_brief.py
+```
+
+```
+cd .. && git add . && git status --ignored
+```
+
+### Checks
+| type | call / input | expected |
+|---|---|---|
+| output_matches | - | `^Forecast for ` |
+| output_matches | - | `new file:\s+week-01-weather-brief/\.env\.example` |
+| output_matches | - | `^Ignored files:` |
+| output_matches | - | `^\s+week-01-weather-brief/\.env$` |
+
+### Hints
+1. `ModuleNotFoundError: No module named 'dotenv'` means `python-dotenv` went into a different Python. Is `(.venv)` still in your prompt?
+2. `os.environ.get` returns **text**. Latitude and longitude still work as text in the request params, but a number you do math with would need `float(...)`.
+3. If `.env` shows up under "Changes to be committed" instead of "Ignored files", your `.gitignore` is missing the `.env` line or is in the wrong folder. Run `git rm --cached week-01-weather-brief/.env`, fix the `.gitignore`, and run the last command again.
+4. Remember to explain in your README that people should copy `.env.example` to `.env` before running the program.
+
+## Step: mac
 Commit your first project and show the log.
 
 ### Run
@@ -362,6 +409,8 @@ Homework is below. Next week: what's actually going on inside a large language m
 - Always pass `timeout=` to network calls and call `raise_for_status()`.
 - `try:` / `except (KeyError, IndexError):` turns a crash into a clear fallback.
 - `.gitignore` keeps `.venv/` and `.env` out of git. Every project gets a README.
+- Machine-specific settings go in `.env` (never committed), read with `load_dotenv()` and `os.environ.get`. Commit a `.env.example` with the same names.
+- The course needs Python 3.11 or newer. Build each venv with it.
 
 ## Flashcards
 - What's a virtual environment for? :: A private set of packages for one project, so projects don't break each other.
@@ -371,6 +420,7 @@ Homework is below. Next week: what's actually going on inside a large language m
 - What does `r.raise_for_status()` do? :: Raises an error if the response status isn't a success.
 - Why `timeout=10`? :: So a server that never answers can't hang your program forever.
 - What goes in `.gitignore` for a Python project? :: `.venv/`, `__pycache__/`, `.env`
+- What's `.env.example` for? :: It's committed, and shows which settings `.env` needs, with harmless placeholder values.
 - What does `if __name__ == "__main__":` guard? :: Code that should run only when you run the file directly, not when it's imported.
 
 ## Homework

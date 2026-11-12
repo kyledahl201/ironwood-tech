@@ -9,12 +9,13 @@ The student can read these notes. They contain no answers, only what to teach, l
 - Use f-strings with expressions inside
 - Turn JSON text into Python data and back, and explain which direction each function goes
 - Explain what an API, a query parameter and a status code are
-- Create and activate a virtual environment, install a package, and record it in `requirements.txt`
+- Install Python 3.11 or newer, then create and activate a virtual environment with it, install a package, and record it in `requirements.txt`
+- Keep machine settings in a `.env` file that git ignores, and read them with `python-dotenv`
 - Call a real API from Python with a timeout, check the status, and save the raw JSON
 - Commit a documented project to their portfolio repo
 
 ## Before they start
-- Ask for the output of `python3 --version` on their Mac. They need 3.9 or newer. If macOS offers to install command line developer tools, that's expected.
+- First, probe the install path. Ask for the output of `python3 --version` and `which python3` on their Mac. They need **Python 3.11 or newer**. `/usr/bin/python3` is the Mac's built-in 3.9, which is past end of life. To install a current one, Lesson 1 gives three ways: `mise use -g python@3.12` (if they did CS 090), `brew install python`, or the python.org installer followed by its Install Certificates step. Then they open a new Terminal window. If macOS offers to install command line developer tools, that's expected.
 - Ask about their Python background and adjust the pace. Week 1 is a refresher. If they can't yet write a function, tell them honestly that a beginner Python course should come first.
 
 ## Common mistakes to probe
@@ -25,6 +26,9 @@ The student can read these notes. They contain no answers, only what to teach, l
 | Float surprises | A percent comes out as `30.000000000000004` | "Try `0.3 * 100` in the console. What do you see, and which built-in tidies it?" |
 | `loads` vs `dumps` mix-up | `TypeError: string indices must be integers`, or a dict where text was expected | "Is `raw` text or a dict right now? Print `type(raw)`." |
 | JSON vs Python spellings | Expecting `true` or `null` in Python | "Load it and look at the trace. What did `null` become?" |
+| Still on the Mac's built-in Python | `python3 --version` shows 3.9, or `which python3` shows `/usr/bin/python3` after installing | "Did you open a new Terminal window after installing? What does `which python3` say now?" |
+| Venv built with the old Python | `NotOpenSSLWarning ... LibreSSL` at the top of the first API trace, or `python --version` inside the venv shows 3.9 | "Which Python created this venv? What does `python --version` say with `(.venv)` active?" (They delete and rebuild the venv with Python 3.11 or newer. The warning is harmless, but it means they're on the wrong interpreter.) |
+| `.env` committed or not loaded | `.env` listed under changes to commit, or settings come back as `None` | "What does `git status --ignored` list? Where does `load_dotenv()` look for the file?" |
 | Venv not active | `ModuleNotFoundError: No module named 'requests'`, or `pip: command not found` | "Does your prompt start with `(.venv)`? What does `which python` say?" |
 | Venv created in the wrong folder | `.venv` appears in `git status` | "Where is your `.gitignore`, and where is your `.venv`? Run `pwd` in each." |
 | No timeout | The program hangs on bad Wi-Fi | "What happens if the server never answers? How long would you wait?" |
@@ -55,7 +59,9 @@ The student can read these notes. They contain no answers, only what to teach, l
 - [ ] Parsing is separate from fetching, so it could be tested without the internet
 - [ ] Handles a missing key or a failed request with a clear message, not a raw crash
 - [ ] Main code sits inside `if __name__ == "__main__":`
-- [ ] `requirements.txt` is present. `.venv/` and `.env` are git-ignored
+- [ ] `requirements.txt` is present. `.venv/` and `.env` are git-ignored, and `.env.example` is committed
+- [ ] Location settings come from `.env` through `os.environ.get`, not hard-coded
+- [ ] Built and run on Python 3.11 or newer
 - [ ] README has all five sections and a real trace
 - [ ] Clear commit message, and no stray files (`.DS_Store`, `__pycache__`)
 

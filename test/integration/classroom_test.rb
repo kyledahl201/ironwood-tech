@@ -470,6 +470,28 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "the Week 1 lessons and the tutor kit state the same Python floor, and the check enforces it" do
+    floor = "Python 3.11 or newer"
+    lessons = %w[ai360-w1 ai360-w1-lab].to_h { |slug| [ slug, Rails.root.join("db/seeds/lessons/#{slug}.md").read ] }
+    kit = TutorKit.for("AI 360").read("WEEK-01.md")
+
+    lessons.each { |slug, text| assert_includes text, floor, "#{slug} doesn't state the floor" }
+    assert_includes kit, floor, "the tutor's Week 1 notes don't state the floor"
+    (lessons.values + [ kit ]).each do |text|
+      assert_no_match(/Python 3\.(?:\d|10) or newer|3\.(?:\d|10)\+/, text, "an older floor is still stated somewhere")
+    end
+
+    lessons.each do |slug, text|
+      lesson = ClassLessonMarkdown.parse(text)
+      patterns = lesson[:steps].select { |s| s["kind"] == "mac" }.flat_map { |s| s["checks"] }
+                               .filter_map { |c| c["expected"] if c["expected"].to_s.start_with?("^Python 3\\.(") }
+      assert_equal 1, patterns.size, "#{slug} should check the Python version against the floor exactly once"
+      check = Regexp.new(patterns.first)
+      [ "Python 3.11.0", "Python 3.12.4", "Python 3.14.1" ].each { |v| assert_match check, v }
+      [ "Python 3.9.6", "Python 3.10.14", "Python 3.1.5", "Python 2.7.18" ].each { |v| assert_no_match check, v }
+    end
+  end
+
   test "the classroom list offers the kit for its course only, and the workbench has Copy for my tutor" do
     lesson(lesson_number: 1)
     python = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
