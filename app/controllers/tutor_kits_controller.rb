@@ -8,8 +8,8 @@ class TutorKitsController < ApplicationController
   end
 
   def file
-    path = @kit.files.find { |candidate| File.basename(candidate) == params[:file] } or return head :not_found
-    send_data File.read(path), filename: File.basename(path), type: "text/markdown; charset=utf-8", disposition: "attachment"
+    text = @kit.read(params[:file]) or return head :not_found
+    send_data text, filename: params[:file], type: "text/markdown; charset=utf-8", disposition: "attachment"
   end
 
   private

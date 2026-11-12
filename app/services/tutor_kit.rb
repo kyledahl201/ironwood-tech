@@ -31,6 +31,12 @@ class TutorKit
   end
 
   def names = files.map { |path| File.basename(path) }
+
+  # One file's text, by name. Only names that are in the kit are ever read.
+  def read(name)
+    path = files.find { |candidate| File.basename(candidate) == name }
+    path && File.read(path)
+  end
   def folder = "ironwood-#{slug}-tutor-kit"
   def filename = "#{folder}.zip"
   def zip = ZipWriter.build(files.map { |path| [ "#{folder}/#{File.basename(path)}", File.read(path) ] })
