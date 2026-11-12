@@ -2,15 +2,20 @@
 # a time. Scripts hold tasks, checks and hints, never solutions.
 class ClassLesson < ApplicationRecord
   STEP_KINDS = %w[teach show try mac quiz].freeze
-  MODES = %w[terminal irb ruby pyrepl python].freeze
+  MODES = %w[terminal irb ruby pyrepl python sqlrepl sql].freeze
   # Which kind of tool each mode is, and the checks that make sense in it.
-  TOOL_KINDS = { "terminal" => :terminal, "irb" => :console, "pyrepl" => :console, "ruby" => :editor, "python" => :editor }.freeze
+  TOOL_KINDS = { "terminal" => :terminal, "irb" => :console, "pyrepl" => :console, "ruby" => :editor, "python" => :editor,
+                 "sqlrepl" => :sql_console, "sql" => :sql_editor }.freeze
+  # SQL has its own checks: they look at the rows a query gave back.
+  SQL_CHECKS = %w[rows_are rows_any_order columns_are].freeze
   CHECKS_BY_TOOL = {
     terminal: %w[command_matches output_matches cwd_is file_exists dir_exists file_contains],
     console: %w[command_matches output_matches value_is method_returns method_stdout_empty stdout source_includes source_excludes source_matches],
-    editor: %w[stdout output_matches method_returns method_stdout_empty value_is source_includes source_excludes source_matches]
+    editor: %w[stdout output_matches method_returns method_stdout_empty value_is source_includes source_excludes source_matches],
+    sql_console: %w[command_matches output_matches source_includes source_excludes source_matches] + SQL_CHECKS,
+    sql_editor: %w[stdout output_matches source_includes source_excludes source_matches] + SQL_CHECKS
   }.freeze
-  CHECK_TYPES = (Exercise::CHECK_TYPES + %w[command_matches output_matches cwd_is file_exists dir_exists file_contains value_is]).freeze
+  CHECK_TYPES = (Exercise::CHECK_TYPES + %w[command_matches output_matches cwd_is file_exists dir_exists file_contains value_is] + SQL_CHECKS).freeze
 
   has_many :class_progresses, dependent: :destroy
   has_many :homework_submissions, dependent: :destroy
@@ -79,8 +84,19 @@ class ClassLesson < ApplicationRecord
         errors.add(:steps, "step #{i + 1} has unknown check types: #{bad.join(', ')}") if bad.any?
         misfit = step["kind"] == "try" ? Array(step["checks"]).map { |c| c["type"] } - CHECKS_BY_TOOL.fetch(TOOL_KINDS[step["mode"]], CHECK_TYPES) : []
         errors.add(:steps, "step #{i + 1} uses checks that don't work in #{step['mode']}: #{misfit.join(', ')}") if misfit.any? && bad.empty?
+        misfit = Array(step["checks"]).map { |c| c["type"] } & SQL_CHECKS if step["kind"] == "mac"
+        errors.add(:steps, "step #{i + 1} is an on-your-Mac step, which can't use #{misfit.join(', ')}") if step["kind"] == "mac" && misfit.any?
+        unreadable = Array(step["checks"]).select { |c| %w[rows_are rows_any_order].include?(c["type"]) && !rows?(c["expected"]) }
+        errors.add(:steps, "step #{i + 1} has rows that aren't a JSON list of rows, like [[\"Ada\", 3]]") if unreadable.any?
         errors.add(:steps, "step #{i + 1} needs at least one check") if %w[try mac].include?(step["kind"]) && Array(step["checks"]).empty?
         errors.add(:steps, "quiz step #{i + 1} needs exactly one right answer") if step["kind"] == "quiz" && Array(step["options"]).count { |o| o["right"] } != 1
       end
+    end
+
+    def rows?(text)
+      rows = JSON.parse(text.to_s)
+      rows.is_a?(Array) && rows.all? { |row| row.is_a?(Array) && row.none? { |v| v.is_a?(Array) || v.is_a?(Hash) } }
+    rescue JSON::ParserError
+      false
     end
 end

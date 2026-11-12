@@ -27,9 +27,9 @@ RUN bundle install && \
 
 COPY . .
 
-# Ruby and Python for the code lab and classroom always ship with the site
+# Ruby, Python and SQLite for the code lab and classroom always ship with the site
 # (pinned and checksummed).
-RUN bin/fetch-ruby-wasm && bin/fetch-pyodide
+RUN bin/fetch-ruby-wasm && bin/fetch-pyodide && bin/fetch-sqlite
 
 RUN bundle exec bootsnap precompile app/ lib/
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile

@@ -33,6 +33,7 @@ bundle install
 bin/rails db:prepare          # creates the database and seeds courses and exercises
 bin/fetch-ruby-wasm           # Ruby for the code lab and classroom (checksummed)
 bin/fetch-pyodide             # Python for the classroom (checksummed)
+bin/fetch-sqlite              # SQLite for the classroom's SQL tools (checksummed)
 bin/dev                       # http://localhost:3000
 ```
 
@@ -44,11 +45,13 @@ The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or pr
 
 ## Code lab assets
 
-The editor bundle (`app/javascript/lab/editor.js`) and the Ruby and Python workers (`public/lab/ruby-worker.js`, `public/lab/python-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
+The editor bundle (`app/javascript/lab/editor.js`) and the Ruby, Python and SQL workers (`public/lab/ruby-worker.js`, `public/lab/python-worker.js`, `public/lab/sql-worker.js`) are built from `vendor/lab-src` and committed; `bin/build-lab-assets` rebuilds them (needs Node).
 
 The Ruby binary (`public/lab/ruby.wasm`, about 30 MB) is not committed. `bin/fetch-ruby-wasm` downloads the pinned version and refuses it unless its SHA-256 matches. The Docker build runs it, so the binary always ships with the site. The worker checks the same SHA-256 before running Ruby, whether it came from this site or from the jsDelivr fallback.
 
 Python is Pyodide, pinned in `vendor/lab-src/package.json`. `bin/fetch-pyodide` downloads the same version into `public/lab/pyodide` (about 13 MB, not committed) and refuses it unless the package's SHA-512 matches; the Docker build runs it. Python is only ever loaded from this site, never from a CDN. In the browser it has the standard library only: no pip, files or internet, so lessons do those parts as "on your Mac" steps.
+
+SQL is SQLite compiled for the browser (sql.js), pinned in `vendor/lab-src/package.json`. `bin/fetch-sqlite` downloads the same version's binary into `public/lab/sqlite` (under 1 MB, not committed) and refuses it unless its SHA-256 matches; the Docker build runs it, and the worker checks the same hash before running it. It is only ever loaded from this site. Every fresh database starts with a small made-up library (`books`, `members`, `loans`) defined in `vendor/lab-src/sql-harness.js`.
 
 Classroom lessons live in `db/seeds/lessons/*.md`, one file per lesson, in the faculty's lesson-script format (steps, checks and hints, never solutions). `ClassLessonMarkdown` parses them and `bin/rails db:seed` loads them.
 

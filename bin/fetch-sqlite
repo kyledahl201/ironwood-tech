@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Downloads the pinned SQLite wasm binary (sql.js, for the classroom's SQL
+# console and editor) into public/lab/sqlite/sql-wasm.wasm and refuses it
+# unless its SHA-256 matches. The worker checks the same hash before running
+# it. Runs in the Docker build so SQL always ships with the site. No Node
+# needed. Keep VERSION in step with vendor/lab-src/package.json.
+set -euo pipefail
+VERSION="1.14.2"
+SHA256="38c14f6e379210bc942bdc4ebca44e7bfdb4318ecc1c72ca666a28fdce96670a"
+DEST="$(dirname "$0")/../public/lab/sqlite/sql-wasm.wasm"
+
+check() { echo "${SHA256}  $1" | sha256sum --check --status; }
+
+if [ -f "$DEST" ] && check "$DEST"; then
+  echo "public/lab/sqlite/sql-wasm.wasm is already present and verified."
+  exit 0
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+curl -fsSL "https://registry.npmjs.org/sql.js/-/sql.js-${VERSION}.tgz" -o "$TMP/pkg.tgz"
+tar -xzf "$TMP/pkg.tgz" -C "$TMP" "package/dist/sql-wasm.wasm"
+check "$TMP/package/dist/sql-wasm.wasm" || { echo "Checksum mismatch for sql.js ${VERSION}" >&2; exit 1; }
+mkdir -p "$(dirname "$DEST")"
+mv "$TMP/package/dist/sql-wasm.wasm" "$DEST"
+echo "Fetched and verified public/lab/sqlite/sql-wasm.wasm (${VERSION})."
