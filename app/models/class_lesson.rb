@@ -2,9 +2,10 @@
 # a time. Scripts hold tasks, checks and hints, never solutions.
 class ClassLesson < ApplicationRecord
   STEP_KINDS = %w[teach show try mac quiz].freeze
-  MODES = %w[terminal irb ruby pyrepl python sqlrepl sql].freeze
+  MODES = %w[terminal irb ruby pyrepl python jsrepl js sqlrepl sql].freeze
   # Which kind of tool each mode is, and the checks that make sense in it.
   TOOL_KINDS = { "terminal" => :terminal, "irb" => :console, "pyrepl" => :console, "ruby" => :editor, "python" => :editor,
+                 "jsrepl" => :console, "js" => :editor,
                  "sqlrepl" => :sql_console, "sql" => :sql_editor }.freeze
   # SQL has its own checks: they look at the rows a query gave back.
   SQL_CHECKS = %w[rows_are rows_any_order columns_are].freeze

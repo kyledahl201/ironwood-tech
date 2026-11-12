@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuilds the bundled editor and the Ruby, Python and SQL workers from
+# Rebuilds the bundled editor and the Ruby, Python, JavaScript and SQL workers from
 # vendor/lab-src, and fetches the checksummed Ruby, Python and SQLite runtimes.
 set -euo pipefail
 cd "$(dirname "$0")/../vendor/lab-src"
@@ -7,6 +7,7 @@ npm install --no-audit --no-fund --silent
 npx esbuild editor.js --bundle --format=esm --minify --legal-comments=none --outfile=../../app/javascript/lab/editor.js
 npx esbuild ruby-worker.js --bundle --format=esm --minify --legal-comments=none --outfile=../../public/lab/ruby-worker.js
 npx esbuild python-worker.js --bundle --format=esm --minify --legal-comments=none --outfile=../../public/lab/python-worker.js
+npx esbuild js-worker.js --bundle --format=esm --minify --legal-comments=none --outfile=../../public/lab/js-worker.js
 npx esbuild sql-worker.js --bundle --format=esm --minify --legal-comments=none --external:fs --external:path --external:crypto --outfile=../../public/lab/sql-worker.js
 ../../bin/fetch-ruby-wasm
 ../../bin/fetch-pyodide
