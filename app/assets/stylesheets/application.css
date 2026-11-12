@@ -295,6 +295,9 @@ td.code, td.code a { font-family: var(--font-code); white-space: nowrap; }
 .field { display: grid; gap: 6px; }
 .field label { font-weight: 600; }
 .field .hint { font-size: 14px; color: var(--muted); }
+.account-set { display: grid; gap: 16px; margin: 0; padding: 16px; border: 1px solid var(--rule); border-radius: var(--radius); }
+.account-set legend { padding: 0 6px; font-weight: 600; }
+.account-set > .hint { margin: 0; font-size: 14px; color: var(--muted); }
 input[type=text], input[type=email], input[type=password], input[type=number], select, textarea {
   font: inherit; color: var(--midnight); background: var(--white); border: 1.5px solid #9AA0AE; border-radius: var(--radius);
   padding: 10px 12px; min-height: 44px; width: 100%;

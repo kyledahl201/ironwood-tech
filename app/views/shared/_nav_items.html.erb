@@ -6,6 +6,7 @@
   <%= nav_link "Visualizers", visualizers_path %>
   <%= nav_link "Study log", portal_study_sessions_path %>
   <%= nav_link "Badges", portal_badges_path %>
+  <%= nav_link "Account", portal_account_path %>
   <li><%= button_to "Sign out", session_path, method: :delete, class: "link-button" %></li>
 <% else %>
   <li class="nav-login"><%= link_to "Sign in", new_session_path, class: "btn btn-primary" %></li>

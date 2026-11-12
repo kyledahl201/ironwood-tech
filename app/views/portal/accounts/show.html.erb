@@ -1,0 +1,20 @@
+<% page_title "Your account" %>
+<div class="auth">
+  <p class="eyebrow"><%= current_user.admin? ? "Owner account" : "Student account" %></p>
+  <h1>Your account</h1>
+  <p class="lede">Change the name, email or password you sign in with. Only you can see this page.</p>
+  <%= form_with model: @user, url: portal_account_path, method: :patch, class: "form" do |f| %>
+    <%= render "shared/errors", record: @user %>
+    <div class="field"><%= f.label :name, "Your name" %><%= f.text_field :name, required: true, autocomplete: "name", maxlength: 100 %></div>
+    <div class="field"><%= f.label :email_address, "Email" %><span class="hint" id="email-hint">This is what you type to sign in.</span><%= f.email_field :email_address, required: true, autocomplete: "username", aria: { describedby: "email-hint" } %></div>
+    <fieldset class="account-set">
+      <legend>New password</legend>
+      <p class="hint">Leave both boxes empty to keep the password you have.</p>
+      <div class="field"><%= f.label :password, "New password" %><span class="hint" id="password-hint">At least 10 characters.</span><%= f.password_field :password, autocomplete: "new-password", minlength: 10, maxlength: 72, value: nil, aria: { describedby: "password-hint" } %></div>
+      <div class="field"><%= f.label :password_confirmation, "Repeat new password" %><%= f.password_field :password_confirmation, autocomplete: "new-password", maxlength: 72, value: nil %></div>
+    </fieldset>
+    <div class="field"><%= label_tag "user_current_password", "Current password" %><span class="hint" id="current-hint">Needed to save any change.</span><%= password_field_tag "user[current_password]", nil, id: "user_current_password", required: true, autocomplete: "current-password", maxlength: 72, aria: { describedby: "current-hint" } %></div>
+    <div><%= f.submit "Save changes", class: "btn btn-primary" %></div>
+  <% end %>
+  <p class="small muted" style="margin-top:24px">Changing your password signs you out everywhere else. <%= link_to "Privacy notice", privacy_path %>.</p>
+</div>

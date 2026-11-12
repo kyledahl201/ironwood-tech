@@ -38,7 +38,7 @@ bin/fetch-sqlite              # SQLite for the classroom's SQL tools (checksumme
 bin/dev                       # http://localhost:3000
 ```
 
-The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. Optional settings:
+The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. It does this once: when an owner already exists it is left alone, so the owner can change their email and password on the Account page (`/portal/account`) and keep them across restarts. Optional settings:
 
 - `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
 - `TUTOR_MODEL` picks the tutor's model: `claude-sonnet-5-5` (the default, cheaper) or `claude-opus-5-5`. Any other value uses the default.
