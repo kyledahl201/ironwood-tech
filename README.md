@@ -38,7 +38,13 @@ bin/fetch-sqlite              # SQLite for the classroom's SQL tools (checksumme
 bin/dev                       # http://localhost:3000
 ```
 
-The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. It does this once: when an owner already exists it is left alone, so the owner can change their email and password on the Account page (`/portal/account`) and keep them across restarts.
+The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. It does this once: when an owner already exists it is left alone, so the owner can change their email and password on the Account page (`/portal/account`) and keep them across restarts. Optional settings:
+
+- `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
+- `TUTOR_MODEL` picks the tutor's model: `claude-sonnet-5-5` (the default, cheaper) or `claude-opus-5-5`. Any other value uses the default.
+- `TUTOR_DAILY_CAP` is how many questions a student may ask per course per day (default 40).
+- `APP_TIME_ZONE` sets the day boundary for streaks (default Central Time).
+- `RUBY_WASM_URL` overrides where the code lab loads Ruby from.
 
 ### If the owner is locked out (Docker install)
 
@@ -54,13 +60,6 @@ docker exec ironwood-portal bin/rails runner 'User.admin.first.update!(email_add
 # Set a new owner password. It asks for it and doesn't show or save what you type.
 docker exec -it ironwood-portal bin/rails runner 'require "io/console"; User.admin.first.update!(password: IO.console.getpass("New owner password (10+ characters): ")); puts "Password changed."'
 ```
- Optional settings:
-
-- `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
-- `TUTOR_MODEL` picks the tutor's model: `claude-sonnet-5-5` (the default, cheaper) or `claude-opus-5-5`. Any other value uses the default.
-- `TUTOR_DAILY_CAP` is how many questions a student may ask per course per day (default 40).
-- `APP_TIME_ZONE` sets the day boundary for streaks (default Central Time).
-- `RUBY_WASM_URL` overrides where the code lab loads Ruby from.
 
 ## Code lab assets
 
