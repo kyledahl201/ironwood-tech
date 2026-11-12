@@ -42,7 +42,30 @@ export function inspect(value, depth = 0, seen = []) {
 // What console.log prints: text as it is, everything else as inspect shows it.
 const logged = args => args.map(a => typeof a === "string" ? a : inspect(a)).join(" ")
 
-// Walks the code once, skipping strings, templates and comments. Returns the
+// Is the / at source[i] the start of a pattern like /\(/ (rather than a
+// division)? It is when a value is expected there: at the start, after an
+// operator or an opening bracket, or after a word like return. Returns the
+// index of the pattern's last character (flags included), or -1.
+const VALUE_NEXT = /(?:^|[(,=:[!&|?{};+\-*%<>~^])$|(?:^|[^\w$.])(?:return|typeof|case|in|of|void|delete|do|else|throw|new|await|yield)$/
+export function patternEnd(source, i) {
+  if (source[i] !== "/" || source[i + 1] === "/" || source[i + 1] === "*") return -1
+  if (!VALUE_NEXT.test(source.slice(Math.max(0, i - 24), i).replace(/\s+$/, ""))) return -1
+  let inClass = false
+  for (let at = i + 1; at < source.length; at++) {
+    const ch = source[at]
+    if (ch === "\n") return -1
+    if (ch === "\\") { at += 1; continue }
+    if (ch === "[") inClass = true
+    else if (ch === "]") inClass = false
+    else if (ch === "/" && !inClass) {
+      while (/[a-z]/i.test(source[at + 1] || "")) at += 1
+      return at
+    }
+  }
+  return -1
+}
+
+// Walks the code once, skipping strings, templates, patterns and comments. Returns the
 // brackets left open (with their lines), the first bracket that closes
 // nothing, and whether a string, template or comment is left unfinished.
 export function scan(code) {
@@ -62,6 +85,8 @@ export function scan(code) {
       i = end + 1
       continue
     }
+    const pattern = patternEnd(source, i)
+    if (pattern > 0) { i = pattern; continue }
     if (ch === "'" || ch === '"') {
       const start = line
       let at = i + 1
@@ -107,13 +132,19 @@ export function complete(code) {
 // In the console, names must outlast the entry that made them. let, const and
 // class at the top of an entry are scoped to that entry alone, so they are
 // turned into var (and class X into var X = class X) before it runs.
-export function keepNames(code) {
+// An entry that uses await runs inside an async function, where even var
+// would be lost, so there (asGlobals) the names are assigned as globals:
+// let x = 1 becomes x = 1, function f() {} becomes f = function f() {}.
+export function keepNames(code, { asGlobals = false } = {}) {
   const source = String(code)
-  let out = "", depth = 0, start = true
+  let out = "", depth = 0, start = true, closeAt = false // closeAt: a ) is owed at the end of this statement
+  const endStatement = () => { if (closeAt) { out += ")"; closeAt = false } }
   for (let i = 0; i < source.length; i++) {
     const ch = source[i], two = source.slice(i, i + 2)
     if (two === "//") { const end = source.indexOf("\n", i); const stop = end < 0 ? source.length : end; out += source.slice(i, stop); i = stop - 1; continue }
     if (two === "/*") { const end = source.indexOf("*/", i + 2); const stop = end < 0 ? source.length : end + 2; out += source.slice(i, stop); i = stop - 1; continue }
+    const pattern = patternEnd(source, i)
+    if (pattern > 0) { out += source.slice(i, pattern + 1); i = pattern; start = false; continue }
     if (ch === "'" || ch === '"' || ch === "`") {
       let at = i + 1
       while (at < source.length && source[at] !== ch) at += source[at] === "\\" ? 2 : 1
@@ -123,24 +154,52 @@ export function keepNames(code) {
       continue
     }
     if (depth === 0 && start) {
-      const word = source.slice(i).match(/^(let|const)(?=\s)|^class\s+([A-Za-z_$][\w$]*)/)
-      if (word) {
-        out += word[2] ? `var ${word[2]} = class ${word[2]}` : "var"
-        i += word[0].length - 1
-        start = false
-        continue
+      const rest = source.slice(i)
+      const word = rest.match(/^(let|const|var)(?=\s)|^class\s+([A-Za-z_$][\w$]*)|^(async\s+)?function\s*(\*?)\s*([A-Za-z_$][\w$]*)/)
+      if (word && word[1] && asGlobals) {
+        // Only a declaration with a value can become an assignment; { a, b } = ... needs brackets around it.
+        const after = rest.slice(word[0].length)
+        if (/^\s*\{/.test(after)) { out += "("; closeAt = true; i += word[0].length - 1; start = false; continue }
+        if (/^\s*(\[|[A-Za-z_$][\w$]*\s*=(?!=))/.test(after)) { i += word[0].length + after.match(/^\s*/)[0].length - 1; start = false; continue }
+      } else if (word && word[1] && word[1] !== "var") {
+        out += "var"; i += word[0].length - 1; start = false; continue
+      } else if (word && word[2]) {
+        out += `${asGlobals ? "" : "var "}${word[2]} = class ${word[2]}`; i += word[0].length - 1; start = false; continue
+      } else if (word && word[5] && asGlobals) {
+        out += `${word[5]} = ${word[3] || ""}function${word[4]} ${word[5]}`; i += word[0].length - 1; start = false; continue
       }
     }
     if ("([{".includes(ch)) depth += 1
     else if (")]}".includes(ch)) depth = Math.max(0, depth - 1)
+    if (depth === 0 && (ch === ";" || ch === "\n")) endStatement()
     if (ch === ";" || ch === "\n" || (ch === "}" && depth === 0)) start = true
     else if (!/\s/.test(ch)) start = false
     out += ch
   }
+  endStatement()
   return out
 }
 
-const DECLARES = /^\s*(let|const|var|function|class|if|for|while|do|switch|try|import|export)\b/
+// Where the last statement of an entry starts (after the last ; or line break
+// outside any bracket, text or pattern), so its value can be shown.
+export function lastStatement(code) {
+  const source = String(code).replace(/[;\s]+$/, "")
+  let depth = 0, at = 0
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i], two = source.slice(i, i + 2)
+    if (two === "//") { const end = source.indexOf("\n", i); if (end < 0) break; i = end - 1; continue }
+    if (two === "/*") { const end = source.indexOf("*/", i + 2); if (end < 0) break; i = end + 1; continue }
+    const pattern = patternEnd(source, i)
+    if (pattern > 0) { i = pattern; continue }
+    if (ch === "'" || ch === '"' || ch === "`") { let end = i + 1; while (end < source.length && source[end] !== ch) end += source[end] === "\\" ? 2 : 1; i = end; continue }
+    if ("([{".includes(ch)) depth += 1
+    else if (")]}".includes(ch)) depth = Math.max(0, depth - 1)
+    else if (depth === 0 && (ch === ";" || ch === "\n")) at = i + 1
+  }
+  return { before: source.slice(0, at), last: source.slice(at) }
+}
+
+const DECLARES = /^\s*(let|const|var|function|async\s+function|class|if|for|while|do|switch|try|import|export)\b/
 
 // What JavaScript said, in plainer words. Browsers word errors differently
 // (Chrome's "x is not defined" is Safari's "Can't find variable: x"), so each
@@ -170,6 +229,7 @@ export function friendly(name, message, code = "") {
     if (stray) return stray.wanted ? `The ${stray.ch} on line ${stray.line} doesn't match the ${stray.wanted.ch} opened on line ${stray.wanted.line}.` : `The ${stray.ch} on line ${stray.line} closes something that was never opened.`
     if (open.length) return `The ${open[open.length - 1].ch} opened on line ${open[open.length - 1].line} is never closed.`
     if (/^Missing initializer in const declaration|^const declared variable .* must have an initializer|^Unexpected token '?;'?\. const declared/.test(text)) return "A const needs its value on the same line: const name = value."
+    if (/\bawait\b/.test(code) && /await|async/i.test(text)) return "await only works at the top of your code or inside a function marked async. Put the word async before the function that uses it."
     return "JavaScript couldn't read that. Look for a missing comma, a missing operator, or a misspelled keyword."
   }
   return "JavaScript stopped with an error."
@@ -222,6 +282,39 @@ export class JsBench {
     return keys.length === Object.keys(b).length && keys.every(k => Object.prototype.hasOwnProperty.call(b, k) && this.same(a[k], b[k]))
   }
 
+  asyncFunction() { return Object.getPrototypeOf(this.realm.evaluate("(async function () {})")).constructor }
+
+  // Did this fail to read only because it uses await at the top?
+  usesAwait(code, error) { return error && error.name === "SyntaxError" && /\bawait\b/.test(code) }
+
+  // A promise as consoles show it, once it has had a moment to settle.
+  async promised(value) {
+    const tick = new Promise(resolve => setTimeout(() => resolve(["pending"]), 0))
+    const [state, result] = await Promise.race([Promise.resolve(value).then(v => ["fulfilled", v], e => ["rejected", e]), tick])
+    return state === "pending" ? "Promise {<pending>}" : `Promise {<${state}>: ${inspect(result)}}`
+  }
+
+  // A console entry that uses await: run it inside an async function, wait for
+  // it, and keep its names by assigning them as globals.
+  async awaited(line) {
+    const { evaluate, global } = this.realm
+    const source = keepNames(line, { asGlobals: true })
+    const { before, last } = lastStatement(source)
+    let run
+    try {
+      // Show the last statement's value when it is an expression.
+      try { if (DECLARES.test(last) || DECLARES.test(lastStatement(line).last) || !last.trim()) throw new SyntaxError("statement"); run = evaluate(`(async () => {\n${before}\nreturn (\n${last}\n)\n})`) }
+      catch (_) { run = evaluate(`(async () => {\n${source}\n})`) }
+      const value = await run()
+      const stdout = this.take()
+      const quiet = value === undefined && (DECLARES.test(line) || /^\s*await\b/.test(last) === false || stdout !== "")
+      if (!quiet) { try { global._ = value } catch (_) { /* fine */ } }
+      return { stdout, value: quiet ? null : inspect(value), incomplete: false, error: null }
+    } catch (e) {
+      return { stdout: this.take(), value: null, incomplete: false, error: report(e, line, 1) }
+    }
+  }
+
   // The editor: the whole program, in a scope of its own. Async so that
   // promises and zero-delay timers get to print before the output is read.
   async run({ code = "", checks = [] }) {
@@ -229,8 +322,11 @@ export class JsBench {
     const { Function: Fn } = this.realm
     let look
     try {
-      new Fn("console", code) // read it on its own first, so a mistake is reported as the student's
-      look = new Fn("console", `${code}\n;return __iw => eval(__iw)`)(this.console)
+      // Read it on its own first, so a mistake is reported as the student's.
+      // A program that uses await at the top runs as an async function.
+      let Maker = Fn
+      try { new Fn("console", code) } catch (e) { if (!this.usesAwait(code, e)) throw e; Maker = this.asyncFunction(); new Maker("console", code) }
+      look = await new Maker("console", `${code}\n;return __iw => eval(__iw)`)(this.console)
       await new Promise(resolve => setTimeout(resolve, 0))
     } catch (e) {
       return { stdout: this.take(), error: report(e, code, 2), checks: checks.map(() => null) }
@@ -248,7 +344,8 @@ export class JsBench {
     return { stdout, error: null, checks: results }
   }
 
-  // The console: { op: "eval" | "values" | "reset" }.
+  // The console: { op: "eval" | "values" | "reset" }. An entry that uses await,
+  // or whose value is a promise, answers with a promise; the rest answer at once.
   console_({ op, line = "", checks = [] }) {
     const { evaluate, global } = this.realm
     if (op === "reset") {
@@ -276,7 +373,11 @@ export class JsBench {
       if (/^\s*\{[\s\S]*\}\s*;?\s*$/.test(source)) { try { value = evaluate(`(${source.replace(/;\s*$/, "")}\n)`) } catch (_) { value = evaluate(source) } }
       else value = evaluate(source)
     } catch (e) {
+      if (this.usesAwait(line, e)) return this.awaited(line)
       return { stdout: this.take(), value: null, incomplete: false, error: report(e, line) }
+    }
+    if (Object.prototype.toString.call(value) === "[object Promise]") {
+      return this.promised(value).then(shown => { try { global._ = value } catch (_) { /* fine */ } return { stdout: this.take(), value: shown, incomplete: false, error: null } })
     }
     const stdout = this.take()
     // A statement (let, a loop) or a line that printed has nothing more to show.

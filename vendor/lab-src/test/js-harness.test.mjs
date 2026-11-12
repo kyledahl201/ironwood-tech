@@ -4,7 +4,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import vm from "node:vm"
-import { JsBench, inspect, complete, keepNames, scan, friendly } from "../js-harness.js"
+import { JsBench, inspect, complete, keepNames, lastStatement, patternEnd, scan, friendly } from "../js-harness.js"
 import { CodeRunner } from "../../../app/javascript/lib/code_runner.js"
 
 // A fresh realm, shaped like the worker's: code runs through indirect eval in its global scope.
@@ -196,7 +196,7 @@ class JsWorker {
   constructor() { this.bench = new JsBench(realm()) }
   async postMessage(message) {
     if (/while \(true\)/.test(message.line || message.code || "")) return
-    const result = message.console ? this.bench.console_({ op: message.op, line: message.line || "", checks: message.checks || [] }) : await this.bench.run({ code: message.code || "", checks: message.checks || [] })
+    const result = message.console ? await this.bench.console_({ op: message.op, line: message.line || "", checks: message.checks || [] }) : await this.bench.run({ code: message.code || "", checks: message.checks || [] })
     queueMicrotask(() => this.onmessage({ data: { id: message.id, ok: true, result } }))
   }
   terminate() {}
@@ -238,4 +238,89 @@ test("a function typed over several lines runs once, and a stopped loop keeps th
   await runner.resetConsole()
   assert.match((await type("rate")).error.raw, /ReferenceError/)
   runner.dispose()
+})
+
+test("a pattern with brackets in it is read as a pattern, not as open brackets", () => {
+  reset()
+  for (const entry of ["const re = /\\(/.test('a(')", "/[)\\]}]/g.test(')')", "'a/b'.split(/[/(]/)", "x = /{/", "return /\\[/", "f(/\\(/, /\\{/)", "/'/.test(s)", "/`/.test(s)", "/\\//.test('(')"]) {
+    assert.equal(complete(entry), true, entry)
+  }
+  // Division is still division, and a real open bracket still waits.
+  assert.equal(complete("total / 2 / (1"), false)
+  assert.equal(complete("(a + b) / 2"), true)
+  assert.equal(complete("list[0] / (2"), false)
+  assert.equal(complete("const re = /\\(/.test("), false)
+  assert.equal(patternEnd("a / b / c", 2), -1)
+  assert.equal(patternEnd("x = /ab+/gi", 4), 10)
+  assert.equal(patternEnd("// a comment", 0), -1)
+
+  assert.equal(line("const hasBracket = /\\(/.test('a(')").value, null)
+  assert.equal(line("hasBracket").value, "true")
+  assert.equal(line("'a/b(c'.split(/[/(]/)").value, "[ 'a', 'b', 'c' ]")
+  assert.equal(line("'let it be'.replace(/let (\\w+)/, 'const $1')").value, "'const it be'")
+  assert.equal(line("let q = 8; q / 2 / 2").value, "2")
+  // A let inside a pattern is left alone.
+  assert.equal(keepNames("const r = /;let x/\nlet y = 1"), "var r = /;let x/\nvar y = 1")
+})
+
+test("await works at the top of a console entry, and its names are kept", async () => {
+  reset()
+  assert.equal(line("async function three() { return 3 }").value, null)
+  assert.equal((await line("await three()")).value, "3")
+  assert.deepEqual(await line("const r = await three()"), { stdout: "", value: null, incomplete: false, error: null }) // a declaration shows nothing
+  assert.equal(line("r").value, "3")
+  assert.equal((await line("const { a, b } = await Promise.resolve({ a: 1, b: 2 })")).error, null)
+  assert.equal(line("a + b").value, "3")
+  assert.equal((await line("const [x, y] = await Promise.all([three(), three()]); x + y")).value, "6")
+  assert.equal(line("x").value, "3")
+  // Functions, classes and later lines in the same entry.
+  assert.equal((await line("function one() { return 1 }\nclass Dog {}\nlet n = await three()\nn = n + one()")).value, "4")
+  assert.equal(line("one() + n").value, "5")
+  assert.equal(line("new Dog() instanceof Dog").value, "true")
+  assert.equal((await line("await new Promise(done => setTimeout(() => done('late'), 20))")).value, "'late'")
+  assert.deepEqual(await line("console.log(await three())"), { stdout: "3\n", value: null, incomplete: false, error: null })
+  assert.equal(line("_").value, "'late'") // printing didn't replace the last value
+
+  const failed = await line("await Promise.reject(new Error('nope'))")
+  assert.equal(failed.error.raw, "Error: nope")
+  const typo = await line("await nmae")
+  assert.match(typo.error.friendly, /doesn't know the name nmae/)
+  const outside = await line("function h() { await three() }")
+  assert.match(outside.error.friendly, /^await only works at the top of your code or inside a function marked async\./)
+  assert.match(outside.error.raw, /^SyntaxError/)
+})
+
+test("keepNames can assign an entry's names as globals, and lastStatement finds the last one", () => {
+  const globals = code => keepNames(code, { asGlobals: true })
+  assert.equal(globals("const r = await f()"), "r = await f()")
+  assert.equal(globals("let { a, b } = await g()"), "( { a, b } = await g())")
+  assert.equal(globals("const [x, y] = await g(); x"), "[x, y] = await g(); x")
+  assert.equal(globals("function f() { let inner = 1 }"), "f = function f() { let inner = 1 }")
+  assert.equal(globals("async function f() {}"), "f = async function f() {}")
+  assert.equal(globals("class Dog {}"), "Dog = class Dog {}")
+  assert.equal(globals("for (let i = 0; i < 2; i++) { await f() }"), "for (let i = 0; i < 2; i++) { await f() }")
+  assert.deepEqual(lastStatement("a = 1; b = 'x;y'\nf(a,\n b);"), { before: "a = 1; b = 'x;y'\n", last: "f(a,\n b)" })
+  assert.deepEqual(lastStatement("a / 2"), { before: "", last: "a / 2" })
+})
+
+test("a promise shows its state the way a console does", async () => {
+  reset()
+  line("async function three() { return 3 }")
+  assert.equal((await line("three()")).value, "Promise {<fulfilled>: 3}")
+  assert.equal((await line("Promise.resolve({ ok: true })")).value, "Promise {<fulfilled>: { ok: true }}")
+  assert.equal((await line("new Promise(() => {})")).value, "Promise {<pending>}")
+  assert.equal((await line("Promise.reject(new Error('no'))")).value, "Promise {<rejected>: Error: no}")
+  assert.equal((await line("const waiting = three()")).value ?? null, null)
+  assert.equal((await line("await waiting")).value, "3")
+})
+
+test("await works at the top of an editor program too", async () => {
+  const result = await run("const v = await Promise.resolve(7)\nconsole.log(v)\nfunction twice() { return v * 2 }", [{ type: "method_returns", call: "twice()", expected: "14" }])
+  assert.equal(result.error, null)
+  assert.equal(result.stdout, "7\n")
+  assert.deepEqual(result.checks.map(c => c.ok), [true])
+  const late = await run("let a = 1\nawait Promise.resolve()\nnull.x")
+  assert.match(late.error.raw, /\(line 3\)$/)
+  const outside = await run("function h() {\n  await f()\n}")
+  assert.match(outside.error.friendly, /^await only works at the top/)
 })

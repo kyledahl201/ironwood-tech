@@ -11,7 +11,7 @@ self.onmessage = async ({ data }) => {
     // Indirect eval runs in the worker's global scope, so the console's names last between entries.
     bench ||= new JsBench({ evaluate: code => (0, eval)(code), Function, global: self })
     const result = data.console
-      ? bench.console_({ op: data.op, line: data.line || "", checks: data.checks || [] })
+      ? await bench.console_({ op: data.op, line: data.line || "", checks: data.checks || [] })
       : await bench.run({ code: data.code || "", checks: data.checks || [] })
     self.postMessage({ id: data.id, ok: true, result })
   } catch (e) {
