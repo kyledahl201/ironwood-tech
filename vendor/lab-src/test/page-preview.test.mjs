@@ -2,8 +2,9 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { JSDOM } from "jsdom"
-import { judgePage, previewDocument, styleCall, showValue, PagePreview } from "../../../app/javascript/lib/page_preview.js"
+import { judgePage, previewDocument, styleCall, showValue, pageNotes, PagePreview } from "../../../app/javascript/lib/page_preview.js"
 import { evaluateChecks } from "../../../app/javascript/lib/checks.js"
+import { buildTutorNote } from "../../../app/javascript/lib/tutor_note.js"
 
 const Parser = new JSDOM("").window.DOMParser
 globalThis.DOMParser = Parser // the browser has one; the preview uses it when it draws
@@ -140,4 +141,73 @@ test("the preview answers a run with the page's checks, and a newer draw replace
   const second = preview.show("<p>new</p>")
   assert.equal(await first, null)
   assert.equal((await second).querySelector("p").textContent, "new")
+})
+
+// What a browser's CSS.supports says, for the handful of properties these tests use.
+const VALUES = { color: /^(#[0-9a-f]{3,8}|red|gray|rgb\(.*\))$/i, "text-align": /^(left|right|center|justify)$/, "font-size": /^\d+(px|em|rem)$/, "background-color": /^(#[0-9a-f]{3,8}|linen|rgb\(.*\))$/i, margin: /^[\d a-z]+$/ }
+const supports = (property, value) => property in VALUES && (value === "initial" || VALUES[property].test(value))
+const notes = code => pageNotes(code, supports).map(n => `${n.line}: ${n.text}`)
+
+test("a page with nothing wrong gets no notes", () => {
+  assert.deepEqual(notes(PAGE), [])
+  // Tags that may stay open, tags that never close, a bare < in the text, and newer CSS all pass quietly.
+  assert.deepEqual(notes(`<!DOCTYPE html>
+<html><head><style>
+  /* a comment with a } and a stray: colon */
+  h1 { color: red; text-align: center }
+  @media (max-width: 600px) { h1 { font-size: 20px; } }
+  :root { --brand: #B87333; }
+</style></head>
+<body><p>One<br>two
+<ul><li>a<li>b</ul>
+<img src="data:x" alt=""><input type="text"><br/>
+<p>3 < 4 and 5 > 4</p>
+<a href="#top" title='say "hi"'>up</a>`), [])
+  assert.deepEqual(notes(""), [])
+})
+
+test("CSS the browser skips is named, with its line", () => {
+  assert.deepEqual(notes("<style>\n.note { text-algin: center; }\n</style>"), ["2: The browser doesn't know a property called text-algin, so it skipped this line."])
+  assert.deepEqual(notes("<style>\nh1 {\n  color: red;\n  text-align: centre;\n}\n</style>"), ["4: The browser doesn't accept “centre” as a value for text-align, so it skipped this line."])
+  assert.deepEqual(notes("<style>\np { color red; }\n</style>"), ["2: This line has no colon between a property and its value, so the browser skipped it: color red"])
+  assert.deepEqual(notes("<style>\nli {\n  color: red\n  font-size: 2em;\n}\n</style>"), ["3: There's no semicolon at the end of this line, so the browser read the next line as part of the value and skipped both."])
+  assert.deepEqual(notes("<style>\nh1 { color: ; }\n</style>"), ["2: color has no value after its colon, so the browser skipped it."])
+  assert.deepEqual(notes("<style>\nh1 { color: red;\np { color: gray; }\n</style>"), ["2: The rule that starts here is never closed with }, so the browser read everything after it as part of this rule."])
+  assert.deepEqual(notes("<style>\nh1 { color: red; }\n}\n</style>"), ["3: There's a } here with no rule open, so the browser skipped it."])
+  assert.deepEqual(notes("<style>\nh1 color: red;\n</style>"), ["2: This isn't inside a rule's curly brackets, so the browser skipped it: h1 color: red;"])
+  assert.deepEqual(notes("<style>\n{ color: red; }\n</style>"), ["2: This { has no selector in front of it, so the browser doesn't know what to style."])
+  // A mistake inside a media rule is found too, and a note never says what to type instead.
+  assert.deepEqual(notes("<style>\n@media (max-width: 600px) {\n  h1 { colour: red; }\n}\n</style>"), ["3: The browser doesn't know a property called colour, so it skipped this line."])
+  assert.ok(notes("<style>h1 { text-align: centre; colour: red }</style>").every(n => !/center|color:/.test(n)))
+})
+
+test("tags the browser rebuilds are named, with their lines", () => {
+  assert.deepEqual(notes("<h1>Title<h1>\n<p>ok</p>"), ["1: A second <h1> opens here before the one earlier on this line was closed. The browser made two of them. A closing tag has a slash: </h1>."])
+  assert.match(notes("<h2>One\n<h2>")[0], /^2: A second <h2> opens here before the one on line 1 was closed\./)
+  assert.deepEqual(notes("<ul>\n  <li>a</li>\n<p>after</p>"), ["1: <ul> opens here and is never closed, so the browser closed it for you at the end."])
+  assert.deepEqual(notes("<p>text</p>\n</div>"), ["2: There's a closing </div> here with no <div> open, so the browser ignored it."])
+  assert.deepEqual(notes("<p>\n<b>bold <i>both</b>\n it</i></p>"), [
+    "2: </b> closes here while the <i> from line 2 is still open, so the browser closed that one for you.",
+    "3: There's a closing </i> here with no <i> open, so the browser ignored it."
+  ])
+  assert.deepEqual(notes('<p>x</p>\n<a href="https://example.com>link</a>'), ["2: A quote opens in this <a> tag and never closes, so the browser read the text after it as part of the tag."])
+  assert.deepEqual(notes("<p class='note>text</p>"), ["1: A quote opens in this <p> tag and never closes, so the browser read the text after it as part of the tag."])
+  assert.deepEqual(notes("<h1 Hello</h1>"), ["1: This <h1> tag has no > to finish it, so the browser read what follows as part of the tag."])
+  assert.deepEqual(notes("<p>a</p>\n<!-- note\n<p>b</p>"), ["2: A comment starts here and is never closed with -->, so the browser treats everything after it as part of the comment."])
+  assert.deepEqual(notes("<style>\nh1 { color: red; }\n<h1>Hi</h1>"), ["1: <style> opens here and is never closed, so the browser read the rest of the page as part of it."])
+  // Notes come in page order, HTML and CSS together.
+  assert.deepEqual(pageNotes("<style>\nh1 { colour: red }\n</style>\n<h2>a<h2>\n</em>", supports).map(n => n.line), [2, 4, 5])
+})
+
+test("the preview asks the real browser what CSS it accepts, and the notes go to the tutor", () => {
+  const asked = []
+  const preview = new PagePreview({ frame: { contentWindow: { CSS: { supports: (p, v) => { asked.push([p, v]); return p === "color" } } } } })
+  assert.deepEqual(preview.notes("<style>h1 { color: red; text-algin: center }</style>").map(n => n.text), ["The browser doesn't know a property called text-algin, so it skipped this line."])
+  assert.deepEqual(asked, [["color", "initial"], ["color", "red"], ["text-algin", "initial"]])
+  // Where there is no CSS.supports to ask, CSS is left alone rather than guessed at.
+  assert.deepEqual(new PagePreview({ frame: {} }).notes("<style>h1 { text-algin: center }</style><em>x"), [{ line: 1, text: "<em> opens here and is never closed, so the browser closed it for you at the end." }])
+
+  const copied = buildTutorNote({ about: "TOUR", place: "Step 2 of 9", tool: "Web page (HTML and CSS)", language: "html", code: "<h1>x<h1>", notes: ["Line 1 A second <h1> opens here."] })
+  assert.match(copied, /What the browser fixed or skipped in my page:\n- Line 1 A second <h1> opens here\./)
+  assert.doesNotMatch(buildTutorNote({ about: "TOUR", place: "Step 2", code: "x" }), /fixed or skipped/)
 })

@@ -127,12 +127,18 @@
 /* The web page preview: the student's own page, on a white sheet like a browser tab. */
 .editor-side .preview-frame { flex: 1; min-height: 120px; width: 100%; border: 0; background: #fff; margin-top: 8px; }
 .editor-side [hidden] { display: none; }
+.page-notes { margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--night-line); border-left: 3px solid var(--copper); flex: 0 0 auto; max-height: 8.5em; overflow: auto; color: var(--linen); font-size: 14px; line-height: 1.45; }
+.page-notes-head { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--bone); }
+.page-notes ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.page-notes strong { color: var(--copper); font-weight: 600; margin-right: 4px; white-space: nowrap; }
 .flip-preview { display: none; }
 @media (max-width: 760px) {
   /* A phone shows the code or the page, with the buttons on top either way. */
   .flip-preview:not([hidden]) { display: inline-flex; margin-left: auto; }
   .tool-editor.is-page { grid-template-rows: auto minmax(0, 1fr); }
   .tool-editor.is-page .editor-side { order: -1; }
+  .tool-editor.is-page .page-notes { max-height: 5.6em; padding: 8px 16px; }
+  .tool-editor.is-page .page-notes-head { display: none; }
   .tool-editor.is-page .console-head, .tool-editor.is-page:not(.show-preview) .preview-frame { display: none; }
   .tool-editor.is-page.show-preview { grid-template-rows: minmax(0, 1fr); }
   .tool-editor.is-page.show-preview .editor-host { display: none; }

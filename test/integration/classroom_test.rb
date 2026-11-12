@@ -137,6 +137,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     # The preview can't run scripts, submit forms, open windows or leave its frame.
     assert_select "iframe.preview-frame[data-classroom-target=preview][sandbox='allow-same-origin'][title='Preview of your page'][hidden]"
     assert_includes response.body, "The preview shows your page as you type."
+    assert_select ".tool-editor .page-notes[data-classroom-target=notes][role=status][hidden] ul"
     assert_select ".tool-editor button.flip-preview[data-action='classroom#flipPreview'][aria-pressed=false][hidden]", text: "Show preview"
 
     { "rows_are" => /step 2 uses checks that don't work in web: rows_are/, "method_returns" => /step 2 uses checks that don't work in web: method_returns/ }.each do |type, message|

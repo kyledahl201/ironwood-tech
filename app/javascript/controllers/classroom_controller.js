@@ -35,7 +35,7 @@ const isEditor = mode => TOOLS[mode]?.kind === "editor"
 
 export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
-                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead", "flipButton"]
+                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead", "flipButton", "notes"]
   static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
                     progressUrl: String, quizUrl: String, runtimes: Object, about: String,
                     firstTryLine: String, passLines: Array }
@@ -88,6 +88,7 @@ export default class extends Controller {
     document.removeEventListener("keydown", this.onKey)
     clearInterval(this.typing)
     clearTimeout(this.drawing)
+    clearTimeout(this.noting)
     Object.values(this.runners).forEach(runner => runner.dispose())
   }
 
@@ -426,6 +427,7 @@ export default class extends Controller {
       language: tool.language || "",
       code: tool.kind === "editor" ? this.editor?.value : undefined,
       output: tool.kind === "editor" && !tool.page && this.ranOnce ? this.outputTarget.innerText : undefined,
+      notes: tool.page && !this.notesTarget.hidden ? [...this.notesTarget.querySelectorAll("li")].map(li => li.textContent) : [],
       transcript: tool.kind === "editor" ? undefined : this.lines(mode).innerText,
       checks: task ? [...article.querySelectorAll("[data-role=chips] .chip")].map(chip => ({
         label: chip.querySelector(".chip-label").textContent, ok: chip.classList.contains("is-pass"), detail: chip.querySelector(".chip-detail")?.textContent })) : [],
@@ -536,6 +538,7 @@ export default class extends Controller {
     this.outputTarget.hidden = this.runButtonTarget.hidden = !!tool.page
     this.outputHeadTarget.textContent = tool.page ? "Preview" : "Output"
     this.flipButtonTarget.hidden = !tool.page
+    if (!tool.page) this.notesTarget.hidden = true
     this.pane("editor").classList.toggle("is-page", !!tool.page)
     if (tool.kind === "editor") this.openEditor(`${index === undefined ? "scratch" : `step-${index}`}${tool.language === "ruby" ? "" : `-${tool.language}`}`, starter, tool.language)
   }
@@ -714,6 +717,27 @@ export default class extends Controller {
     clearTimeout(this.drawing)
     if (this.editorLanguage !== "html" || !this.editor) return
     this.drawing = setTimeout(() => { if (this.editorLanguage === "html" && !this.running) this.runner("html").show(this.editor.value) }, wait)
+    // The notes wait a little longer, so they don't flicker at a tag that is only half typed.
+    clearTimeout(this.noting)
+    this.noting = setTimeout(() => this.showNotes(), wait === 0 ? 0 : 1200)
+  }
+
+  // Says what the browser quietly fixed or skipped in the student's page, with line numbers.
+  showNotes() {
+    clearTimeout(this.noting)
+    if (this.editorLanguage !== "html" || !this.editor || !TOOLS[this.mode]?.page) return
+    const notes = this.runner("html").notes(this.editor.value)
+    const list = this.notesTarget.querySelector("ul")
+    list.textContent = ""
+    notes.slice(0, 5).forEach(({ line, text }) => {
+      const item = document.createElement("li"), where = document.createElement("strong")
+      where.textContent = `Line ${line}`
+      item.append(where, ` ${text}`)
+      list.append(item)
+    })
+    if (notes.length > 5) { const more = document.createElement("li"); more.textContent = `And ${notes.length - 5} more. Fix the first ones and the rest often go away.`; list.append(more) }
+    this.notesTarget.hidden = notes.length === 0
+    this.editor.view?.requestMeasure() // the notes take room from the editor on a narrow screen
   }
 
   showOutput(result) {
@@ -747,7 +771,7 @@ export default class extends Controller {
     this.setStatus(page ? "Checking…" : "Running…", "busy")
     try {
       const result = await this.runnerFor(this.mode).run(this.editor.value, checks)
-      if (page) { this.setStatus("Ready", "ok"); return result }
+      if (page) { this.showNotes(); this.setStatus("Ready", "ok"); return result }
       this.ranOnce = true
       this.showOutput(result)
       this.setStatus(result.error ? "Error" : "Ran", result.error ? "bad" : "ok")
