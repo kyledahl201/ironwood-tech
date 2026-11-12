@@ -5,8 +5,10 @@
 # reading course, or both (config/course_catalog.yml pairs them up).
 class Catalog
   FILE = Rails.root.join("config/course_catalog.yml")
+  # Where a course goes until the faculty place it in a department.
+  OTHER = "More courses".freeze
 
-  Entry = Struct.new(:slug, :code, :title, :professor, :level, :time, :tagline, :outcomes, :course, :lessons, :done, :open, :started, :enrollment, keyword_init: true) do
+  Entry = Struct.new(:slug, :code, :program, :title, :professor, :level, :time, :tagline, :outcomes, :course, :lessons, :done, :open, :started, :enrollment, keyword_init: true) do
     def to_param = slug
     def classroom? = lessons.any?
     def tour? = code == ClassLesson::TOUR
@@ -52,7 +54,7 @@ class Catalog
       paired << course if course
       list = lessons[row[:code]] || []
       next if list.empty? && course.nil?
-      Entry.new(slug: row[:slug] || course&.slug || row[:code].parameterize, code: row[:code],
+      Entry.new(slug: row[:slug] || course&.slug || row[:code].parameterize, code: row[:code], program: row[:program] || OTHER,
                 title: row[:title] || course&.title || row[:code], professor: row[:professor] || list.first&.professor || course&.tutor_name,
                 level: row[:level] || course&.level, time: row[:time] || course&.hours, tagline: row[:tagline] || course&.tagline,
                 outcomes: row[:outcomes] || course&.outcome_list || [], course: course, lessons: list, done: done, open: open,
@@ -61,11 +63,11 @@ class Catalog
     # Classroom courses nobody has described yet still show, under their code.
     (lessons.keys - @entries.map(&:code)).sort.each do |code|
       list = lessons[code]
-      @entries << Entry.new(slug: code.parameterize, code: code, title: code, professor: list.first.professor, outcomes: [], lessons: list,
+      @entries << Entry.new(slug: code.parameterize, code: code, program: OTHER, title: code, professor: list.first.professor, outcomes: [], lessons: list,
                             done: done, open: open, started: list.any? { |l| started.include?(l.id) })
     end
     (courses.values - paired).each do |course|
-      @entries << Entry.new(slug: course.slug, title: course.title, professor: course.tutor_name, level: course.level, time: course.hours, tagline: course.tagline,
+      @entries << Entry.new(slug: course.slug, program: OTHER, title: course.title, professor: course.tutor_name, level: course.level, time: course.hours, tagline: course.tagline,
                             outcomes: course.outcome_list, course: course, lessons: [], done: done, open: open, started: false, enrollment: enrollments[course.id])
     end
   end

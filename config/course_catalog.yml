@@ -3,9 +3,13 @@
 # `reading` names an online course (courses.slug) that belongs to the same
 # course, so the two show as one row. Published online courses that no entry
 # names are added to the end of the list by themselves.
+#
+# `program` is the department the course belongs to, from the degree catalogue.
+# The course list is grouped under these, in the order they first appear here.
 - slug: start-here
   code: TOUR
-  title: "Start here: a tour of the classroom"
+  program: Start here
+  title: Tours of the classroom
   professor: Sentry
   level: Brand new, no experience needed
   time: About 10 minutes a tour
@@ -16,6 +20,7 @@
     - Know what the checks and hints do, and what they don't
 - slug: cs-090
   code: CS 090
+  program: Computing Foundations
   title: Computing Orientation
   professor: Prof. Hale
   level: Beginner, no coding needed
@@ -27,6 +32,7 @@
     - Write and run a Ruby file of your own
 - slug: cs-101
   code: CS 101
+  program: Computing Foundations
   title: Intro to Programming in Ruby
   professor: Prof. Hale
   level: Beginner, after CS 090
@@ -37,4 +43,5 @@
     - Write methods, and tell puts from return
     - Loop over arrays and make decisions with if and else
 - code: AI 360
+  program: Data Science & AI
   reading: agentic-ai-bootcamp

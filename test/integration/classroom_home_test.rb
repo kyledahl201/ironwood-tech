@@ -39,10 +39,11 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_select ".welcome-first a[href=?][data-action='course-dialog#open'][aria-haspopup=dialog]", courses_path, text: "Show full course list"
     assert_select "dialog.course-dialog[aria-labelledby=course-dialog-title] h2#course-dialog-title", text: "All courses"
     assert_select "dialog .course-pick", 4 # the tour, CS 101 and the two reading courses
-    assert_select "dialog .course-pick h3", text: "Start here: a tour of the classroom"
+    assert_select "dialog .program h3", text: "Start here"
+    assert_select "dialog .course-pick h4", text: "Tours of the classroom"
     assert_select "dialog .course-pick a.btn[href=?]", class_lesson_path(@one), text: /Start\s*Intro to Programming in Ruby/
     assert_select "dialog .course-pick .course-state", text: "Not started · 2 classes"
-    assert_select "section .welcome > .course-list", 0 # a new student isn't handed the whole list before they ask
+    assert_select "section .welcome > .program-list", 0 # a new student isn't handed the whole list before they ask
     assert_includes response.body, "AI tutor personas, not people"
   end
 
@@ -83,8 +84,8 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_select "h1", text: "You're caught up, Riley"
       assert_select ".welcome-first", 0 # nothing left to recommend
-      assert_select ".welcome > .course-list .course-pick.is-finished .course-state", text: "Finished · 2 of 2 classes"
-      assert_select ".welcome > .course-list .course-pick.is-finished a.btn[href=?]", class_lesson_path(@one), text: /Open again/
+      assert_select ".welcome .course-list .course-pick.is-finished .course-state", text: "Finished · 2 of 2 classes"
+      assert_select ".welcome .course-list .course-pick.is-finished a.btn[href=?]", class_lesson_path(@one), text: /Open again/
     end
   end
 
@@ -97,9 +98,9 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Pick a class"
     assert_select ".welcome-first .eyebrow", text: "Your class"
     assert_select ".welcome-first a.btn[href=?]", class_lesson_path(@one), text: "Resume class"
-    assert_select ".welcome > .course-list .course-pick.is-current", 1
-    assert_select ".welcome > .course-list .course-pick.is-current .meta", text: /In progress · 0 of 2 classes finished\s*·\s*You are in this class now/
-    assert_select ".welcome > .course-list .course-pick.is-current a.btn[href=?]", class_lesson_path(@one), text: /Resume/
+    assert_select ".welcome .course-list .course-pick.is-current", 1
+    assert_select ".welcome .course-list .course-pick.is-current .meta", text: /In progress · 0 of 2 classes finished\s*·\s*You are in this class now/
+    assert_select ".welcome .course-list .course-pick.is-current a.btn[href=?]", class_lesson_path(@one), text: /Resume/
   end
 
   test "a transcript in progress sends a student who hasn't opened the classroom to their next class" do
@@ -121,7 +122,7 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     get courses_path
     assert_response :success
     assert_select ".course-list .course-pick", 5
-    assert_select ".course-list .course-pick h3 a", text: "Start here: a tour of the classroom"
+    assert_select ".course-list .course-pick h3 a", text: "Tours of the classroom"
     assert_select ".course-pick .eyebrow", text: "CS 101 · Prof. Hale (AI tutor)"
 
     # The classroom course and its reading are one row, and the button goes to the classroom.
@@ -140,6 +141,38 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     get courses_path
     assert_select ".course-pick a.btn[href=?]", learn_lesson_path(courses(:free), 1), text: /Resume\s*Free Course/
     assert_select "form[action=?]", course_enrollment_path(courses(:free)), 0
+  end
+
+  test "the course list is grouped by program, in catalogue order, with unplaced courses last" do
+    lessons_for_everyone
+    ClassLesson.create!(script.merge(slug: "zz-090", course_code: "CS 090", lesson_number: 1))
+    ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    ClassLesson.create!(script.merge(slug: "zz-new", course_code: "ZZ 999", lesson_number: 1)) # nobody has placed this one yet
+    sign_in_as users(:two)
+    get courses_path
+    assert_equal [ "Start here", "Program Computing Foundations", "Program Data Science & AI", "More courses" ], css_select(".program-head h2").map { |h| h.text.squish }
+    assert_select "section.program[aria-labelledby=course-program-computing-foundations] h2#course-program-computing-foundations"
+    assert_select "section[aria-labelledby=course-program-computing-foundations] .course-pick h3", 2
+    assert_equal [ "Computing Orientation", "Intro to Programming in Ruby" ], css_select("section[aria-labelledby=course-program-computing-foundations] .course-name").map { |h| h.text.squish }
+    assert_select "section[aria-labelledby=course-program-computing-foundations] .program-meta", text: "2 courses"
+    assert_select "section[aria-labelledby=course-program-more-courses] .course-name", 3 # ZZ 999 and the two reading courses
+    assert_select ".program.is-current", 0 # no class on screen here
+    assert_select "#course-cs-101-more dt + dd", text: "Computing Foundations"
+
+    get course_path("cs-101")
+    assert_select ".page-head .eyebrow", text: "Computing Foundations · CS 101"
+    assert_select ".facts dt", text: "Program"
+    get course_path(courses(:free))
+    assert_select ".facts dt", text: "Program", count: 0
+
+    # The welcome card says which program its class is in, and a tour says Start here.
+    post progress_class_lesson_path(@one), params: { step_index: 1 }, as: :json
+    get class_lessons_path(pick: 1)
+    assert_select ".welcome-first .meta", text: /Computing Foundations · CS 101 · Lesson 1/
+    assert_select ".welcome > .program-list .program.is-current h3", text: /Computing Foundations/
+    get class_lesson_path(@tour)
+    assert_select ".class-where", text: "Start here · Tours of the classroom"
+    assert_select "dialog .program.is-current h3", text: "Start here"
   end
 
   test "a course page lists its classes and has one way in" do
@@ -171,10 +204,15 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     get class_lesson_path(@one)
     assert_response :success
     assert_select ".class-bar .crumbs a[href=?]", class_lessons_path(pick: 1), text: "Classroom"
-    assert_select ".class-bar .crumbs a[href=?]", course_path("cs-101"), text: "CS 101"
+    assert_select ".class-bar .crumbs li", text: "Computing Foundations"
+    assert_select ".class-bar .crumbs a[href=?]", course_path("cs-101"), text: "CS 101 Intro to Programming in Ruby"
+    assert_select ".class-bar .class-where", text: "Computing Foundations · CS 101 · Lesson 1" # the line a phone shows instead of the trail
+    assert_select "dialog .program.is-current h3", text: /Program\s+Computing Foundations/
+    assert_select "dialog .program.is-current .program-meta", text: /1 course\s*·\s*You are in this program now/
+    assert_select "dialog .program.is-current", 1
     assert_select ".class-tools a[href=?][data-action='course-dialog#open']", class_lessons_path(pick: 1), text: "Switch class"
     assert_select "dialog.course-dialog h2", text: "Switch class"
-    assert_select "dialog .course-pick.is-current h3", text: "Intro to Programming in Ruby"
+    assert_select "dialog .course-pick.is-current h4", text: "Intro to Programming in Ruby"
     assert_select ".class-tools button[data-action='classroom#toggleTutor'][aria-expanded=false][aria-controls=class-tutor]", text: "Ask Prof. Example"
     assert_select "aside#class-tutor[hidden] .tutor-head", text: /AI tutor, not a person/
     assert_select "aside#class-tutor form", 0
@@ -318,7 +356,7 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
 
     sign_in_as user
     get class_lesson_path(@one)
-    assert_select "dialog .course-pick.is-current h3", text: "Intro to Programming in Ruby" # marked by the class on screen
+    assert_select "dialog .course-pick.is-current h4", text: "Intro to Programming in Ruby" # marked by the class on screen
   end
 
   test "a transcript course in progress wins over finished tours" do

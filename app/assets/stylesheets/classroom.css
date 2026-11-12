@@ -260,13 +260,23 @@
 }
 
 /* The course list: one list for the Courses page, the welcome screen and "Switch class". */
-.course-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--rule); }
+.course-list { list-style: none; padding: 0; margin: 0; }
+/* Programs: each department is a block with its courses inside it. */
+.program { margin: 0 0 28px; border-left: 4px solid var(--rule); padding-left: 16px; }
+.program.is-current { border-left-color: var(--copper); }
+.program-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 10px 0 8px; border-bottom: 2px solid var(--midnight); }
+.program-head h2, .program-head h3 { margin: 0; font-size: 26px; }
+.program-word { display: block; font: 600 12px var(--font-body); letter-spacing: .3em; text-transform: uppercase; color: var(--copper-deep); margin-bottom: 2px; }
+.program-meta { margin: 0; font-size: 14px; color: var(--muted); }
+.program-meta strong { color: var(--midnight); }
+.course-dialog .program { margin-top: 16px; }
+.course-dialog .program-head h3 { font-size: 22px; }
 .course-pick { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: center; padding: 18px 4px; border-bottom: 1px solid var(--rule); }
-.course-pick.is-current { border-left: 4px solid var(--copper); padding-left: 16px; background: var(--white); }
+.course-pick.is-current { padding-left: 12px; padding-right: 12px; background: var(--white); }
 .course-pick .eyebrow { margin: 0 0 4px; }
-.course-pick h3 { margin: 0; font-size: 22px; }
-.course-pick h3 a { color: var(--midnight); text-decoration: none; }
-.course-pick h3 a:hover { text-decoration: underline; text-decoration-color: var(--copper); }
+.course-name { margin: 0; font: 700 22px/1.25 var(--font-heading); }
+.course-name a { color: var(--midnight); text-decoration: none; }
+.course-name a:hover { text-decoration: underline; text-decoration-color: var(--copper); }
 .course-tagline { margin: 4px 0 0; }
 .course-pick .meta { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
 .course-pick.is-going .course-state, .course-pick.is-finished .course-state { color: var(--midnight); font-weight: 600; }
@@ -345,3 +355,6 @@
   .class-tools { grid-column: 1; grid-row: auto; justify-content: flex-start; }
   .class-tools .btn { flex: 1; justify-content: center; min-height: 40px; }
 }
+
+.class-where { display: none; margin: 0; color: var(--copper-deep); font-weight: 600; letter-spacing: .04em; }
+@media (max-width: 640px) { .class-where { display: block; grid-column: 1; grid-row: 1; } }
