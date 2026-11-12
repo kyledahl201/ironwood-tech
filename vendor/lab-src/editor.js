@@ -34,6 +34,7 @@ const highlight = HighlightStyle.define([
 
 export function createEditor(parent, { doc = "", language = "ruby", onRun = () => {}, onChange = () => {} } = {}) {
   const lang = language === "python" ? python() : StreamLanguage.define(ruby)
+  const indent = language === "python" ? 4 : 2 // each language's own convention
   const runKeys = [
     { key: "Mod-Enter", run: () => { onRun(); return true } },
     { key: "Shift-Enter", run: () => { onRun(); return true } }
@@ -44,7 +45,7 @@ export function createEditor(parent, { doc = "", language = "ruby", onRun = () =
       doc,
       extensions: [
         lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), drawSelection(), history(),
-        indentOnInput(), bracketMatching(), indentUnit.of("  "), EditorState.tabSize.of(2),
+        indentOnInput(), bracketMatching(), indentUnit.of(" ".repeat(indent)), EditorState.tabSize.of(indent),
         keymap.of([ ...runKeys, indentWithTab, ...defaultKeymap, ...historyKeymap ]),
         lang, syntaxHighlighting(highlight), theme,
         EditorView.contentAttributes.of({ "aria-label": "Code editor" }),

@@ -203,3 +203,9 @@
 .study-logged { color: rgba(245, 243, 239, .7); margin: 12px 0 0; }
 .bench-logged { color: rgba(245, 243, 239, .6); margin-left: auto; }
 @media (max-width: 520px) { .log-list li { grid-template-columns: minmax(0, 1fr) auto; } .log-tag { grid-row: 2; } }
+
+/* Tutor kit panel on the classroom list */
+.kit { margin: 0 0 16px; border-left: 4px solid var(--copper); }
+.kit summary { cursor: pointer; min-height: 32px; }
+.kit ol { margin: 12px 0; padding-left: 22px; }
+.kit li { margin: 4px 0; }

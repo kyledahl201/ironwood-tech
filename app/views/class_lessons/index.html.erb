@@ -1,12 +1,26 @@
 <% page_title "Classroom" %>
 <header class="page-head lab-head"><div class="wrap"><p class="eyebrow">Classroom</p><h1>Take class right here</h1>
-  <p class="lede">Your professor teaches one step at a time, and you do the work in the bench underneath: a practice Terminal, a Ruby console and a Ruby editor. Each class opens when the one before it is finished.</p>
+  <p class="lede">Your professor teaches one step at a time, and you do the work in the bench underneath: a practice Terminal, plus a console and an editor for Ruby and for Python. Each class opens when the one before it is finished.</p>
   <% if @next %><p><%= link_to "#{@progress[@next.id]&.step_index.to_i.positive? ? 'Resume' : 'Start'} #{@next.course_code} lesson #{@next.lesson_number}", class_lesson_path(@next), class: "btn btn-copper btn-lg" %></p><% end %>
 </div></header>
 <section class="section"><div class="wrap">
   <% if @lessons.empty? %><p class="muted">No classes yet. The faculty are writing them.</p><% end %>
   <% @lessons.sort_by { |l| [ l.tour? ? 0 : 1, l.course_code, l.lesson_number ] }.group_by(&:course_code).each do |code, list| %>
     <h2 class="lab-course"><%= list.first.tour? ? "Start here" : code %></h2>
+    <% if (kit = @kits[code]) %>
+      <details class="kit panel">
+        <summary><strong>Tutor kit:</strong> set up <%= list.first.professor %> in your own Claude project</summary>
+        <p>This course's professor coaches you in a Claude project of your own. You need a Claude Pro account. The kit is <%= pluralize(kit.files.size, "small text file") %>: who the professor is, the rules, the syllabus and the rubrics. It holds no answers.</p>
+        <ol>
+          <li>Download the kit and unzip it.</li>
+          <li>In Claude, make a new project. Paste <code>PROJECT-INSTRUCTIONS.md</code> into the project's instructions, and add the other files to the project.</li>
+          <li>In class, press <strong>Copy for my tutor</strong> in the workbench, then paste it into a chat in that project and ask your question.</li>
+        </ol>
+        <p><%= link_to "Download the tutor kit", tutor_kit_path(kit.slug), class: "btn btn-copper", data: { turbo: false } %> <span class="small muted">README.md inside has the full steps.</span></p>
+        <p class="small">Or one file at a time, for when a new week's notes are added: <% kit.names.each do |name| %><%= link_to name, tutor_kit_file_path(kit.slug, name), data: { turbo: false } %><%= " · " unless name == kit.names.last %><% end %></p>
+        <p class="small muted">The professor in your Claude project is an AI tutor persona. It can't see the portal, so it only knows what you paste. The portal's checks stay the record of your work.</p>
+      </details>
+    <% end %>
     <ol class="ex-list">
       <% list.each do |lesson| %>
         <% progress = @progress[lesson.id] %>

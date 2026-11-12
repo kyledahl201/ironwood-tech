@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Downloads the pinned Pyodide (Python for the classroom's Python console and
+# editor) into public/lab/pyodide and refuses it unless the package's SHA-512
+# matches. Runs in the Docker build so Python always ships with the site.
+# No Node needed. Keep VERSION in step with vendor/lab-src/package.json.
+set -euo pipefail
+VERSION="314.0.7"
+SHA512="d18bd7c4485f11da4b7dbfd790cd8114078c44eab488c517d9bcf31fda4eb6dc8c716930abe1db139bb2b860fcd8b37bcb6abe48dbe2ffa579244b0e943d91d4"
+DEST="$(dirname "$0")/../public/lab/pyodide"
+FILES="pyodide.mjs pyodide.asm.mjs pyodide.asm.wasm python_stdlib.zip pyodide-lock.json"
+
+if [ -f "$DEST/.version" ] && [ "$(cat "$DEST/.version")" = "$VERSION-$SHA512" ]; then
+  echo "public/lab/pyodide is already present (${VERSION})."
+  exit 0
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+curl -fsSL "https://registry.npmjs.org/pyodide/-/pyodide-${VERSION}.tgz" -o "$TMP/pkg.tgz"
+echo "${SHA512}  $TMP/pkg.tgz" | sha512sum --check --status || { echo "Checksum mismatch for pyodide ${VERSION}" >&2; exit 1; }
+tar -xzf "$TMP/pkg.tgz" -C "$TMP"
+mkdir -p "$DEST"
+for file in $FILES; do mv "$TMP/package/$file" "$DEST/$file"; done
+echo "$VERSION-$SHA512" > "$DEST/.version"
+echo "Fetched and verified public/lab/pyodide (${VERSION})."

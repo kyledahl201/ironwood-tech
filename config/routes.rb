@@ -30,6 +30,10 @@ Rails.application.routes.draw do
     end
   end
 
+  # A course's tutor kit, for the student's own Claude project
+  get "classroom/kits/:course", to: "tutor_kits#show", as: :tutor_kit
+  get "classroom/kits/:course/:file", to: "tutor_kits#file", as: :tutor_kit_file, constraints: { file: /[A-Za-z0-9-]+\.md/ }
+
   # The classroom: scripted lessons played step by step
   resources :class_lessons, only: %i[index show], path: "classroom" do
     member do

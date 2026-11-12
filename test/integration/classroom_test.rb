@@ -49,6 +49,54 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_raises(ClassLessonMarkdown::FormatError) { ClassLessonMarkdown.parse("no front matter") }
   end
 
+  test "a Python lesson parses, plays in the Python tools, and loads Python only from this site" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read)
+    assert_equal "Made up: Python", attrs[:title]
+    assert_equal [ nil, "pyrepl", "python" ], attrs[:steps].map { |s| s["mode"] }
+    assert_equal "def made_up(n):\n    pass\n", attrs[:steps][2]["starter"] # indenting is kept
+    python = ClassLesson.create!(attrs)
+
+    sign_in_as users(:one)
+    get class_lesson_path(python)
+    assert_response :success
+    assert_select "select[data-classroom-target=mode] option", 5
+    assert_select "select[data-classroom-target=mode] option[value=pyrepl][selected]", text: "Python console"
+    assert_select "select[data-classroom-target=mode] option[value=python]", text: "Python editor"
+    assert_select ".tool[data-mode=pyrepl] input#pyrepl-input[aria-label='Type a line of Python and press Enter']"
+    assert_select ".tool[data-mode=irb] input#irb-input"
+    assert_select ".tool-editor[data-mode=editor]", 1 # one editor serves both languages
+    runtimes = JSON.parse(css_select(".classroom").first["data-classroom-runtimes-value"])
+    assert_equal({ "name" => "Python", "worker" => "/lab/python-worker.js", "runtime" => "/lab/pyodide/" }, runtimes["python"].except("megabytes"))
+    assert runtimes["python"].key?("megabytes") # the size of the download, for the first-load message (nil when the files aren't fetched)
+    assert_equal "/lab/ruby-worker.js", runtimes["ruby"]["worker"]
+    assert_includes response.body, "press Enter on an empty line to run it"
+    assert File.exist?(Rails.root.join("public/lab/python-worker.js")), "the Python worker is committed"
+  end
+
+  test "a check that can't work in a step's tool is refused" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read)
+    attrs[:steps][2]["checks"] << { "type" => "cwd_is", "expected" => "~/x", "label" => "x" }
+    record = ClassLesson.new(attrs)
+    assert_not record.valid?
+    assert_match(/step 3 uses checks that don't work in python: cwd_is/, record.errors.full_messages.to_sentence)
+  end
+
+  test "tours are always open, and Today only points at courses the student is taking" do
+    TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
+    in_progress = users(:one).course_records.select(&:in_progress?).map(&:code)
+    assert in_progress.any?
+    assert_not_includes in_progress, "AI 360"
+    ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    tour = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("lesson.md").read).merge(slug: "zz-tour", course_code: "TOUR", lesson_number: 2))
+    assert tour.unlocked_for?(users(:one))
+    assert_nil ClassLesson.next_for(users(:one)) # the only open lesson is in a course not in progress
+    sign_in_as users(:one)
+    get class_lessons_path
+    assert_select "a[href=?]", class_lesson_path("zz-py") # still there to open by choice
+
+    assert_equal "zz-py", ClassLesson.next_for(users(:two)).slug # no transcript yet: any open lesson is offered
+  end
+
   test "every lesson the faculty wrote loads" do
     paths = Dir[Rails.root.join("db/seeds/lessons/*.md")]
     assert paths.any?
@@ -79,7 +127,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".classroom[data-controller~=classroom]"
     assert_select "template[data-classroom-target=template]", 6
-    assert_select "select[data-classroom-target=mode] option", 3
+    assert_select "select[data-classroom-target=mode] option", 5
     assert_select ".mac-runs li", 2
     assert_includes response.body, "Prof. Example"
     assert_includes response.body, "(AI tutor)"
@@ -375,5 +423,103 @@ class ClassroomTest < ActionDispatch::IntegrationTest
 
     get portal_path
     assert_select ".quick-log form.quick-add button[name='study_session[minutes]']", 6
+  end
+
+  test "a course's tutor kit downloads as a zip of the faculty's files, and holds no answers" do
+    kit = TutorKit.for("AI 360")
+    assert_equal "README.md", kit.names.first
+    assert_includes kit.names, "PROJECT-INSTRUCTIONS.md"
+    assert_nil TutorKit.for("CS 101")
+    assert_nil TutorKit.for("../..")
+
+    # No file in the kit defines a function a lesson asks the student to write.
+    lessons = Dir[Rails.root.join("db/seeds/lessons/ai360-*.md")].map { |path| ClassLessonMarkdown.parse(File.read(path)) }
+    asked = lessons.flat_map { |l| l[:steps] + l[:homework] }.flat_map { |s| Array(s["checks"]) }
+                   .filter_map { |c| c["call"].to_s[/\A([a-z_]\w*)\(/, 1] if c["type"] == "method_returns" }.uniq - %w[sum len max min round]
+    assert_operator asked.size, :>, 10
+    kit.files.each do |path|
+      text = File.read(path)
+      asked.each { |name| assert_no_match(/def #{name}\b/, text, "#{File.basename(path)} defines #{name}") }
+    end
+
+    get tutor_kit_path("ai-360")
+    assert_redirected_to new_session_path # signed-in students only
+    ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    sign_in_as users(:one)
+    get tutor_kit_path("ai-360")
+    assert_response :success
+    assert_equal "application/zip", response.media_type
+    assert_match(/ironwood-ai-360-tutor-kit\.zip/, response.headers["Content-Disposition"])
+
+    # Read the first file back out of the zip by hand.
+    zip = response.body.b
+    signature, _version, _flags, method, _time, _date, crc, packed, size, name_length, _extra = zip.unpack("VvvvvvVVVvv")
+    assert_equal [ 0x04034b50, 8 ], [ signature, method ]
+    assert_equal "ironwood-ai-360-tutor-kit/README.md", zip[30, name_length]
+    readme = Zlib::Inflate.new(-Zlib::MAX_WBITS).inflate(zip[30 + name_length, packed])
+    assert_equal File.binread(kit.files.first), readme
+    assert_equal [ readme.bytesize, Zlib.crc32(readme) ], [ size, crc ]
+    assert_equal kit.files.size, zip.scan([ 0x02014b50 ].pack("V")).size # one directory entry per file
+
+    get tutor_kit_file_path("ai-360", "WEEK-01.md")
+    assert_response :success
+    assert_equal File.read(Rails.root.join("db/tutor_kits/ai-360/WEEK-01.md")), response.body
+    get "/classroom/kits/ai-360/nope.md"
+    assert_response :not_found
+    get tutor_kit_path("cs-101")
+    assert_response :not_found
+  end
+
+  test "the Week 1 lessons and the tutor kit state the same Python floor, and the check enforces it" do
+    floor = "Python 3.11 or newer"
+    lessons = %w[ai360-w1 ai360-w1-lab].to_h { |slug| [ slug, Rails.root.join("db/seeds/lessons/#{slug}.md").read ] }
+    kit = TutorKit.for("AI 360").read("WEEK-01.md")
+
+    lessons.each { |slug, text| assert_includes text, floor, "#{slug} doesn't state the floor" }
+    assert_includes kit, floor, "the tutor's Week 1 notes don't state the floor"
+    (lessons.values + [ kit ]).each do |text|
+      assert_no_match(/Python 3\.(?:\d|10) or newer|3\.(?:\d|10)\+/, text, "an older floor is still stated somewhere")
+    end
+
+    lessons.each do |slug, text|
+      lesson = ClassLessonMarkdown.parse(text)
+      patterns = lesson[:steps].select { |s| s["kind"] == "mac" }.flat_map { |s| s["checks"] }
+                               .filter_map { |c| c["expected"] if c["expected"].to_s.start_with?("^Python 3\\.(") }
+      assert_equal 1, patterns.size, "#{slug} should check the Python version against the floor exactly once"
+      check = Regexp.new(patterns.first)
+      [ "Python 3.11.0", "Python 3.12.4", "Python 3.14.1" ].each { |v| assert_match check, v }
+      [ "Python 3.9.6", "Python 3.10.14", "Python 3.1.5", "Python 2.7.18" ].each { |v| assert_no_match check, v }
+    end
+  end
+
+  test "the .env step writes the example file by hand and refuses one copied from .env" do
+    lesson = ClassLessonMarkdown.parse(Rails.root.join("db/seeds/lessons/ai360-w1-lab.md").read)
+    step = lesson[:steps].find { |s| s["kind"] == "mac" && s["run"].to_a.any? { |c| c.include?(".env.example") } }
+
+    assert step, "the lab should have a .env step"
+    assert step["run"].none? { |c| c.match?(/cp\s+\.env\s/) }, "the step must not copy .env into the example"
+    assert_includes step["run"], "cat .env.example"
+
+    checks = step["checks"].map { |c| Regexp.new(c["expected"]) }
+    placeholders = "HOME_LAT=0.0\nHOME_LON=0.0\nPLACE_NAME=Your town\n"
+    copied = "HOME_LAT=41.88\nHOME_LON=-87.63\nPLACE_NAME=Chicago\n"
+    rest = "Forecast for Chicago\nChanges to be committed:\n\tnew file:   week-01-weather-brief/.env.example\n\nIgnored files:\n\tweek-01-weather-brief/.env\n"
+    assert checks.all? { |c| c.match?(placeholders + rest) }
+    assert_not checks.all? { |c| c.match?(copied + rest) }, "a copied example file must not pass"
+  end
+
+  test "the classroom list offers the kit for its course only, and the workbench has Copy for my tutor" do
+    lesson(lesson_number: 1)
+    python = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    sign_in_as users(:one)
+    get class_lessons_path
+    assert_select "details.kit", 1
+    assert_select "details.kit a[href=?]", tutor_kit_path("ai-360"), text: "Download the tutor kit"
+    assert_select "details.kit a[href=?]", tutor_kit_file_path("ai-360", "WEEK-02.md")
+    assert_select "details.kit", text: /It holds no answers.*can't see the portal/m
+
+    get class_lesson_path(python)
+    assert_select ".bench-bar button[data-action='classroom#copyForTutor']", text: "Copy for my tutor"
+    assert_select ".classroom[data-classroom-about-value='AI 360 · Lesson 1 · Made up: Python · Prof. Example']"
   end
 end

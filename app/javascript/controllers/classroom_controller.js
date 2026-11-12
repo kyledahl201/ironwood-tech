@@ -1,25 +1,32 @@
 import { Controller } from "@hotwired/stimulus"
 import { toast, clearToasts, celebrate, postJSON, pick } from "lib/ui"
-import { RubyRunner } from "lib/ruby_runner"
+import { CodeRunner } from "lib/code_runner"
 import { TerminalSim } from "lib/terminal_sim"
 import { evaluateChecks } from "lib/checks"
+import { buildTutorNote } from "lib/tutor_note"
 
 // The classroom. The professor's steps play in the board on top; the student
-// works in the bench underneath (practice Terminal, Ruby console, Ruby editor).
+// works in the bench underneath (practice Terminal, and a console and an editor
+// each for Ruby and Python).
 // A step with a task opens the next one when its checks pass. Checks run in
 // the browser, so they are self-checked practice; the server keeps the place.
-const NOTES = {
-  terminal: "Practice computer. Nothing here touches your Mac.",
-  irb: "Ruby runs in your browser. Variables last until you reset.",
-  ruby: "Ruby runs in your browser."
+const TOOLS = {
+  terminal: { kind: "terminal", note: "Practice computer. Nothing here touches your Mac." },
+  irb: { kind: "console", language: "ruby", name: "Ruby", prompt: "irb>", more: "..>", arrow: "=> ",
+         note: "Ruby runs in your browser. Variables last until you reset." },
+  pyrepl: { kind: "console", language: "python", name: "Python", prompt: ">>>", more: "...", arrow: "",
+            note: "Python runs in your browser. Variables last until you reset." },
+  ruby: { kind: "editor", language: "ruby", name: "Ruby", note: "Ruby runs in your browser." },
+  python: { kind: "editor", language: "python", name: "Python", note: "Python runs in your browser. Standard library only: no pip, files or internet." }
 }
+const CONSOLES = Object.keys(TOOLS).filter(mode => TOOLS[mode].kind === "console")
+const isEditor = mode => TOOLS[mode]?.kind === "editor"
 
 export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
-                    "pane", "termLines", "termPrompt", "termInput", "irbLines", "irbPrompt", "irbInput",
-                    "editor", "output", "runButton", "checkButton"]
+                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton"]
   static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
-                    progressUrl: String, quizUrl: String, workerUrl: String, wasmUrl: String,
+                    progressUrl: String, quizUrl: String, runtimes: Object, about: String,
                     firstTryLine: String, passLines: Array }
 
   connect() {
@@ -27,19 +34,20 @@ export default class extends Controller {
     this.steps = this.stepsValue // parsed once, so a step can be compared with itself later
     this.current = Math.min(this.indexValue, this.steps.length)
     this.attempt = this.freshAttempt()
-    this.typed = { terminal: [], irb: [] } // what was typed, for the up arrow
-    this.cursor = { terminal: 0, irb: 0 }
-    this.irbBuffer = ""
+    this.typed = { terminal: [] }  // what was typed, for the up arrow
+    this.cursor = { terminal: 0 }
+    CONSOLES.forEach(mode => { this.typed[mode] = []; this.cursor[mode] = 0 })
     this.hintsUsed = 0
+    this.runners = {}              // one per language, made the first time it is needed
+    this.statuses = {}
 
-    this.runner = new RubyRunner({ workerUrl: this.workerUrlValue, wasmUrl: this.wasmUrlValue, onStatus: (t, tone) => this.setStatus(t, tone) })
-    this.sim = new TerminalSim({ user: this.userValue, runRuby: code => this.runner.run(code) })
+    this.sim = this.newSim()
     if (this.saved.sim) this.sim.restore(this.saved.sim)
     this.typed.terminal = this.sim.history.slice()
     this.cursor.terminal = this.typed.terminal.length
 
     this.print("terminal", "Practice terminal. Type help to see what it knows.", "term-note")
-    this.print("irb", "Ruby console. Type a line of Ruby and press Enter.", "term-note")
+    CONSOLES.forEach(mode => this.print(mode, `${TOOLS[mode].name} console. Type a line of ${TOOLS[mode].name} and press Enter.`, "term-note"))
     this.termPromptTarget.textContent = this.sim.prompt
 
     this.fit()
@@ -49,9 +57,13 @@ export default class extends Controller {
     window.addEventListener("resize", this.onResize)
     document.addEventListener("keydown", this.onKey)
 
-    // Ruby is a big download, so only fetch it early when this lesson uses it.
-    if (this.steps.some(s => s.mode === "irb" || s.mode === "ruby") || this.saved.irb?.length) {
-      this.runner.warm()?.then(() => this.saved.irb?.length && this.runner.restore(this.saved.irb))
+    // A language is a big download, so only fetch one early when this lesson uses it.
+    for (const mode of CONSOLES) {
+      const { language } = TOOLS[mode]
+      const lines = this.saved[mode]
+      if (this.steps.some(s => TOOLS[s.mode]?.language === language) || lines?.length) {
+        this.runner(language).warm()?.then(() => lines?.length && this.runner(language).restore(lines))
+      }
     }
 
     for (let i = 0; i < this.current; i++) this.showStep(i, { past: true })
@@ -64,8 +76,24 @@ export default class extends Controller {
     window.removeEventListener("resize", this.onResize)
     document.removeEventListener("keydown", this.onKey)
     clearInterval(this.typing)
-    this.runner?.dispose()
+    Object.values(this.runners).forEach(runner => runner.dispose())
   }
+
+  // The runner for a language ("ruby" or "python"), started on first use.
+  runner(language) {
+    if (!this.runners[language]) {
+      const { name, worker, runtime, megabytes } = this.runtimesValue[language]
+      this.runners[language] = new CodeRunner({ name, workerUrl: worker, runtimeUrl: runtime, megabytes, onStatus: (text, tone) => {
+        this.statuses[language] = [text, tone]
+        if (TOOLS[this.mode]?.language === language) this.setStatus(text, tone)
+      } })
+    }
+    return this.runners[language]
+  }
+
+  runnerFor(mode) { return TOOLS[mode]?.language ? this.runner(TOOLS[mode].language) : null }
+
+  newSim() { return new TerminalSim({ user: this.userValue, runRuby: code => this.runner("ruby").run(code) }) }
 
   freshAttempt() { return { commands: [], outputs: [], misses: 0, hints: 0, passing: 0 } }
 
@@ -76,7 +104,7 @@ export default class extends Controller {
 
   save() {
     this.saved.sim = this.sim.serialize()
-    this.saved.irb = this.runner.history.slice(-100)
+    CONSOLES.forEach(mode => { const made = this.runners[TOOLS[mode].language]; if (made) this.saved[mode] = made.history.slice(-100) })
     try { localStorage.setItem(this.storeValue, JSON.stringify(this.saved)) } catch (_) { /* private mode */ }
   }
 
@@ -149,14 +177,14 @@ export default class extends Controller {
     this.attempt = this.freshAttempt()
     article.classList.add("is-live")
     if (step.kind === "try") this.setMode(step.mode, { starter: step.starter, index })
-    this.checkButtonTarget.hidden = !(step.kind === "try" && step.mode === "ruby")
+    this.checkButtonTarget.hidden = !(step.kind === "try" && isEditor(step.mode))
     this.board(article)
     this.typeOut(article, () => {
       article.classList.remove("is-typing")
       this.board(article) // the task and its buttons just appeared; bring the whole step up
       const go = article.querySelector("[data-role=continue]")
       if (go && !this.busyTyping()) go.focus({ preventScroll: true })
-      if (step.kind === "try" && step.mode !== "ruby") this.entry(step.mode)?.focus({ preventScroll: true })
+      if (step.kind === "try" && !isEditor(step.mode)) this.entry(step.mode)?.focus({ preventScroll: true })
     })
   }
 
@@ -247,7 +275,7 @@ export default class extends Controller {
   // the editor's code on an editor task, otherwise the lines they typed.
   work(article) {
     const step = this.steps[Number(article.dataset.index)]
-    if (step?.kind === "try" && step.mode === "ruby" && this.editor) return this.editor.value
+    if (step?.kind === "try" && isEditor(step.mode) && this.editor) return this.editor.value
     return this.attempt.commands.join("\n")
   }
 
@@ -324,11 +352,11 @@ export default class extends Controller {
   // After each console entry on a "your turn" step, see whether the task is done.
   async judge() {
     const step = this.step
-    if (!step || step.kind !== "try" || step.mode === "ruby" || this.judging) return
+    if (!step || step.kind !== "try" || isEditor(step.mode) || this.judging) return
     if (this.article?.classList.contains("is-typing")) this.skipTyping()
     this.judging = true
     try {
-      const outcomes = await evaluateChecks(step.checks, { ...this.attempt, sim: this.sim, runner: this.runner })
+      const outcomes = await evaluateChecks(step.checks, { ...this.attempt, sim: this.sim, runner: this.runnerFor(step.mode) })
       if (this.step === step) this.settle(outcomes)
     } finally { this.judging = false }
   }
@@ -356,6 +384,42 @@ export default class extends Controller {
     const left = (this.step.hints || []).length - this.attempt.hints
     button.hidden = left === 0
     button.textContent = this.attempt.hints === 0 ? "Show a hint" : `Show another hint (${left} left)`
+  }
+
+  // Copies where the student is, the task, their work and the checks, to paste
+  // into a chat with their professor (the Dean's thread, or their own Claude
+  // project set up from a course's tutor kit).
+  async copyForTutor(event) {
+    const button = event.currentTarget
+    const step = this.step
+    const article = this.article
+    const mode = this.mode
+    const tool = TOOLS[mode]
+    const task = step && !["teach", "show"].includes(step.kind)
+    const select = this.modeTarget
+    const note = buildTutorNote({
+      about: this.aboutValue,
+      place: step ? `${this.homeworkValue ? "Homework task" : "Step"} ${this.current + 1} of ${this.steps.length}` : (this.homeworkValue ? "Homework handed in" : "Class finished"),
+      task: article?.querySelector(".step-text")?.innerText,
+      tool: select.options[select.selectedIndex].text,
+      language: tool.language || "",
+      code: tool.kind === "editor" ? this.editor?.value : undefined,
+      output: tool.kind === "editor" && this.ranOnce ? this.outputTarget.innerText : undefined,
+      transcript: tool.kind === "editor" ? undefined : this.lines(mode).innerText,
+      checks: task ? [...article.querySelectorAll("[data-role=chips] .chip")].map(chip => ({
+        label: chip.querySelector(".chip-label").textContent, ok: chip.classList.contains("is-pass"), detail: chip.querySelector(".chip-detail")?.textContent })) : [],
+      hints: this.attempt.hints
+    })
+    try {
+      await navigator.clipboard.writeText(note)
+      toast("Copied. Paste it into a chat with your professor and add your question.", { sentry: false })
+    } catch (_) {
+      // No clipboard access: show the text so it can be selected and copied by hand.
+      this.outputTarget.textContent = note
+      if (tool.kind !== "editor") this.setMode(TOOLS[mode].language === "python" ? "python" : "ruby", {})
+      toast("Copying isn't allowed here. The text is in the Output box: select it and copy it.", { sentry: false })
+    }
+    button.blur()
   }
 
   // "On your Mac" steps -------------------------------------------------------------
@@ -439,14 +503,20 @@ export default class extends Controller {
 
   setMode(mode, { starter, index } = {}) {
     this.modeTarget.value = mode
-    this.paneTargets.forEach(pane => { pane.hidden = pane.dataset.mode !== mode })
-    this.safeTarget.textContent = NOTES[mode]
-    if (mode !== "terminal") this.runner.warm()
-    if (mode === "ruby") this.openEditor(index === undefined ? "scratch" : `step-${index}`, starter)
+    const tool = TOOLS[mode]
+    this.paneTargets.forEach(pane => { pane.hidden = pane.dataset.mode !== (tool.kind === "editor" ? "editor" : mode) })
+    this.safeTarget.textContent = tool.note
+    if (tool.language) {
+      this.runner(tool.language).warm()
+      this.setStatus(...(this.statuses[tool.language] || ["Ready", "ok"]))
+    } else this.setStatus("Ready", "ok")
+    if (tool.kind === "editor") this.openEditor(`${index === undefined ? "scratch" : `step-${index}`}${tool.language === "ruby" ? "" : `-${tool.language}`}`, starter, tool.language)
   }
 
-  entry(mode) { return mode === "terminal" ? this.termInputTarget : mode === "irb" ? this.irbInputTarget : null }
-  lines(mode) { return mode === "terminal" ? this.termLinesTarget : this.irbLinesTarget }
+  pane(mode) { return this.paneTargets.find(pane => pane.dataset.mode === mode) }
+  entry(mode) { return isEditor(mode) ? null : this.pane(mode)?.querySelector("input") }
+  lines(mode) { return this.pane(mode).querySelector(".term-lines") }
+  prompt(mode) { return this.pane(mode).querySelector(".term-prompt") }
 
   focusEntry(event) {
     if (window.getSelection()?.toString()) return // let the student select and copy text
@@ -477,7 +547,7 @@ export default class extends Controller {
     this.running = true
     try {
       if (mode === "terminal") await this.runCommand(text)
-      else await this.runLine(text)
+      else await this.runLine(mode, text)
     } finally {
       this.running = false
     }
@@ -496,28 +566,26 @@ export default class extends Controller {
     this.attempt.outputs.push(result.output || "")
   }
 
-  async runLine(text) {
-    this.print("irb", `${this.irbBuffer ? "..>" : "irb>"} ${text}`, "term-typed")
-    const source = this.irbBuffer + text
-    if (!source.trim()) return
-    const result = await this.runner.line(source)
-    if (result.incomplete) {
-      // Ruby is waiting for the rest (an end, a quote or a bracket).
-      this.irbBuffer = source + "\n"
-      this.irbPromptTarget.textContent = "..>"
-      return
-    }
-    this.irbBuffer = ""
-    this.irbPromptTarget.textContent = "irb>"
-    this.print("irb", (result.stdout || "").replace(/\n$/, ""))
+  async runLine(mode, text) {
+    const tool = TOOLS[mode]
+    const runner = this.runnerFor(mode)
+    this.print(mode, `${runner.partial ? tool.more : tool.prompt} ${text}`, "term-typed")
+    const result = await runner.type(text)
+    if (result.empty) return
+    // While an entry is unfinished the prompt shows the language is waiting
+    // for the rest (an end in Ruby; in Python, a blank line ends a block).
+    this.prompt(mode).textContent = runner.partial ? tool.more : tool.prompt
+    if (result.incomplete) return
+    this.print(mode, (result.stdout || "").replace(/\n$/, ""))
     if (result.error) {
-      this.print("irb", result.error.friendly, "term-error")
-      this.print("irb", result.error.raw, "term-raw")
-    } else {
-      this.print("irb", `=> ${result.value}`, "term-value")
+      this.print(mode, result.error.friendly, "term-error")
+      this.print(mode, result.error.raw, "term-raw")
+    } else if (result.value != null) {
+      this.print(mode, `${tool.arrow}${result.value}`, "term-value")
     }
-    this.attempt.commands.push(source.trim())
-    if (!result.error) this.attempt.outputs.push(result.stdout || "", result.value || "", `${result.stdout || ""}${result.value || ""}`)
+    this.attempt.commands.push(result.source.trim())
+    if (result.error) this.attempt.outputs.push(result.error.raw || "") // a lesson may ask the student to cause an error and read it
+    else this.attempt.outputs.push(result.stdout || "", result.value || "", `${result.stdout || ""}${result.value || ""}`)
   }
 
   // Up and down recall earlier lines, Tab completes a file name, Ctrl+C gives up
@@ -536,7 +604,7 @@ export default class extends Controller {
       input.value = this.sim.complete(input.value)
     } else if (event.ctrlKey && event.key.toLowerCase() === "c") {
       input.value = ""
-      if (mode === "irb") { this.irbBuffer = ""; this.irbPromptTarget.textContent = "irb>" }
+      if (TOOLS[mode].kind === "console") { this.runnerFor(mode).cancel(); this.prompt(mode).textContent = TOOLS[mode].prompt }
     } else if (event.ctrlKey && event.key.toLowerCase() === "l") {
       event.preventDefault()
       this.lines(mode).innerHTML = ""
@@ -547,16 +615,17 @@ export default class extends Controller {
     const mode = this.mode
     if (mode === "terminal") {
       if (!confirm("Start the practice computer over? Folders and files you made in it will be gone.")) return
-      this.sim = new TerminalSim({ user: this.userValue, runRuby: code => this.runner.run(code) })
+      this.sim = this.newSim()
       this.termLinesTarget.innerHTML = ""
       this.print("terminal", "A fresh practice computer.", "term-note")
       this.termPromptTarget.textContent = this.sim.prompt
-    } else if (mode === "irb") {
-      if (!confirm("Start the Ruby console over? Its variables will be gone.")) return
-      await this.runner.resetConsole()
-      this.irbBuffer = ""
-      this.irbLinesTarget.innerHTML = ""
-      this.print("irb", "A fresh Ruby console.", "term-note")
+    } else if (TOOLS[mode].kind === "console") {
+      const { name, prompt } = TOOLS[mode]
+      if (!confirm(`Start the ${name} console over? Its variables will be gone.`)) return
+      await this.runnerFor(mode).resetConsole()
+      this.prompt(mode).textContent = prompt
+      this.lines(mode).innerHTML = ""
+      this.print(mode, `A fresh ${name} console.`, "term-note")
     } else {
       const starter = this.editorStarter || ""
       if (this.editor && this.editor.value !== starter && !confirm("Replace your code with the starting code?")) return
@@ -565,35 +634,44 @@ export default class extends Controller {
     this.save()
   }
 
-  // Ruby editor ---------------------------------------------------------------------
+  // The editor (Ruby or Python) ------------------------------------------------------
 
-  async openEditor(key, starter) {
+  async openEditor(key, starter, language) {
     // A step with starting code opens with it. A step without any carries on
-    // from the code already in the editor, so "now add a line" steps work.
-    const draft = () => this.saved.drafts?.[this.editorKey] ?? starter ?? this.editor?.value ?? this.saved.code ?? ""
+    // from the code already in the editor, so "now add a line" steps work
+    // (unless the editor last held the other language).
+    const carried = () => this.editorLanguage === language ? this.editor?.value : undefined
+    const draft = () => this.saved.drafts?.[key] ?? starter ?? carried() ?? (language === "ruby" ? this.saved.code : undefined) ?? ""
+    const doc = draft()
     this.editorKey = key
     this.editorStarter = starter ?? ""
-    const doc = draft()
-    if (this.editor) { this.editor.value = doc; return }
-    if (this.mounting) { await this.mounting; this.editor.value = draft(); return }
-    const remember = text => { (this.saved.drafts ||= {})[this.editorKey] = text; this.saved.code = text; this.save() }
+    if (this.mounting) await this.mounting
+    if (this.editor && this.editorLanguage === language) { this.editor.value = doc; return }
+    const remember = text => { (this.saved.drafts ||= {})[this.editorKey] = text; if (this.editorLanguage === "ruby") this.saved.code = text; this.save() }
+    this.editorLanguage = language
     this.mounting = (async () => {
-      const fallback = this.editorTarget.querySelector("textarea")
       try {
         const { createEditor } = await import("lab/editor")
+        this.editor?.view?.destroy()
         this.editorTarget.innerHTML = ""
-        this.editor = createEditor(this.editorTarget, { doc, onRun: () => this.checkEditor(), onChange: remember })
-        this.editorTarget.addEventListener("keydown", e => {
-          if (e.key === "Enter" && e.shiftKey && !e.metaKey && !e.ctrlKey) { e.preventDefault(); e.stopPropagation(); this.runEditor() }
-        }, true)
+        this.editor = createEditor(this.editorTarget, { doc, language, onRun: () => this.checkEditor(), onChange: remember })
+        if (!this.editorKeys) {
+          this.editorKeys = true
+          this.editorTarget.addEventListener("keydown", e => {
+            if (e.key === "Enter" && e.shiftKey && !e.metaKey && !e.ctrlKey) { e.preventDefault(); e.stopPropagation(); this.runEditor() }
+          }, true)
+        }
       } catch (_) {
         // Plain textarea if the editor bundle can't load.
+        const fallback = this.editorTarget.querySelector("textarea")
+        if (!fallback) return
         fallback.value = doc
-        fallback.addEventListener("input", () => remember(fallback.value))
+        if (!this.editor) fallback.addEventListener("input", () => remember(fallback.value))
         this.editor = { get value() { return fallback.value }, set value(v) { fallback.value = v }, focus() { fallback.focus() } }
       }
     })()
     await this.mounting
+    this.mounting = null
   }
 
   showOutput(result) {
@@ -623,7 +701,8 @@ export default class extends Controller {
     this.runButtonTarget.disabled = this.checkButtonTarget.disabled = true
     this.setStatus("Running…", "busy")
     try {
-      const result = await this.runner.run(this.editor.value, checks)
+      const result = await this.runnerFor(this.mode).run(this.editor.value, checks)
+      this.ranOnce = true
       this.showOutput(result)
       this.setStatus(result.error ? "Error" : "Ran", result.error ? "bad" : "ok")
       return result
@@ -637,11 +716,11 @@ export default class extends Controller {
 
   async checkEditor() {
     const step = this.step
-    if (!step || step.kind !== "try" || step.mode !== "ruby") return this.runEditor()
+    if (!step || step.kind !== "try" || !isEditor(step.mode) || step.mode !== this.mode) return this.runEditor()
     if (this.article?.classList.contains("is-typing")) this.skipTyping()
     const result = await this.execute(step.checks.map(c => ({ type: c.type, call: c.call, expected: c.expected })))
     if (!result) return
-    const outcomes = await evaluateChecks(step.checks, { code: this.editor.value, result, runner: this.runner })
+    const outcomes = await evaluateChecks(step.checks, { code: this.editor.value, result, runner: this.runnerFor(step.mode) })
     this.settle(result.error ? outcomes.map(o => ({ ...o, ok: false })) : outcomes)
   }
 }

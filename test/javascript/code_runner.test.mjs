@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { RubyRunner } from "../../app/javascript/lib/ruby_runner.js"
+import { CodeRunner } from "../../app/javascript/lib/code_runner.js"
 
 // A stand-in for the Ruby worker. It answers every line except one containing
 // "loop", which never comes back, like `loop {}` in real Ruby.
@@ -23,7 +23,7 @@ const settle = () => new Promise(resolve => setTimeout(resolve, 20))
 test("a runaway loop is stopped, Ruby restarts, and earlier lines are replayed", async () => {
   const log = { started: 0, terminated: 0, workers: [] }
   const status = []
-  const runner = new RubyRunner({ workerUrl: "x", wasmUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log), onStatus: (text, tone) => status.push(`${tone}:${text}`) })
+  const runner = new CodeRunner({ workerUrl: "x", runtimeUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log), onStatus: (text, tone) => status.push(`${tone}:${text}`) })
   await runner.warm()
   await runner.line("a = 1")
   await runner.line("b = 2")
@@ -49,7 +49,7 @@ test("a runaway loop is stopped, Ruby restarts, and earlier lines are replayed",
 
 test("with nothing to replay, the student is told the console is empty", async () => {
   const log = { started: 0, terminated: 0, workers: [] }
-  const runner = new RubyRunner({ workerUrl: "x", wasmUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log) })
+  const runner = new CodeRunner({ workerUrl: "x", runtimeUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log) })
   await runner.warm()
   const result = await runner.line("loop {}")
   assert.match(result.error.friendly, /anything set in the console is gone/)
@@ -63,10 +63,21 @@ test("lines that raise an error are not remembered for replay", async () => {
     }
     terminate() {}
   }
-  const runner = new RubyRunner({ workerUrl: "x", wasmUrl: "y", WorkerClass: Worker })
+  const runner = new CodeRunner({ workerUrl: "x", runtimeUrl: "y", WorkerClass: Worker })
   await runner.line("x = 1")
   await runner.line("nope")
   assert.deepEqual(runner.history, ["x = 1"])
   await runner.resetConsole()
   assert.deepEqual(runner.history, [])
+})
+
+test("messages name the language the runner was made for", async () => {
+  const log = { started: 0, terminated: 0, workers: [] }
+  const status = []
+  const runner = new CodeRunner({ name: "Python", workerUrl: "x", runtimeUrl: "y", timeoutMs: 30, WorkerClass: fakeWorker(log), onStatus: text => status.push(text) })
+  await runner.warm()
+  assert.equal(status[0], "Loading Python…")
+  const stopped = await runner.line("while True: loop")
+  assert.match(stopped.error.friendly, /Python was restarted, so anything set in the console is gone\./)
+  runner.dispose()
 })

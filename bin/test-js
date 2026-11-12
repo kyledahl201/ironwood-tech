@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # JavaScript tests for the classroom and the code lab (Node's built-in runner).
-# The first group needs nothing but Node. The second runs the lab's Ruby
-# harness in real Ruby, so it needs vendor/lab-src dependencies and the
-# checksummed Ruby binary.
+# The first group needs nothing but Node. The second runs the Ruby harness in
+# real Ruby and the Python harness in real Python (Pyodide), so it needs
+# vendor/lab-src dependencies and the checksummed Ruby binary.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 node --test test/javascript/*.test.mjs

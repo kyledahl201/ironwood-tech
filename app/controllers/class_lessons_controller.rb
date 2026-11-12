@@ -12,6 +12,7 @@ class ClassLessonsController < ApplicationController
     @next = ClassLesson.next_for(current_user)
     @handed_in = current_user.homework_submissions.group(:class_lesson_id).count
     @studied = current_user.study_records.includes(:class_lesson).index_by(&:class_lesson_id)
+    @kits = TutorKit.all.index_by(&:course_code)
   end
 
   def show
