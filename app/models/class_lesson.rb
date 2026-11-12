@@ -2,21 +2,24 @@
 # a time. Scripts hold tasks, checks and hints, never solutions.
 class ClassLesson < ApplicationRecord
   STEP_KINDS = %w[teach show try mac quiz].freeze
-  MODES = %w[terminal irb ruby pyrepl python jsrepl js sqlrepl sql].freeze
+  MODES = %w[terminal irb ruby pyrepl python jsrepl js sqlrepl sql web].freeze
   # Which kind of tool each mode is, and the checks that make sense in it.
   TOOL_KINDS = { "terminal" => :terminal, "irb" => :console, "pyrepl" => :console, "ruby" => :editor, "python" => :editor,
                  "jsrepl" => :console, "js" => :editor,
-                 "sqlrepl" => :sql_console, "sql" => :sql_editor }.freeze
+                 "sqlrepl" => :sql_console, "sql" => :sql_editor, "web" => :page }.freeze
   # SQL has its own checks: they look at the rows a query gave back.
   SQL_CHECKS = %w[rows_are rows_any_order columns_are].freeze
+  # A web page has its own too: they look at the page the HTML and CSS made.
+  WEB_CHECKS = %w[page_has text_is style_is].freeze
   CHECKS_BY_TOOL = {
     terminal: %w[command_matches output_matches cwd_is file_exists dir_exists file_contains],
     console: %w[command_matches output_matches value_is method_returns method_stdout_empty stdout source_includes source_excludes source_matches],
     editor: %w[stdout output_matches method_returns method_stdout_empty value_is source_includes source_excludes source_matches],
     sql_console: %w[command_matches output_matches source_includes source_excludes source_matches] + SQL_CHECKS,
-    sql_editor: %w[stdout output_matches source_includes source_excludes source_matches] + SQL_CHECKS
+    sql_editor: %w[stdout output_matches source_includes source_excludes source_matches] + SQL_CHECKS,
+    page: %w[source_includes source_excludes source_matches] + WEB_CHECKS
   }.freeze
-  CHECK_TYPES = (Exercise::CHECK_TYPES + %w[command_matches output_matches cwd_is file_exists dir_exists file_contains value_is] + SQL_CHECKS).freeze
+  CHECK_TYPES = (Exercise::CHECK_TYPES + %w[command_matches output_matches cwd_is file_exists dir_exists file_contains value_is] + SQL_CHECKS + WEB_CHECKS).freeze
 
   has_many :class_progresses, dependent: :destroy
   has_many :homework_submissions, dependent: :destroy
@@ -85,10 +88,14 @@ class ClassLesson < ApplicationRecord
         errors.add(:steps, "step #{i + 1} has unknown check types: #{bad.join(', ')}") if bad.any?
         misfit = step["kind"] == "try" ? Array(step["checks"]).map { |c| c["type"] } - CHECKS_BY_TOOL.fetch(TOOL_KINDS[step["mode"]], CHECK_TYPES) : []
         errors.add(:steps, "step #{i + 1} uses checks that don't work in #{step['mode']}: #{misfit.join(', ')}") if misfit.any? && bad.empty?
-        misfit = Array(step["checks"]).map { |c| c["type"] } & SQL_CHECKS if step["kind"] == "mac"
+        misfit = Array(step["checks"]).map { |c| c["type"] } & (SQL_CHECKS + WEB_CHECKS) if step["kind"] == "mac"
         errors.add(:steps, "step #{i + 1} is an on-your-Mac step, which can't use #{misfit.join(', ')}") if step["kind"] == "mac" && misfit.any?
         unreadable = Array(step["checks"]).select { |c| %w[rows_are rows_any_order].include?(c["type"]) && !rows?(c["expected"]) }
         errors.add(:steps, "step #{i + 1} has rows that aren't a JSON list of rows, like [[\"Ada\", 3]]") if unreadable.any?
+        shapeless = Array(step["checks"]).select { |c| c["type"] == "style_is" && !c["call"].to_s.match?(/\A.+\{\s*[a-zA-Z-]+\s*\}\s*\z/) }
+        errors.add(:steps, "step #{i + 1} has a style check that doesn't name an element and a property, like h1 { color }") if shapeless.any?
+        unnamed = Array(step["checks"]).select { |c| WEB_CHECKS.include?(c["type"]) && c["call"].blank? }
+        errors.add(:steps, "step #{i + 1} has a page check with nothing to look for") if unnamed.any?
         errors.add(:steps, "step #{i + 1} needs at least one check") if %w[try mac].include?(step["kind"]) && Array(step["checks"]).empty?
         errors.add(:steps, "quiz step #{i + 1} needs exactly one right answer") if step["kind"] == "quiz" && Array(step["options"]).count { |o| o["right"] } != 1
       end

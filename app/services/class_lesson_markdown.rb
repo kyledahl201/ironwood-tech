@@ -102,6 +102,8 @@ class ClassLessonMarkdown
       when "source_matches", "command_matches", "output_matches" then raw[/`(.+)`/, 1] || raw.strip
       when "method_stdout_empty" then nil
       when "rows_are", "rows_any_order" then raw[/`(.+)`/, 1] || raw.strip
+      when "page_has" then (raw[/`(.+?)`/, 1] || raw.strip)[/\A\d+\z/].to_s # a count, or blank for "at least one"
+      when "text_is", "style_is" then raw[/`(.+?)`/, 1] || unquote(raw)
       else unquote(raw)
       end
     end
@@ -125,6 +127,9 @@ class ClassLessonMarkdown
       when "rows_are" then note || (call.present? ? "#{call} gives the right rows" : "Your result has the right rows, in the right order")
       when "rows_any_order" then note || (call.present? ? "#{call} gives the right rows" : "Your result has the right rows")
       when "columns_are" then value.to_s.include?(",") ? "The columns are #{value}" : "The only column is #{value}"
+      when "page_has" then note || (value.present? ? "The page has #{value} of #{call}" : "The page has #{call}")
+      when "text_is" then note || "#{call} says #{value}"
+      when "style_is" then note || "#{call.to_s[/\A(.+?)\s*\{/, 1]} has #{call.to_s[/\{\s*([\w-]+)\s*\}/, 1]} #{value}"
       else type.to_s
       end
     end

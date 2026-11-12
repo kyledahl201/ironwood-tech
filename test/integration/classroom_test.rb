@@ -59,7 +59,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     get class_lesson_path(python)
     assert_response :success
-    assert_select "select[data-classroom-target=mode] option", 9
+    assert_select "select[data-classroom-target=mode] option", 10
     assert_select "select[data-classroom-target=mode] option[value=pyrepl][selected]", text: "Python console"
     assert_select "select[data-classroom-target=mode] option[value=python]", text: "Python editor"
     assert_select ".tool[data-mode=pyrepl] input#pyrepl-input[aria-label='Type a line of Python and press Enter']"
@@ -118,6 +118,57 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert tasks.all? { |s| s["hints"].any? }
     (tasks.flat_map { |s| s["hints"] } + tasks.filter_map { |s| s["starter"] }).each do |nudge|
       assert_no_match(/toUpperCase\(\)\s*\+|\.filter\(|return\s+n\s*\*\s*2|school\.length|let\s+school\s*=/, nudge)
+    end
+  end
+
+  test "a web page lesson parses and plays in the web page editor with a sandboxed preview" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("web_lesson.md").read)
+    assert_equal [ nil, "web" ], attrs[:steps].map { |s| s["mode"] }
+    checks = attrs[:steps][1]["checks"]
+    assert_equal [ "2", "", "", "Made up", "2em", "#F5F3EF", "(?i)<!doctype html>" ], checks.map { |c| c["expected"] }
+    assert_equal [ "the menu has two links", "The page has footer", "there is a main part", "h2 says Made up", "h2 has font-size 2em", "the box is linen", "the page starts with a doctype" ], checks.map { |c| c["label"] }
+    assert_equal "h2 { font-size }", checks[4]["call"]
+    lesson = ClassLesson.create!(attrs)
+
+    sign_in_as users(:one)
+    get class_lesson_path(lesson)
+    assert_response :success
+    assert_select "select[data-classroom-target=mode] option[value=web][selected]", text: "Web page (HTML and CSS)"
+    # The preview can't run scripts, submit forms, open windows or leave its frame.
+    assert_select "iframe.preview-frame[data-classroom-target=preview][sandbox='allow-same-origin'][title='Preview of your page'][hidden]"
+    assert_includes response.body, "The preview shows your page as you type."
+    assert_select ".tool-editor .page-notes[data-classroom-target=notes][role=status][hidden] ul"
+    assert_select ".tool-editor button.flip-preview[data-action='classroom#flipPreview'][aria-pressed=false][hidden]", text: "Show preview"
+
+    { "rows_are" => /step 2 uses checks that don't work in web: rows_are/, "method_returns" => /step 2 uses checks that don't work in web: method_returns/ }.each do |type, message|
+      bad = ClassLessonMarkdown.parse(file_fixture("web_lesson.md").read)
+      bad[:steps][1]["checks"] << { "type" => type, "call" => "x", "expected" => "[[1]]", "label" => "x" }
+      record = ClassLesson.new(bad)
+      assert_not record.valid?
+      assert_match message, record.errors.full_messages.to_sentence
+    end
+    bad = ClassLessonMarkdown.parse(file_fixture("web_lesson.md").read)
+    bad[:steps][1]["checks"][4]["call"] = "h2 font-size"
+    assert_match(/step 2 has a style check that doesn't name an element and a property, like h1 \{ color \}/, ClassLesson.new(bad).tap(&:valid?).errors.full_messages.to_sentence)
+    bad = ClassLessonMarkdown.parse(file_fixture("web_lesson.md").read)
+    bad[:steps][1]["checks"][1]["call"] = ""
+    assert_match(/step 2 has a page check with nothing to look for/, ClassLesson.new(bad).tap(&:valid?).errors.full_messages.to_sentence)
+    # Page checks need a page, so a python step or an on-your-Mac step can't use them.
+    sql = ClassLessonMarkdown.parse(file_fixture("js_lesson.md").read)
+    sql[:steps][2]["checks"] << { "type" => "page_has", "call" => "h1", "expected" => "", "label" => "x" }
+    assert_match(/step 3 uses checks that don't work in js: page_has/, ClassLesson.new(sql).tap(&:valid?).errors.full_messages.to_sentence)
+  end
+
+  test "the web page tour is seeded as a tour and never prints a finished answer" do
+    lesson = ClassLesson.new(ClassLessonMarkdown.parse(Rails.root.join("db/seeds/lessons/demo-web.md").read))
+    assert lesson.valid?, lesson.errors.full_messages.to_sentence
+    assert lesson.tour?
+    assert_equal %w[web], lesson.steps.filter_map { |s| s["mode"] }.uniq
+    tasks = lesson.steps.select { |s| s["kind"] == "try" }
+    assert_equal 4, tasks.size
+    assert tasks.all? { |s| s["hints"].any? }
+    (tasks.flat_map { |s| s["hints"] } + tasks.filter_map { |s| s["starter"] }).each do |nudge|
+      assert_no_match(/<h1>|<li>|<ul>|<p\b|h1\s*\{|color\s*:|text-align\s*:|class="note"|\.note\s*\{/, nudge)
     end
   end
 
@@ -247,7 +298,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".classroom[data-controller~=classroom]"
     assert_select "template[data-classroom-target=template]", 6
-    assert_select "select[data-classroom-target=mode] option", 9
+    assert_select "select[data-classroom-target=mode] option", 10
     assert_select ".mac-runs li", 2
     assert_includes response.body, "Prof. Example"
     assert_includes response.body, "(AI tutor)"

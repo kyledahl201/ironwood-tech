@@ -4,10 +4,11 @@ import { CodeRunner } from "lib/code_runner"
 import { TerminalSim } from "lib/terminal_sim"
 import { evaluateChecks } from "lib/checks"
 import { buildTutorNote } from "lib/tutor_note"
+import { PagePreview } from "lib/page_preview"
 
 // The classroom. The professor's steps play in the board on top; the student
 // works in the bench underneath (practice Terminal, and a console and an editor
-// each for Ruby, Python, JavaScript and SQL).
+// each for Ruby, Python, JavaScript and SQL, and a web page editor with a live preview).
 // A step with a task opens the next one when its checks pass. Checks run in
 // the browser, so they are self-checked practice; the server keeps the place.
 const TOOLS = {
@@ -23,7 +24,8 @@ const TOOLS = {
   js: { kind: "editor", language: "javascript", name: "JavaScript", note: "JavaScript runs in your browser, away from this page. No web page or files here: just the language." },
   sqlrepl: { kind: "console", language: "sql", name: "SQL", prompt: "sql>", more: "...>", arrow: "", thing: "changes", greeting: "SQL console. End each statement with a semicolon and press Enter. Type .tables to see the tables.",
              note: "A practice database in your browser: a small made-up library (books, members, loans). Changes last until you reset." },
-  sql: { kind: "editor", language: "sql", name: "SQL", note: "A practice database in your browser (books, members, loans). Every run starts from a fresh copy." }
+  sql: { kind: "editor", language: "sql", name: "SQL", note: "A practice database in your browser (books, members, loans). Every run starts from a fresh copy." },
+  web: { kind: "editor", language: "html", name: "HTML", page: true, note: "Your page shows in the preview as you type. Scripts, links and outside files are switched off here." }
 }
 // How a stopped run is described, for languages where "loop" and "variables" don't fit.
 const WORDS = { sql: { runaway: "Look for a query that never ends, like a recursive one with nothing to stop it.",
@@ -33,7 +35,7 @@ const isEditor = mode => TOOLS[mode]?.kind === "editor"
 
 export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
-                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton"]
+                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead", "flipButton", "notes"]
   static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
                     progressUrl: String, quizUrl: String, runtimes: Object, about: String,
                     firstTryLine: String, passLines: Array }
@@ -85,11 +87,18 @@ export default class extends Controller {
     window.removeEventListener("resize", this.onResize)
     document.removeEventListener("keydown", this.onKey)
     clearInterval(this.typing)
+    clearTimeout(this.drawing)
+    clearTimeout(this.noting)
     Object.values(this.runners).forEach(runner => runner.dispose())
   }
 
   // The runner for a language ("ruby" or "python"), started on first use.
   runner(language) {
+    if (language === "html" && !this.runners.html) {
+      // A web page needs no language runtime: the preview frame draws it and answers the checks.
+      this.runners.html = new PagePreview({ frame: this.previewTarget, onLink: () => toast("Links are switched off in the preview, so your page stays put.", { sentry: false }),
+                                            onStatus: (text, tone) => { this.statuses.html = [text, tone] } })
+    }
     if (!this.runners[language]) {
       const { name, worker, runtime, megabytes } = this.runtimesValue[language]
       this.runners[language] = new CodeRunner({ name, workerUrl: worker, runtimeUrl: runtime, megabytes, words: WORDS[language], onStatus: (text, tone) => {
@@ -417,7 +426,8 @@ export default class extends Controller {
       tool: select.options[select.selectedIndex].text,
       language: tool.language || "",
       code: tool.kind === "editor" ? this.editor?.value : undefined,
-      output: tool.kind === "editor" && this.ranOnce ? this.outputTarget.innerText : undefined,
+      output: tool.kind === "editor" && !tool.page && this.ranOnce ? this.outputTarget.innerText : undefined,
+      notes: tool.page && !this.notesTarget.hidden ? [...this.notesTarget.querySelectorAll("li")].map(li => li.textContent) : [],
       transcript: tool.kind === "editor" ? undefined : this.lines(mode).innerText,
       checks: task ? [...article.querySelectorAll("[data-role=chips] .chip")].map(chip => ({
         label: chip.querySelector(".chip-label").textContent, ok: chip.classList.contains("is-pass"), detail: chip.querySelector(".chip-detail")?.textContent })) : [],
@@ -429,7 +439,7 @@ export default class extends Controller {
     } catch (_) {
       // No clipboard access: show the text so it can be selected and copied by hand.
       this.outputTarget.textContent = note
-      if (tool.kind !== "editor") this.setMode(Object.keys(TOOLS).find(m => isEditor(m) && TOOLS[m].language === tool.language) || "ruby", {})
+      if (tool.kind !== "editor" || tool.page) this.setMode(Object.keys(TOOLS).find(m => isEditor(m) && !TOOLS[m].page && TOOLS[m].language === tool.language) || "ruby", {})
       toast("Copying isn't allowed here. The text is in the Output box: select it and copy it.", { sentry: false })
     }
     button.blur()
@@ -523,6 +533,13 @@ export default class extends Controller {
       this.runner(tool.language).warm()
       this.setStatus(...(this.statuses[tool.language] || ["Ready", "ok"]))
     } else this.setStatus("Ready", "ok")
+    // The web page editor shows a live preview where the others show what was printed.
+    this.previewTarget.hidden = !tool.page
+    this.outputTarget.hidden = this.runButtonTarget.hidden = !!tool.page
+    this.outputHeadTarget.textContent = tool.page ? "Preview" : "Output"
+    this.flipButtonTarget.hidden = !tool.page
+    if (!tool.page) this.notesTarget.hidden = true
+    this.pane("editor").classList.toggle("is-page", !!tool.page)
     if (tool.kind === "editor") this.openEditor(`${index === undefined ? "scratch" : `step-${index}`}${tool.language === "ruby" ? "" : `-${tool.language}`}`, starter, tool.language)
   }
 
@@ -659,8 +676,8 @@ export default class extends Controller {
     this.editorKey = key
     this.editorStarter = starter ?? ""
     if (this.mounting) await this.mounting
-    if (this.editor && this.editorLanguage === language) { this.editor.value = doc; return }
-    const remember = text => { (this.saved.drafts ||= {})[this.editorKey] = text; if (this.editorLanguage === "ruby") this.saved.code = text; this.save() }
+    if (this.editor && this.editorLanguage === language) { this.editor.value = doc; this.draw(0); return }
+    const remember = text => { (this.saved.drafts ||= {})[this.editorKey] = text; if (this.editorLanguage === "ruby") this.saved.code = text; this.save(); this.draw() }
     this.editorLanguage = language
     this.mounting = (async () => {
       try {
@@ -685,6 +702,42 @@ export default class extends Controller {
     })()
     await this.mounting
     this.mounting = null
+    this.draw(0)
+  }
+
+  // On a narrow screen the web page editor shows the code or the preview, one at a time.
+  flipPreview() {
+    const showing = this.pane("editor").classList.toggle("show-preview")
+    this.flipButtonTarget.textContent = showing ? "Show code" : "Show preview"
+    this.flipButtonTarget.setAttribute("aria-pressed", String(showing))
+  }
+
+  // Redraws the web page preview shortly after the student stops typing.
+  draw(wait = 250) {
+    clearTimeout(this.drawing)
+    if (this.editorLanguage !== "html" || !this.editor) return
+    this.drawing = setTimeout(() => { if (this.editorLanguage === "html" && !this.running) this.runner("html").show(this.editor.value) }, wait)
+    // The notes wait a little longer, so they don't flicker at a tag that is only half typed.
+    clearTimeout(this.noting)
+    this.noting = setTimeout(() => this.showNotes(), wait === 0 ? 0 : 1200)
+  }
+
+  // Says what the browser quietly fixed or skipped in the student's page, with line numbers.
+  showNotes() {
+    clearTimeout(this.noting)
+    if (this.editorLanguage !== "html" || !this.editor || !TOOLS[this.mode]?.page) return
+    const notes = this.runner("html").notes(this.editor.value)
+    const list = this.notesTarget.querySelector("ul")
+    list.textContent = ""
+    notes.slice(0, 5).forEach(({ line, text }) => {
+      const item = document.createElement("li"), where = document.createElement("strong")
+      where.textContent = `Line ${line}`
+      item.append(where, ` ${text}`)
+      list.append(item)
+    })
+    if (notes.length > 5) { const more = document.createElement("li"); more.textContent = `And ${notes.length - 5} more. Fix the first ones and the rest often go away.`; list.append(more) }
+    this.notesTarget.hidden = notes.length === 0
+    this.editor.view?.requestMeasure() // the notes take room from the editor on a narrow screen
   }
 
   showOutput(result) {
@@ -713,9 +766,12 @@ export default class extends Controller {
     if (!this.editor || this.running) return null
     this.running = true
     this.runButtonTarget.disabled = this.checkButtonTarget.disabled = true
-    this.setStatus("Running…", "busy")
+    const page = TOOLS[this.mode].page
+    clearTimeout(this.drawing)
+    this.setStatus(page ? "Checking…" : "Running…", "busy")
     try {
       const result = await this.runnerFor(this.mode).run(this.editor.value, checks)
+      if (page) { this.showNotes(); this.setStatus("Ready", "ok"); return result }
       this.ranOnce = true
       this.showOutput(result)
       this.setStatus(result.error ? "Error" : "Ran", result.error ? "bad" : "ok")

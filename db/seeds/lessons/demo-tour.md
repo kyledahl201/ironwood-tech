@@ -19,7 +19,7 @@ The bench below has three tools, and each step picks the right one for you:
 - **Ruby console**: type one line of Ruby, press Enter, see what it gives back.
 - **Ruby editor**: write a whole program, then run it.
 
-You can switch tools yourself with the dropdown whenever you want to experiment. The bench has Python, JavaScript and SQL tools too. Each has its own short tour.
+You can switch tools yourself with the dropdown whenever you want to experiment. The bench has Python, JavaScript and SQL tools too, and an editor for web pages. Each has its own short tour.
 
 ## Step: try
 mode: terminal

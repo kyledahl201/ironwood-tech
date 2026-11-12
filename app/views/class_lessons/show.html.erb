@@ -47,6 +47,7 @@
           <option value="js" <%= "selected" if default_mode == "js" %>>JavaScript editor</option>
           <option value="sqlrepl" <%= "selected" if default_mode == "sqlrepl" %>>SQL console</option>
           <option value="sql" <%= "selected" if default_mode == "sql" %>>SQL editor</option>
+          <option value="web" <%= "selected" if default_mode == "web" %>>Web page (HTML and CSS)</option>
         </select>
       </label>
       <span class="bench-status" data-classroom-target="status" role="status">Ready</span>
@@ -79,9 +80,18 @@
         <div class="bench-actions">
           <button type="button" class="btn btn-copper" data-action="classroom#runEditor" data-classroom-target="runButton" title="Shift+Enter">Run</button>
           <button type="button" class="btn btn-outline-light" data-action="classroom#checkEditor" data-classroom-target="checkButton" title="Ctrl/Cmd+Enter">Check</button>
+          <%# On a phone there's room for the code or the page, not both. %>
+          <button type="button" class="btn btn-outline-light flip-preview" data-action="classroom#flipPreview" data-classroom-target="flipButton" aria-pressed="false" hidden>Show preview</button>
         </div>
-        <div class="console-head">Output</div>
+        <%# A browser never complains about HTML or CSS. These notes say what it quietly did. %>
+        <div class="page-notes" data-classroom-target="notes" role="status" aria-label="What the browser fixed or skipped in your page" hidden>
+          <p class="page-notes-head">The browser fixed or skipped these without telling you</p>
+          <ul></ul>
+        </div>
+        <div class="console-head" data-classroom-target="outputHead">Output</div>
         <pre class="console-body" data-classroom-target="output" aria-live="polite">Press Run to see what your code prints.</pre>
+        <%# The student's own page. No script runs in it and nothing outside it is fetched. %>
+        <iframe class="preview-frame" data-classroom-target="preview" sandbox="allow-same-origin" title="Preview of your page" hidden></iframe>
       </div>
     </div>
   </section>
@@ -131,7 +141,8 @@
                                            "jsrepl" => "Type it in the JavaScript console below and press Enter. An open bracket keeps the entry going until you close it.",
                                            "js" => "Write it in the JavaScript editor below, then press Check.",
                                            "sqlrepl" => "Type it in the SQL console below, end it with a semicolon, and press Enter.",
-                                           "sql" => "Write it in the SQL editor below, then press Check." }[step["mode"]] %></p>
+                                           "sql" => "Write it in the SQL editor below, then press Check.",
+                                           "web" => "Write it in the web page editor below. The preview shows your page as you type. Press Check when it's ready." }[step["mode"]] %></p>
             <% end %>
             <ul class="chips" data-role="chips">
               <% step["checks"].each do |check| %>
