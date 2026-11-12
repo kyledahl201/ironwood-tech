@@ -5,9 +5,12 @@ module ApplicationHelper
     fenced_code_blocks: true, tables: true, autolink: true, strikethrough: true, no_intra_emphasis: true
   )
 
+  # What rendered Markdown may contain: the usual safe tags, plus tables.
+  MARKDOWN_TAGS = (Rails::HTML5::SafeListSanitizer.allowed_tags.to_a + %w[table thead tbody tr th td]).freeze
+
   # Markdown with raw HTML stripped, so tutor replies and stored content can't inject markup.
   def markdown(text)
-    sanitize(MARKDOWN.render(text.to_s))
+    sanitize(MARKDOWN.render(text.to_s), tags: MARKDOWN_TAGS)
   end
 
   # One line of Markdown (code spans, emphasis) without a wrapping paragraph.

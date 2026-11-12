@@ -156,6 +156,11 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_equal [ "Computing Orientation", "Intro to Programming in Ruby" ], css_select("section[aria-labelledby=course-program-computing-foundations] .course-name").map { |h| h.text.squish }
     assert_select "section[aria-labelledby=course-program-computing-foundations] .program-meta", text: "2 courses"
     assert_select "section[aria-labelledby=course-program-more-courses] .course-name", 3 # ZZ 999 and the two reading courses
+    assert_select "section[aria-labelledby=course-program-start-here] .program-meta", text: "1 tour" # tours are counted as tours
+    assert_select "#course-zz-999-more dt", text: "Program", count: 0 # an unplaced course doesn't claim a program, here or on its page
+    get course_path("zz-999")
+    assert_select ".facts dt", text: "Program", count: 0
+    get courses_path
     assert_select ".program.is-current", 0 # no class on screen here
     assert_select "#course-cs-101-more dt + dd", text: "Computing Foundations"
 
@@ -164,6 +169,13 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_select ".facts dt", text: "Program"
     get course_path(courses(:free))
     assert_select ".facts dt", text: "Program", count: 0
+
+    # A table in a course description is a table, not a run-on paragraph.
+    courses(:free).update!(description: "| Part | Time |\n|---|---|\n| Lesson | 45 min |\n\n<script>alert(1)</script>")
+    get course_path(courses(:free))
+    assert_select ".prose table th", text: "Part"
+    assert_select ".prose table td", text: "45 min"
+    assert_select ".prose script", 0
 
     # The welcome card says which program its class is in, and a tour says Start here.
     post progress_class_lesson_path(@one), params: { step_index: 1 }, as: :json

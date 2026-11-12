@@ -4,12 +4,13 @@
 <% current_code = local_assigns[:current_code]; prefix = local_assigns.fetch(:prefix, "course"); level = local_assigns.fetch(:heading, 2) %>
 <% current_program = entries.find { |e| current_code && e.code == current_code }&.program %>
 <div class="program-list" data-controller="disclosure">
-  <% entries.group_by(&:program).sort_by { |name, _| name == Catalog::OTHER ? 1 : 0 }.each do |program, list| %>
+  <% placed, unplaced = entries.group_by(&:program).partition { |name, _| name != Catalog::OTHER } %><%# catalogue order, unplaced courses last %>
+  <% (placed + unplaced).each do |program, list| %>
     <% program_id = "#{prefix}-program-#{program.parameterize}" %>
     <section class="program<%= " is-current" if program == current_program %>" aria-labelledby="<%= program_id %>">
       <div class="program-head">
         <%= content_tag "h#{level}", id: program_id do %><% unless [ "Start here", Catalog::OTHER ].include?(program) %><span class="program-word">Program</span> <% end %><%= program %><% end %>
-        <p class="program-meta"><%= pluralize(list.size, "course") %><% if program == current_program %> · <strong>You are in this program now</strong><% end %></p>
+        <p class="program-meta"><%= list.all?(&:tour?) ? pluralize(list.sum { |e| e.lessons.size }, "tour") : pluralize(list.size, "course") %><% if program == current_program %> · <strong>You are in this program now</strong><% end %></p>
       </div>
       <ul class="course-list">
         <% list.each do |entry| %>
@@ -27,7 +28,7 @@
             </div>
             <div class="course-more" id="<%= prefix %>-<%= entry.slug %>-more" hidden>
               <dl class="course-facts">
-                <dt>Program</dt><dd><%= entry.program %></dd>
+                <% unless entry.program == Catalog::OTHER %><dt>Program</dt><dd><%= entry.program %></dd><% end %>
                 <% if entry.level.present? %><dt>Level</dt><dd><%= entry.level %></dd><% end %>
                 <% if entry.time.present? %><dt>Time</dt><dd><%= entry.time %></dd><% end %>
                 <dt>How it's taught</dt><dd><%= [ ("#{pluralize(entry.lessons.size, entry.tour? ? 'tour' : 'class')} in the classroom, one step at a time" if entry.classroom?), ("#{pluralize(entry.course.lessons.size, 'reading lesson')} with an AI tutor" if entry.course&.lessons&.any?) ].compact.to_sentence.upcase_first %></dd>
