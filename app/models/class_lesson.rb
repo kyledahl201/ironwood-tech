@@ -11,15 +11,17 @@ class ClassLesson < ApplicationRecord
   SQL_CHECKS = %w[rows_are rows_any_order columns_are].freeze
   # A web page has its own too: they look at the page the HTML and CSS made.
   WEB_CHECKS = %w[page_has text_is style_is].freeze
+  # Practice git has its own as well: they look at the repository, not at what was typed.
+  GIT_CHECKS = %w[git_repo_is git_branch_is git_branch_exists git_commits git_clean git_message_matches git_merged git_tracked].freeze
   CHECKS_BY_TOOL = {
-    terminal: %w[command_matches output_matches cwd_is file_exists dir_exists file_contains],
+    terminal: %w[command_matches output_matches cwd_is file_exists dir_exists file_contains] + GIT_CHECKS,
     console: %w[command_matches output_matches value_is method_returns method_stdout_empty stdout source_includes source_excludes source_matches],
     editor: %w[stdout output_matches method_returns method_stdout_empty value_is source_includes source_excludes source_matches],
     sql_console: %w[command_matches output_matches source_includes source_excludes source_matches] + SQL_CHECKS,
     sql_editor: %w[stdout output_matches source_includes source_excludes source_matches] + SQL_CHECKS,
     page: %w[source_includes source_excludes source_matches] + WEB_CHECKS
   }.freeze
-  CHECK_TYPES = (Exercise::CHECK_TYPES + %w[command_matches output_matches cwd_is file_exists dir_exists file_contains value_is] + SQL_CHECKS + WEB_CHECKS).freeze
+  CHECK_TYPES = (Exercise::CHECK_TYPES + %w[command_matches output_matches cwd_is file_exists dir_exists file_contains value_is] + SQL_CHECKS + WEB_CHECKS + GIT_CHECKS).freeze
 
   has_many :class_progresses, dependent: :destroy
   has_many :homework_submissions, dependent: :destroy
@@ -88,7 +90,7 @@ class ClassLesson < ApplicationRecord
         errors.add(:steps, "step #{i + 1} has unknown check types: #{bad.join(', ')}") if bad.any?
         misfit = step["kind"] == "try" ? Array(step["checks"]).map { |c| c["type"] } - CHECKS_BY_TOOL.fetch(TOOL_KINDS[step["mode"]], CHECK_TYPES) : []
         errors.add(:steps, "step #{i + 1} uses checks that don't work in #{step['mode']}: #{misfit.join(', ')}") if misfit.any? && bad.empty?
-        misfit = Array(step["checks"]).map { |c| c["type"] } & (SQL_CHECKS + WEB_CHECKS) if step["kind"] == "mac"
+        misfit = Array(step["checks"]).map { |c| c["type"] } & (SQL_CHECKS + WEB_CHECKS + GIT_CHECKS) if step["kind"] == "mac"
         errors.add(:steps, "step #{i + 1} is an on-your-Mac step, which can't use #{misfit.join(', ')}") if step["kind"] == "mac" && misfit.any?
         unreadable = Array(step["checks"]).select { |c| %w[rows_are rows_any_order].include?(c["type"]) && !rows?(c["expected"]) }
         errors.add(:steps, "step #{i + 1} has rows that aren't a JSON list of rows, like [[\"Ada\", 3]]") if unreadable.any?
@@ -96,6 +98,8 @@ class ClassLesson < ApplicationRecord
         errors.add(:steps, "step #{i + 1} has a style check that doesn't name an element and a property, like h1 { color }") if shapeless.any?
         unnamed = Array(step["checks"]).select { |c| WEB_CHECKS.include?(c["type"]) && c["call"].blank? }
         errors.add(:steps, "step #{i + 1} has a page check with nothing to look for") if unnamed.any?
+        uncounted = Array(step["checks"]).select { |c| c["type"] == "git_commits" && !c["expected"].to_s.match?(/\A[1-9]\d*\z/) }
+        errors.add(:steps, "step #{i + 1} has a git_commits check without a number of commits") if uncounted.any?
         errors.add(:steps, "step #{i + 1} needs at least one check") if %w[try mac].include?(step["kind"]) && Array(step["checks"]).empty?
         errors.add(:steps, "quiz step #{i + 1} needs exactly one right answer") if step["kind"] == "quiz" && Array(step["options"]).count { |o| o["right"] } != 1
       end

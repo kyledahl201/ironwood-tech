@@ -99,7 +99,9 @@ class ClassLessonMarkdown
     def expectation(type, raw)
       case type
       when "stdout" then unquote(raw).gsub("\\n", "\n")
-      when "source_matches", "command_matches", "output_matches" then raw[/`(.+)`/, 1] || raw.strip
+      when "source_matches", "command_matches", "output_matches", "git_message_matches" then raw[/`(.+)`/, 1] || raw.strip
+      when "git_clean" then nil
+      when "git_repo_is", "git_branch_is", "git_branch_exists", "git_commits", "git_merged", "git_tracked" then raw[/`(.+?)`/, 1] || unquote(raw)
       when "method_stdout_empty" then nil
       when "rows_are", "rows_any_order" then raw[/`(.+)`/, 1] || raw.strip
       when "page_has" then (raw[/`(.+?)`/, 1] || raw.strip)[/\A\d+\z/].to_s # a count, or blank for "at least one"
@@ -127,6 +129,14 @@ class ClassLessonMarkdown
       when "rows_are" then note || (call.present? ? "#{call} gives the right rows" : "Your result has the right rows, in the right order")
       when "rows_any_order" then note || (call.present? ? "#{call} gives the right rows" : "Your result has the right rows")
       when "columns_are" then value.to_s.include?(",") ? "The columns are #{value}" : "The only column is #{value}"
+      when "git_repo_is" then note || "#{value} is a Git project"
+      when "git_branch_is" then note || "You are on the branch #{value}"
+      when "git_branch_exists" then note || "There is a branch called #{value}"
+      when "git_commits" then note || "This branch has at least #{value} commit#{'s' unless value.to_s == '1'}"
+      when "git_clean" then "Nothing is left to commit"
+      when "git_message_matches" then note || "The last commit's message looks right"
+      when "git_merged" then note || "#{value} is merged into the branch you are on"
+      when "git_tracked" then note || "#{value} is in the last commit"
       when "page_has" then note || (value.present? ? "The page has #{value} of #{call}" : "The page has #{call}")
       when "text_is" then note || "#{call} says #{value}"
       when "style_is" then note || "#{call.to_s[/\A(.+?)\s*\{/, 1]} has #{call.to_s[/\{\s*([\w-]+)\s*\}/, 1]} #{value}"

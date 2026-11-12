@@ -119,7 +119,7 @@ test("practice git: init, status, add, commit, log", async () => {
   await run(sim, "echo b >> a.txt")
   assert.match(await run(sim, "git status"), /Changes not staged for commit:\n\tmodified:   a\.txt/)
   assert.match(await run(sim, 'git commit -m "second"'), /no changes added to commit/)
-  assert.match(await run(sim, "git log --oneline"), /^[0-9a-f]{7} first$/)
+  assert.match(await run(sim, "git log --oneline"), /^[0-9a-f]{7} \(HEAD -> main\) first$/)
 })
 
 test("the practice computer survives a reload", async () => {
@@ -130,4 +130,131 @@ test("the practice computer survives a reload", async () => {
   assert.equal(copy.cwd, "/Users/sam/code")
   assert.equal(copy.read("f.txt"), "x\n")
   assert.equal(copy.restore("not json"), false)
+})
+
+// A project with one commit on main, for the git tests below.
+async function project() {
+  const sim = fresh()
+  await run(sim, "mkdir site", "cd site", "git init", "echo '# Site' > README.md", "git add .", 'git commit -m "Start the site"')
+  return sim
+}
+
+test("practice git: the index holds what was added, not what came after", async () => {
+  const sim = await project()
+  await run(sim, "echo one >> README.md", "git add README.md", "echo two >> README.md")
+  const status = await run(sim, "git status")
+  assert.match(status, /Changes to be committed:\n\tmodified:   README\.md/)
+  assert.match(status, /Changes not staged for commit:\n\tmodified:   README\.md/)
+  assert.equal(await run(sim, "git diff --staged"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n # Site\n+one")
+  assert.equal(await run(sim, "git diff"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n # Site\n one\n+two")
+  await run(sim, 'git commit -m "Add one"')
+  assert.equal(sim.gitState().tree["README.md"], "# Site\none\n") // "two" was never added
+  assert.match(await run(sim, 'git commit -am "Add two"'), /\[main [0-9a-f]{7}\] Add two\n 1 file changed/)
+  assert.equal(sim.gitState().clean, true)
+  assert.match(await run(sim, "git commit -m again"), /nothing to commit, working tree clean/)
+  assert.match(await run(sim, "echo x > new.txt", "git commit -m x"), /no changes added to commit/)
+})
+
+test("practice git: deleted files, git rm, restore and .gitignore", async () => {
+  const sim = await project()
+  await run(sim, "echo a > a.txt", "echo secret > .env", "echo '.env' > .gitignore", "echo '*.log' >> .gitignore", "echo 'tmp/' >> .gitignore", "mkdir tmp", "echo t > tmp/t.txt", "echo l > run.log")
+  assert.match(await run(sim, "git status"), /Untracked files:\n\t\.gitignore\n\ta\.txt$/)
+  assert.match(await run(sim, "git add .env"), /ignored by one of your \.gitignore files:\n\.env/)
+  await run(sim, "git add .", "git commit -m files")
+  assert.deepEqual(Object.keys(sim.gitState().tree).sort(), [".gitignore", "README.md", "a.txt"])
+
+  await run(sim, "rm a.txt")
+  assert.match(await run(sim, "git status"), /Changes not staged for commit:\n\tdeleted:    a\.txt/)
+  await run(sim, "git restore a.txt")
+  assert.equal(await run(sim, "cat a.txt"), "a")
+  assert.equal(await run(sim, "git rm a.txt"), "rm 'a.txt'")
+  assert.match(await run(sim, "git status"), /Changes to be committed:\n\tdeleted:    a\.txt/)
+  await run(sim, "git restore --staged a.txt", "git restore a.txt")
+  assert.equal(sim.gitState().clean, true)
+  await run(sim, "echo junk >> README.md", "git add .", "git restore --staged .", "git restore .")
+  assert.equal(sim.gitState().clean, true)
+  assert.match(await run(sim, "git restore nope.txt"), /did not match any file/)
+  assert.match(await run(sim, "git add nope.txt"), /pathspec 'nope.txt' did not match any files/)
+})
+
+test("practice git: branches, switching and a fast-forward merge", async () => {
+  const sim = await project()
+  assert.equal(await run(sim, "git branch"), "* main")
+  assert.equal(await run(sim, "git switch -c about"), "Switched to a new branch 'about'")
+  assert.equal(await run(sim, "git branch"), "* about\n  main")
+  await run(sim, "echo About > about.md", "git add .", 'git commit -m "Add the about page"')
+  assert.match(await run(sim, "git log --oneline"), /^[0-9a-f]{7} \(HEAD -> about\) Add the about page\n[0-9a-f]{7} \(main\) Start the site$/)
+  assert.equal(await run(sim, "git switch main"), "Switched to branch 'main'")
+  assert.equal(await run(sim, "ls"), "README.md") // the other branch's file left the folder
+  assert.match(await run(sim, "git branch -d about"), /not fully merged/)
+  assert.match(await run(sim, "git merge about"), /^Updating [0-9a-f]{7}\.\.[0-9a-f]{7}\nFast-forward\n about\.md\n 1 file changed$/)
+  assert.equal(await run(sim, "ls"), "about.md  README.md")
+  assert.equal(await run(sim, "git merge about"), "Already up to date.")
+  assert.match(await run(sim, "git branch -d about"), /^Deleted branch about \(was [0-9a-f]{7}\)\.$/)
+  assert.equal(await run(sim, "git checkout -b fix"), "Switched to a new branch 'fix'")
+  assert.equal(await run(sim, "git checkout main"), "Switched to branch 'main'")
+  assert.equal(await run(sim, "git switch main"), "Already on 'main'")
+  assert.match(await run(sim, "git switch nope"), /invalid reference: nope/)
+  assert.match(await run(sim, "git branch fix"), /already exists/)
+  assert.match(await run(sim, "git branch -d main"), /you are on it/)
+  assert.match(await run(sim, "git merge nope"), /not something we can merge/)
+  // Work that isn't committed is never silently lost by a switch.
+  await run(sim, "git switch fix", "echo fixed > README.md", 'git commit -am "Fix"', "git switch main", "echo mine > README.md")
+  assert.match(await run(sim, "git switch fix"), /would be overwritten by checkout:\n\tREADME\.md\nPlease commit your changes/)
+  assert.equal(await run(sim, "cat README.md"), "mine")
+})
+
+test("practice git: a merge of two lines of work, and a real conflict to fix", async () => {
+  const sim = await project()
+  await run(sim, "git switch -c footer", "echo foot > footer.md", "git add .", "git commit -m Footer", "git switch main", "echo notes > notes.md", "git add .", "git commit -m Notes")
+  assert.match(await run(sim, "git merge footer"), /^Merge made by the 'ort' strategy\.\n footer\.md\n 1 file changed$/)
+  assert.equal(await run(sim, "ls"), "footer.md  notes.md  README.md")
+  assert.match(await run(sim, "git log -1"), /^commit [0-9a-f]{7} \(HEAD -> main\)\nMerge: [0-9a-f]{7} [0-9a-f]{7}\nAuthor: sam\n\n    Merge branch 'footer'$/)
+  assert.equal(sim.gitState().commits, 4)
+  assert.equal(sim.gitState().merged("footer"), true)
+
+  await run(sim, "git switch -c tagline", "echo '# Site, built to last' > README.md", 'git commit -am "Tagline"', "git switch main", "echo '# The Site' > README.md", 'git commit -am "Rename"')
+  assert.equal(await run(sim, "git merge tagline"), "Auto-merging README.md\nCONFLICT (content): Merge conflict in README.md\nAutomatic merge failed; fix conflicts and then commit the result.")
+  assert.equal(await run(sim, "cat README.md"), "<<<<<<< HEAD\n# The Site\n=======\n# Site, built to last\n>>>>>>> tagline")
+  assert.match(await run(sim, "git status"), /You have unmerged paths\.[\s\S]*Unmerged paths:[\s\S]*\tboth modified:   README\.md/)
+  assert.match(await run(sim, "git commit -m done"), /Committing is not possible because you have unmerged files/)
+  assert.match(await run(sim, "git switch tagline"), /in the middle of a merge/)
+  assert.equal(sim.gitState().clean, false)
+
+  // Backing out puts everything back.
+  assert.equal(await run(sim, "git merge --abort"), "")
+  assert.equal(await run(sim, "cat README.md"), "# The Site")
+  assert.equal(sim.gitState().clean, true)
+
+  // Fixing it: edit the file, add it, commit.
+  await run(sim, "git merge tagline", "echo '# The Site, built to last' > README.md", "git add README.md")
+  assert.match(await run(sim, "git status"), /All conflicts fixed but you are still merging/)
+  assert.match(await run(sim, "git commit"), /^\[main [0-9a-f]{7}\] Merge branch 'tagline'$/)
+  assert.equal(sim.gitState().merged("tagline"), true)
+  assert.equal(sim.gitState().clean, true)
+  assert.match(await run(sim, "git merge --abort"), /no merge to abort/)
+})
+
+test("practice git: what it doesn't do, it says plainly, and its state survives a reload", async () => {
+  const sim = await project()
+  for (const real of ["push", "pull", "clone https://example.com/x.git", "fetch", "remote -v"]) assert.match(await run(sim, `git ${real}`), /talks to another computer \(like GitHub\)[\s\S]*on your Mac/)
+  assert.match(await run(sim, "git stash"), /'stash' is not a practice git command\.\n\nPractice git knows: init, status, add, commit, log, diff, branch, switch, checkout, merge, restore, rm/)
+  assert.match(await run(sim, "git commit --amend"), /doesn't rewrite commits/)
+  assert.match(await run(sim, "git"), /Practice commands: init, status/)
+  assert.match(await run(sim, "help"), /Practice git: init, status/)
+
+  await run(sim, "git switch -c spare", "echo s > s.txt", "git add .", "git commit -m Spare")
+  const again = fresh()
+  again.restore(sim.serialize())
+  assert.equal(again.gitState().branch, "spare")
+  assert.deepEqual(again.gitState().branches, ["main", "spare"])
+  assert.match(await run(again, "git log --oneline"), /\(HEAD -> spare\) Spare\n[0-9a-f]{7} \(main\) Start the site$/)
+
+  // A repository saved by the older classroom (a list of commits, a list of staged names) still opens.
+  const old = fresh()
+  await run(old, "mkdir p", "cd p", "echo a > a.txt", "echo b > b.txt")
+  old.repos["/Users/sam/p"] = { staged: ["b.txt"], commits: [{ id: "aaaaaaa", message: "first", files: { "a.txt": "a\n" } }] }
+  assert.match(await run(old, "git status"), /On branch main\n\nChanges to be committed:\n\tnew file:   b\.txt$/)
+  assert.match(await run(old, 'git commit -m "second"'), /\[main [0-9a-f]{7}\] second/)
+  assert.match(await run(old, "git log --oneline"), /second\naaaaaaa first$/)
 })
