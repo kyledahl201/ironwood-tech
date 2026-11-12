@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# JavaScript tests for the classroom and the code lab (Node's built-in runner).
+# The first group needs nothing but Node. The second runs the lab's Ruby
+# harness in real Ruby, so it needs vendor/lab-src dependencies and the
+# checksummed Ruby binary.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+node --test test/javascript/*.test.mjs
+if [ ! -d vendor/lab-src/node_modules ]; then (cd vendor/lab-src && npm ci --no-audit --no-fund --silent); fi
+bin/fetch-ruby-wasm
+node --test vendor/lab-src/test/*.test.mjs

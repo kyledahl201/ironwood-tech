@@ -7,6 +7,9 @@ class User < ApplicationRecord
   has_one :transcript_snapshot, dependent: :destroy
   has_many :attempts, dependent: :destroy
   has_many :user_badges, dependent: :destroy
+  has_many :class_progresses, dependent: :destroy
+  has_many :study_records, dependent: :destroy
+  has_many :homework_submissions, dependent: :destroy
   has_many :courses, through: :enrollments
   has_many :tutor_messages, dependent: :destroy
 
@@ -24,6 +27,9 @@ class User < ApplicationRecord
   end
 
   scope :in_study_hall, -> { where(share_in_study_hall: true) }
+
+  # Reserved for an owner "preview every lesson" switch; off for everyone today.
+  def admin_preview? = false
 
   def first_name
     name.to_s.split.first

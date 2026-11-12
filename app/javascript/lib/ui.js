@@ -21,6 +21,11 @@ export function toast(message, { tone = "info", sentry = true, ms = 4200 } = {})
   setTimeout(() => { el.classList.remove("is-in"); setTimeout(() => el.remove(), 400) }, ms)
 }
 
+// Take down toasts that no longer fit what's on screen.
+export function clearToasts() {
+  document.querySelectorAll("#toasts .toast").forEach(el => el.remove())
+}
+
 export function celebrate(badges) {
   if (!badges || !badges.length) return
   document.querySelector(".celebration")?.remove()

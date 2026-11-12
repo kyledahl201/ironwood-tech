@@ -1,0 +1,40 @@
+<% page_title "Classroom" %>
+<header class="page-head lab-head"><div class="wrap"><p class="eyebrow">Classroom</p><h1>Take class right here</h1>
+  <p class="lede">Your professor teaches one step at a time, and you do the work in the bench underneath: a practice Terminal, a Ruby console and a Ruby editor. Each class opens when the one before it is finished.</p>
+  <% if @next %><p><%= link_to "#{@progress[@next.id]&.step_index.to_i.positive? ? 'Resume' : 'Start'} #{@next.course_code} lesson #{@next.lesson_number}", class_lesson_path(@next), class: "btn btn-copper btn-lg" %></p><% end %>
+</div></header>
+<section class="section"><div class="wrap">
+  <% if @lessons.empty? %><p class="muted">No classes yet. The faculty are writing them.</p><% end %>
+  <% @lessons.sort_by { |l| [ l.tour? ? 0 : 1, l.course_code, l.lesson_number ] }.group_by(&:course_code).each do |code, list| %>
+    <h2 class="lab-course"><%= list.first.tour? ? "Start here" : code %></h2>
+    <ol class="ex-list">
+      <% list.each do |lesson| %>
+        <% progress = @progress[lesson.id] %>
+        <% open = lesson.unlocked_for?(current_user) %>
+        <% state = progress&.completed? ? "is-passed" : (open ? "is-open" : "is-locked") %>
+        <li class="ex-row <%= state %>">
+          <span class="ex-state" aria-hidden="true"><%= progress&.completed? ? "✓" : (open ? "›" : "") %></span>
+          <div class="ex-body">
+            <% label = lesson.tour? ? lesson.title : "Lesson #{lesson.lesson_number}: #{lesson.title}" %>
+            <% if open %><%= link_to label, class_lesson_path(lesson), class: "ex-title" %><% else %><span class="ex-title"><%= label %></span><% end %>
+            <span class="muted small"><%= [ lesson.professor && "#{lesson.professor} (AI tutor)", lesson.minutes && "about #{lesson.minutes} min", "#{lesson.steps.size} steps" ].compact.join(" · ") %></span>
+            <% if open %>
+              <span class="lesson-links">
+                <%= link_to "Study guide and flashcards", study_class_lesson_path(lesson) %>
+                <% if (summary = @studied[lesson.id]&.summary).present? %><span class="muted"><%= summary %></span><% end %>
+                <% if progress&.completed? && lesson.homework.any? %>
+                  <% done = @handed_in[lesson.id].to_i %>
+                  <%= link_to (done >= lesson.homework.size ? "Homework handed in · awaiting review" : "Homework: #{done} of #{lesson.homework.size} handed in"), homework_class_lesson_path(lesson) %>
+                <% end %>
+              </span>
+            <% end %>
+          </div>
+          <span class="ex-tag small">
+            <% if progress&.completed? %>Finished<% elsif progress && progress.step_index.positive? %>Step <%= progress.step_index + 1 %> of <%= lesson.steps.size %><% elsif open %>Open<% else %>Opens after lesson <%= lesson.lesson_number - 1 %><% end %>
+          </span>
+        </li>
+      <% end %>
+    </ol>
+  <% end %>
+  <p class="small muted" style="margin-top:24px">Checks in the classroom run in your browser, so they are self-checked practice. Your professors give the grades.</p>
+</div></section>

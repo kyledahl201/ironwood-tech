@@ -60,7 +60,7 @@ module Badges
 
   def night_owl?(user)
     recent = user.attempts.where(created_at: 2.days.ago..).pluck(:created_at) +
-             user.study_sessions.where(created_at: 2.days.ago..).pluck(:created_at)
+             user.study_sessions.logged.where(created_at: 2.days.ago..).pluck(:created_at)
     recent.any? { |t| t.in_time_zone.hour < 4 }
   end
 end

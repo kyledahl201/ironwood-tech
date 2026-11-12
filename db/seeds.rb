@@ -21,6 +21,13 @@ Dir[Rails.root.join("db/seeds/exercises/*.md")].sort.each_with_index do |path, i
   exercise.save!
 end
 
+# Classroom lessons scripted by the faculty (db/seeds/lessons/*.md).
+# Re-running updates the script; a student's place in a lesson is kept.
+Dir[Rails.root.join("db/seeds/lessons/*.md")].sort.each do |path|
+  attrs = ClassLessonMarkdown.parse(File.read(path))
+  ClassLesson.find_or_initialize_by(slug: attrs[:slug]).update!(attrs.except(:slug))
+end
+
 # Owner account. In production set ADMIN_EMAIL, ADMIN_NAME and ADMIN_PASSWORD.
 admin_email = ENV.fetch("ADMIN_EMAIL", "owner@example.com")
 unless User.exists?(email_address: admin_email)

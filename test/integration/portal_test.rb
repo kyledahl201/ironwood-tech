@@ -172,7 +172,7 @@ class PortalTest < ActionDispatch::IntegrationTest
     get "/visualizers/nope"
     assert_response :not_found
     get exercise_path(exercises(:first))
-    assert_select "[data-controller=lab]"
+    assert_select "[data-controller~=lab]"
     assert_select ".chips .chip", 1
     assert_includes response.body, "self-checked"
   end

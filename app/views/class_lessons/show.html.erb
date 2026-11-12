@@ -1,0 +1,167 @@
+<% page_title "#{'Homework: ' if @homework}#{@lesson.tour? ? '' : "#{@lesson.course_code} L#{@lesson.lesson_number}: "}#{@lesson.title}" %>
+<% professor = @lesson.professor.presence || "Your professor" %>
+<% default_mode = @steps.find { |s| s["mode"] }&.fetch("mode") || "terminal" %>
+<div class="classroom" data-controller="classroom pulse" data-pulse-url-value="<%= portal_pulse_path %>" data-pulse-course-value="<%= @lesson.course_code %>" data-pulse-activity-value="<%= @homework ? "homework" : "class" %>"
+     data-classroom-slug-value="<%= @lesson.slug %>"
+     data-classroom-steps-value="<%= @steps.map { |s| s.slice("kind", "mode", "visual", "starter", "hints").merge("checks" => Array(s["checks"]).map { |c| c.slice("type", "call", "expected", "label") }) }.to_json %>"
+     data-classroom-index-value="<%= @index %>"
+     data-classroom-homework-value="<%= @homework ? true : false %>"
+     data-classroom-user-value="<%= current_user.first_name.to_s.downcase.gsub(/[^a-z0-9]/, "").presence || "student" %>"
+     data-classroom-store-value="iw-class-<%= current_user.id %>-<%= @lesson.slug %>"
+     data-classroom-progress-url-value="<%= @homework ? homework_class_lesson_path(@lesson) : progress_class_lesson_path(@lesson) %>"
+     data-classroom-quiz-url-value="<%= quiz_class_lesson_path(@lesson) %>"
+     data-classroom-worker-url-value="/lab/ruby-worker.js"
+     data-classroom-wasm-url-value="<%= brand.ruby_wasm_url %>"
+     data-classroom-first-try-line-value="<%= SentryLines::PASS_FIRST_TRY %>"
+     data-classroom-pass-lines-value="<%= SentryLines::PASS.to_json %>">
+
+  <header class="class-bar">
+    <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path %></li><% unless @lesson.tour? %><li><%= @lesson.course_code %> · Lesson <%= @lesson.lesson_number %></li><% end %></ol></nav>
+    <h1 class="class-title"><%= "Homework: " if @homework %><%= @lesson.title %></h1>
+    <p class="class-prof"><%= professor %> <span class="muted">(AI tutor)</span> <span class="class-logged muted" data-pulse-target="today">· Your time here is logged by itself</span></p>
+    <div class="class-meter" aria-label="Lesson progress">
+      <div class="progress"><span data-classroom-target="meter" style="width:0%"></span></div>
+      <span class="small" data-classroom-target="counter" aria-live="polite"><%= @homework ? "Task" : "Step" %> 1 of <%= @steps.size %></span>
+    </div>
+  </header>
+
+  <section class="board" data-classroom-target="board" data-action="click->classroom#boardClick" aria-label="Lesson" tabindex="-1">
+    <div class="board-inner" data-classroom-target="steps"></div>
+  </section>
+
+  <div class="class-divider" data-classroom-target="divider" data-action="pointerdown->classroom#startResize keydown->classroom#keyResize" role="separator" aria-orientation="horizontal" aria-label="Resize the workbench" tabindex="0"><span></span></div>
+
+  <section class="bench" data-classroom-target="bench" aria-label="Workbench">
+    <div class="bench-bar">
+      <label class="bench-tool"><span>Workbench</span>
+        <select data-classroom-target="mode" data-action="classroom#pickMode" aria-label="Workbench tool">
+          <option value="terminal" <%= "selected" if default_mode == "terminal" %>>Practice Terminal</option>
+          <option value="irb" <%= "selected" if default_mode == "irb" %>>Ruby console</option>
+          <option value="ruby" <%= "selected" if default_mode == "ruby" %>>Ruby editor</option>
+        </select>
+      </label>
+      <span class="bench-status" data-classroom-target="status" role="status">Ready</span>
+      <span class="bench-safe small" data-classroom-target="safe">Practice computer. Nothing here touches your Mac.</span>
+      <button type="button" class="link-button light small" data-action="classroom#resetTool" title="Start this tool over">Reset</button>
+    </div>
+
+    <div class="tool tool-term" data-classroom-target="pane" data-mode="terminal" data-action="click->classroom#focusEntry">
+      <div class="term-lines" data-classroom-target="termLines" aria-live="polite" aria-label="Terminal output"></div>
+      <form class="term-entry" data-action="submit->classroom#enter">
+        <label class="term-prompt" for="term-input" data-classroom-target="termPrompt">%</label>
+        <input id="term-input" type="text" data-classroom-target="termInput" data-action="keydown->classroom#entryKey" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type a command and press Enter">
+      </form>
+    </div>
+
+    <div class="tool tool-term" data-classroom-target="pane" data-mode="irb" data-action="click->classroom#focusEntry" hidden>
+      <div class="term-lines" data-classroom-target="irbLines" aria-live="polite" aria-label="Ruby console output"></div>
+      <form class="term-entry" data-action="submit->classroom#enter">
+        <label class="term-prompt" for="irb-input" data-classroom-target="irbPrompt">irb&gt;</label>
+        <input id="irb-input" type="text" data-classroom-target="irbInput" data-action="keydown->classroom#entryKey" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type a line of Ruby and press Enter">
+      </form>
+    </div>
+
+    <div class="tool tool-editor" data-classroom-target="pane" data-mode="ruby" hidden>
+      <div class="editor-host" data-classroom-target="editor"><textarea class="editor-fallback" aria-label="Code editor" spellcheck="false"></textarea></div>
+      <div class="editor-side">
+        <div class="bench-actions">
+          <button type="button" class="btn btn-copper" data-action="classroom#runEditor" data-classroom-target="runButton" title="Shift+Enter">Run</button>
+          <button type="button" class="btn btn-outline-light" data-action="classroom#checkEditor" data-classroom-target="checkButton" title="Ctrl/Cmd+Enter">Check</button>
+        </div>
+        <div class="console-head">Output</div>
+        <pre class="console-body" data-classroom-target="output" aria-live="polite">Press Run to see what your code prints.</pre>
+      </div>
+    </div>
+  </section>
+
+  <%# One template per step. The classroom script shows them one at a time. %>
+  <% @steps.each_with_index do |step, i| %>
+    <template data-classroom-target="template">
+      <article class="step step-<%= step["kind"] %>" data-index="<%= i %>" data-kind="<%= step["kind"] %>">
+        <p class="step-who"><%= image_tag "brand/sentry-watching.svg", alt: "", width: 28, height: 28 %><span><%= professor %></span>
+          <span class="step-tag"><%= @homework ? "Homework task #{i + 1}" : { "teach" => "Lesson", "show" => "Watch", "try" => "Your turn", "mac" => "On your Mac", "quiz" => "Quick question" }[step["kind"]] %></span></p>
+        <div class="step-text prose"><%= markdown step["text"] %></div>
+
+        <% if step["kind"] == "show" && (tool = @tools[step["visual"]]) %>
+          <div class="step-extra step-visual"><%= render "visualizers/tracer", tool: tool %></div>
+        <% end %>
+
+        <% if step["kind"] == "mac" %>
+          <div class="step-extra">
+            <ol class="mac-runs">
+              <% Array(step["run"]).each do |command| %>
+                <li><pre><code><%= command %></code></pre><button type="button" class="btn btn-outline btn-small" data-action="classroom#copy" data-copy="<%= command %>">Copy</button></li>
+              <% end %>
+            </ol>
+            <label class="mac-paste">Paste what your Terminal printed
+              <textarea rows="4" spellcheck="false" autocapitalize="off" data-role="paste" placeholder="Paste the output here"></textarea></label>
+            <button type="button" class="btn btn-copper" data-action="classroom#checkPaste">Check</button>
+          </div>
+        <% end %>
+
+        <% if step["kind"] == "quiz" %>
+          <div class="step-extra">
+            <div class="quiz-options" role="group" aria-label="Answers">
+              <% step["options"].each_with_index do |option, n| %>
+                <button type="button" class="quiz-option" data-action="classroom#answer" data-choice="<%= n %>"><span class="quiz-mark" aria-hidden="true"></span><span><%= markdown_inline option["text"] %></span><span class="quiz-word"></span></button>
+              <% end %>
+            </div>
+            <p class="quiz-explain" data-role="explain" hidden></p>
+          </div>
+        <% end %>
+
+        <% if %w[try mac].include?(step["kind"]) %>
+          <div class="step-extra">
+            <% if step["kind"] == "try" %>
+              <p class="step-where small"><%= { "terminal" => "Type it in the practice Terminal below and press Enter.", "irb" => "Type it in the Ruby console below and press Enter.", "ruby" => "Write it in the Ruby editor below, then press Check." }[step["mode"]] %></p>
+            <% end %>
+            <ul class="chips" data-role="chips">
+              <% step["checks"].each do |check| %>
+                <li class="chip"><span class="chip-dot" aria-hidden="true"></span><span class="chip-label"><%= check["label"] %></span><span class="chip-word"></span></li>
+              <% end %>
+            </ul>
+            <div class="hints" data-role="hints" hidden>
+              <ol data-role="hint-list"></ol>
+              <button type="button" class="link-button" data-action="classroom#hint" data-role="hint-button">Show a hint</button>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="step-actions">
+          <% if %w[teach show].include?(step["kind"]) %>
+            <button type="button" class="btn btn-copper" data-action="classroom#next" data-role="continue">Continue</button>
+          <% end %>
+          <span class="step-done" data-role="done" hidden>✓ Done</span>
+        </div>
+      </article>
+    </template>
+  <% end %>
+
+  <template data-classroom-target="finish">
+    <article class="step step-finish">
+      <%= image_tag "brand/sentry-cheering.svg", alt: "Sentry, cheering", width: 96, height: 96 %>
+      <div>
+        <% if @homework %>
+          <p class="eyebrow">Homework handed in</p>
+          <h2>Awaiting review by <%= professor %></h2>
+          <p>Every task ran and passed its checks, and your work is saved and locked. The checks here are self-checked practice: <%= professor %> reviews what you wrote and gives the grade in class.</p>
+          <div class="actions">
+            <%= link_to "Back to Today", portal_path, class: "btn btn-copper" %>
+            <%= link_to "Study guide and flashcards", study_class_lesson_path(@lesson), class: "btn btn-outline" %>
+            <button type="button" class="link-button" data-action="classroom#replay">Practise it again (what you handed in stays as it is)</button>
+          </div>
+        <% else %>
+          <p class="eyebrow">Class finished</p>
+          <h2><%= @lesson.title %></h2>
+          <p>That's the whole lesson. It counts as taught, so its practice exercises are open in the Code lab. Your professor still gives the grade.</p>
+          <div class="actions">
+            <% if @lesson.homework.any? %><%= link_to "Do the homework", homework_class_lesson_path(@lesson), class: "btn btn-copper" %><% end %>
+            <%= link_to "Study guide and flashcards", study_class_lesson_path(@lesson), class: (@lesson.homework.any? ? "btn btn-outline" : "btn btn-copper") %>
+            <%= link_to "Back to Today", portal_path, class: "btn btn-outline" %>
+            <button type="button" class="link-button" data-action="classroom#replay">Go through it again</button>
+          </div>
+        <% end %>
+      </div>
+    </article>
+  </template>
+</div>

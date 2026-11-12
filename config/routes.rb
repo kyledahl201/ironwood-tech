@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   get "portal", to: "portal/dashboard#show", as: :portal
   namespace :portal do
     resources :study_sessions, only: %i[index create destroy], path: "study-log"
+    post "pulse", to: "pulses#create", as: :pulse
     resource :settings, only: :update
     resources :badges, only: :index
     post "eggs/:key", to: "eggs#create", as: :egg
@@ -26,6 +27,19 @@ Rails.application.routes.draw do
     resources :lessons, only: :show do
       post :complete, on: :member
       resources :tutor_messages, only: :create
+    end
+  end
+
+  # The classroom: scripted lessons played step by step
+  resources :class_lessons, only: %i[index show], path: "classroom" do
+    member do
+      post :progress
+      post :quiz
+      get :study
+      post "study/card", action: :sort_card, as: :study_card
+      post "study/restart", action: :restart_study, as: :study_restart
+      get :homework
+      post :homework, action: :hand_in
     end
   end
 

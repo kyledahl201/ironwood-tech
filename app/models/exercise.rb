@@ -18,7 +18,8 @@ class Exercise < ApplicationRecord
   def unlocked_for?(user)
     return true if open_to_all?
     record = user.course_records.find { |r| r.code == course_code }
-    record.present? && record.lessons_done >= lesson_number
+    return true if record.present? && record.lessons_done >= lesson_number
+    ClassLesson.taught?(user, course_code, lesson_number) # finished in the portal classroom
   end
 
   def passed_by?(user) = attempts.where(user: user, passed: true).exists?

@@ -9,9 +9,11 @@
         <p class="eyebrow">Today</p>
         <h2 id="today-title"><%= @today.title %></h2>
         <% if @today.detail.present? %><p class="today-detail"><%= markdown_inline(@today.detail) %></p><% end %>
-        <% if @today.professor %><p class="muted small">with <%= @today.professor %> (AI tutor)</p><% end %>
+        <% if @today.professor %><p class="muted small">with <%= @today.professor %> (AI tutor)<%= " · about #{@today.minutes} minutes" if @today.minutes %></p><% end %>
         <div class="actions">
-          <% if @today.action_path %>
+          <% if @today.class_lesson %>
+            <%= link_to @today.action_label, class_lesson_path(@today.class_lesson), class: "btn btn-copper btn-lg" %>
+          <% elsif @today.action_path %>
             <%= link_to @today.action_label, learn_lesson_path(*@today.action_path.last(2)), class: "btn btn-copper" %>
           <% elsif @today.kind == :class %>
             <span class="muted small">Class happens with your professor. Log the time when you're done.</span>
@@ -20,6 +22,10 @@
           <% end %>
           <%= render "portal/study_sessions/quick_log" %>
         </div>
+        <% if @homework_due.any? %>
+          <p class="today-homework small">Homework waiting:
+            <% @homework_due.each do |lesson| %><%= link_to "#{lesson.course_code} lesson #{lesson.lesson_number}", homework_class_lesson_path(lesson) %><% end %></p>
+        <% end %>
       </article>
 
       <% if (gate = @today.gate) %>

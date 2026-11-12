@@ -4,28 +4,7 @@
   <p class="eyebrow"><%= @tool.eyebrow %></p><h1><%= @tool.title %></h1>
   <p class="lede"><%= @tool.blurb %> Predict the next line before you press Step.</p></div></header>
 <section class="section"><div class="wrap">
-  <div class="tracer" data-controller="tracer" data-tracer-program-value="<%= @tool.id %>">
-    <form class="tracer-inputs" data-action="submit->tracer#rebuild change->tracer#rebuild">
-      <% @tool.inputs.each do |input| %>
-        <label><%= input.label %>
-          <% limits = input.type == "number" ? { min: 0, max: input.max } : { maxlength: input.max } %>
-          <%= tag.input type: input.type, name: input.name, value: input.value, spellcheck: false, data: { tracer_target: "input" }, **limits %>
-          <%= input.suffix %></label>
-      <% end %>
-    </form>
-    <div class="tracer-grid">
-      <div class="tracer-code" aria-label="Program"><ol class="code-lines" data-tracer-target="code"></ol></div>
-      <div class="tracer-state" data-tracer-target="state"></div>
-    </div>
-    <p class="tracer-note" data-tracer-target="note" aria-live="polite"></p>
-    <div class="tracer-controls">
-      <button type="button" class="btn btn-outline" data-action="tracer#back" data-tracer-target="backButton">◀ Back</button>
-      <button type="button" class="btn btn-copper" data-action="tracer#step" data-tracer-target="stepButton">Step ▶</button>
-      <button type="button" class="btn btn-outline" data-action="tracer#play" data-tracer-target="playButton">Play</button>
-      <button type="button" class="link-button" data-action="tracer#reset">Start over</button>
-      <span class="small muted" data-tracer-target="counter"></span>
-    </div>
-  </div>
+  <%= render "visualizers/tracer", tool: @tool %>
   <nav class="lab-siblings" aria-label="Other visualizers">
     <% @tools.each do |t| %><%= link_to t.title, visualizer_path(t.id), class: ("is-current" if t == @tool), "aria-current": (t == @tool ? "page" : nil) %><% end %>
   </nav>

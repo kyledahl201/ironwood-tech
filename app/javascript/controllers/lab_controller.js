@@ -9,9 +9,9 @@ const TIMEOUT_MS = 6000
 
 export default class extends Controller {
   static targets = ["editor", "chips", "hints", "hintList", "hintButton", "status", "timer",
-                    "output", "diff", "runButton", "checkButton", "logButton", "next"]
+                    "output", "diff", "runButton", "checkButton", "next"]
   static values = { slug: String, checks: Array, hints: Array, starter: String, workerUrl: String,
-                    wasmUrl: String, attemptsUrl: String, logUrl: String, course: String, passed: Boolean,
+                    wasmUrl: String, attemptsUrl: String, course: String, passed: Boolean,
                     passLines: Array, firstTryLines: String, failLines: Array }
 
   async connect() {
@@ -174,7 +174,6 @@ export default class extends Controller {
       this.setStatus(`${passedCount} of ${checks.length} checks pass`, "bad")
       this.recordFailure()
     }
-    this.logButtonTarget.hidden = false
     this.updateTimer()
     this.save(passed, passedCount)
   }
@@ -362,25 +361,8 @@ export default class extends Controller {
 
   // Time ----------------------------------------------------------------------
 
-  get minutes() { return Math.max(1, Math.round((Date.now() - this.started) / 60000)) }
-
   updateTimer() {
     const s = Math.floor((Date.now() - this.started) / 1000)
     this.timerTarget.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
-    if (!this.logButtonTarget.hidden) this.logButtonTarget.textContent = `Log ${this.minutes} min`
-  }
-
-  async logTime() {
-    const minutes = this.minutes
-    try {
-      const data = await postJSON(this.logUrlValue, { study_session: { minutes, course_code: this.courseValue, note: "Code lab" } })
-      if (!data.ok) throw new Error((data.errors || []).join(", "))
-      toast(`Logged ${minutes} minutes.`, { tone: "pass", sentry: false })
-      celebrate(data.badges)
-      this.started = Date.now()
-      this.logButtonTarget.hidden = true
-    } catch (e) {
-      toast(`Couldn't log that: ${e.message}`, { tone: "fail", sentry: false })
-    }
   }
 }
