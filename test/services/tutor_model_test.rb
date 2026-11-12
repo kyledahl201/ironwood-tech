@@ -24,6 +24,24 @@ class TutorModelTest < ActiveSupport::TestCase
     with_model("some-other-model") { assert_equal Tutor::DEFAULT_MODEL, Tutor.model }
   end
 
+  test "an ignored setting is logged by name and reported for the owner, a good or blank one isn't" do
+    log = StringIO.new
+    was = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log)
+    with_model("claude-opus-5.5") do
+      assert_equal Tutor::DEFAULT_MODEL, Tutor.model
+      assert_equal "claude-opus-5.5", Tutor.ignored_model
+    end
+    assert_match(/TUTOR_MODEL "claude-opus-5.5" isn't on the list .*so the tutor uses claude-sonnet-5-5/, log.string)
+    log.truncate(0)
+    with_model("claude-opus-5-5") { Tutor.model; assert_nil Tutor.ignored_model }
+    with_model(nil) { Tutor.model; assert_nil Tutor.ignored_model }
+    with_model("  ") { Tutor.model; assert_nil Tutor.ignored_model }
+    assert_no_match(/TUTOR_MODEL/, log.string)
+  ensure
+    Rails.logger = was
+  end
+
   test "the request the tutor sends names the chosen model" do
     sent = nil
     reply = Struct.new(:stop_reason, :content).new(:end_turn, [ Struct.new(:type, :text).new(:text, "Made-up answer") ])

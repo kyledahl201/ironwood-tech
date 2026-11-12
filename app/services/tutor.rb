@@ -16,7 +16,15 @@ class Tutor
 
   def self.model
     chosen = ENV["TUTOR_MODEL"].to_s.strip
-    MODELS.include?(chosen) ? chosen : DEFAULT_MODEL
+    return chosen if MODELS.include?(chosen)
+    Rails.logger.warn("[tutor] TUTOR_MODEL #{chosen.inspect} isn't on the list (#{MODELS.join(', ')}), so the tutor uses #{DEFAULT_MODEL}") if chosen.present?
+    DEFAULT_MODEL
+  end
+
+  # The TUTOR_MODEL value that was set but ignored, for the owner dashboard.
+  def self.ignored_model
+    chosen = ENV["TUTOR_MODEL"].to_s.strip
+    chosen.presence unless MODELS.include?(chosen)
   end
 
   # Daily question cap per student and course, to bound API spend.

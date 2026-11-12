@@ -10,6 +10,7 @@
     <div class="stat"><strong><%= @counts[:enrollments] %></strong><span>Course enrollments</span></div>
   </div>
   <p class="small muted">AI tutor: <%= Tutor.enabled? ? "on (#{Tutor.model}, up to #{Tutor.daily_cap} questions per course a day)" : "off (set ANTHROPIC_API_KEY)" %> · Search indexing: <%= brand.indexable ? "on" : "off" %> · Transcript: <%= @snapshot ? "synced #{time_ago_in_words(@snapshot.updated_at)} ago" : "not synced yet" %></p>
+  <% if Tutor.ignored_model %><p class="small" role="status"><strong>Check your settings:</strong> TUTOR_MODEL "<%= Tutor.ignored_model %>" isn't on the list (<%= Tutor::MODELS.join(", ") %>), so the tutor uses <%= Tutor::DEFAULT_MODEL %>.</p><% end %>
   <ul class="card-grid three" style="margin-top:24px">
     <li class="card"><h3><%= link_to "Sync transcript", admin_transcript_path %></h3><p>Paste TRANSCRIPT.md after class. Only the numbers are kept.</p></li>
     <li class="card"><h3><%= link_to "Invite a friend", admin_invites_path %></h3><p>One link per person. Links expire after 14 days.</p></li>
