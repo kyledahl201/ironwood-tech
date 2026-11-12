@@ -7,6 +7,7 @@ import { StreamLanguage, HighlightStyle, syntaxHighlighting, indentOnInput, brac
 import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 import { python } from "@codemirror/lang-python"
 import { sqlite } from "@codemirror/legacy-modes/mode/sql"
+import { javascript } from "@codemirror/legacy-modes/mode/javascript"
 import { tags as t } from "@lezer/highlight"
 
 const LINEN = "#F5F3EF", COPPER = "#B87333"
@@ -34,7 +35,7 @@ const highlight = HighlightStyle.define([
 ])
 
 export function createEditor(parent, { doc = "", language = "ruby", onRun = () => {}, onChange = () => {} } = {}) {
-  const lang = language === "python" ? python() : StreamLanguage.define(language === "sql" ? sqlite : ruby)
+  const lang = language === "python" ? python() : StreamLanguage.define({ sql: sqlite, javascript }[language] || ruby)
   const indent = language === "python" ? 4 : 2 // each language's own convention
   const runKeys = [
     { key: "Mod-Enter", run: () => { onRun(); return true } },

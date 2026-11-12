@@ -59,7 +59,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     get class_lesson_path(python)
     assert_response :success
-    assert_select "select[data-classroom-target=mode] option", 7
+    assert_select "select[data-classroom-target=mode] option", 9
     assert_select "select[data-classroom-target=mode] option[value=pyrepl][selected]", text: "Python console"
     assert_select "select[data-classroom-target=mode] option[value=python]", text: "Python editor"
     assert_select ".tool[data-mode=pyrepl] input#pyrepl-input[aria-label='Type a line of Python and press Enter']"
@@ -79,6 +79,46 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     record = ClassLesson.new(attrs)
     assert_not record.valid?
     assert_match(/step 3 uses checks that don't work in python: cwd_is/, record.errors.full_messages.to_sentence)
+  end
+
+  test "a JavaScript lesson parses and plays in the JavaScript tools, with nothing to download" do
+    attrs = ClassLessonMarkdown.parse(file_fixture("js_lesson.md").read)
+    assert_equal [ nil, "jsrepl", "js" ], attrs[:steps].map { |s| s["mode"] }
+    assert_equal "function madeUp(n) {\n  // your code here\n}\n", attrs[:steps][2]["starter"]
+    assert_equal "madeUp([1, 2]) returns [2, 4]", attrs[:steps][2]["checks"][0]["label"]
+    lesson = ClassLesson.create!(attrs)
+
+    sign_in_as users(:one)
+    get class_lesson_path(lesson)
+    assert_response :success
+    assert_select "select[data-classroom-target=mode] option[value=jsrepl][selected]", text: "JavaScript console"
+    assert_select "select[data-classroom-target=mode] option[value=js]", text: "JavaScript editor"
+    assert_select ".tool[data-mode=jsrepl] input#jsrepl-input[aria-label='Type a line of JavaScript and press Enter']"
+    assert_select ".tool[data-mode=jsrepl] label.term-prompt", text: ">"
+    runtimes = JSON.parse(css_select(".classroom").first["data-classroom-runtimes-value"])
+    assert_equal({ "name" => "JavaScript", "worker" => "/lab/js-worker.js", "runtime" => "", "megabytes" => nil }, runtimes["javascript"])
+    assert_includes response.body, "An open bracket keeps the entry going until you close it."
+    assert File.exist?(Rails.root.join("public/lab/js-worker.js")), "the JavaScript worker is committed"
+    assert_no_match(/https?:\/\//, File.read(Rails.root.join("public/lab/js-worker.js"))) # it loads nothing from anywhere
+
+    bad = ClassLessonMarkdown.parse(file_fixture("js_lesson.md").read)
+    bad[:steps][2]["checks"] << { "type" => "rows_are", "call" => "", "expected" => "[[1]]", "label" => "x" }
+    record = ClassLesson.new(bad)
+    assert_not record.valid?
+    assert_match(/step 3 uses checks that don't work in js: rows_are/, record.errors.full_messages.to_sentence)
+  end
+
+  test "the JavaScript tour is seeded as a tour and never prints a finished answer" do
+    lesson = ClassLesson.new(ClassLessonMarkdown.parse(Rails.root.join("db/seeds/lessons/demo-js.md").read))
+    assert lesson.valid?, lesson.errors.full_messages.to_sentence
+    assert lesson.tour?
+    assert_equal %w[jsrepl js], lesson.steps.filter_map { |s| s["mode"] }.uniq
+    tasks = lesson.steps.select { |s| s["kind"] == "try" }
+    assert_equal 5, tasks.size
+    assert tasks.all? { |s| s["hints"].any? }
+    (tasks.flat_map { |s| s["hints"] } + tasks.filter_map { |s| s["starter"] }).each do |nudge|
+      assert_no_match(/toUpperCase\(\)\s*\+|\.filter\(|return\s+n\s*\*\s*2|school\.length|let\s+school\s*=/, nudge)
+    end
   end
 
   test "a SQL lesson parses, plays in the SQL tools, and loads SQLite only from this site" do
@@ -207,7 +247,7 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".classroom[data-controller~=classroom]"
     assert_select "template[data-classroom-target=template]", 6
-    assert_select "select[data-classroom-target=mode] option", 7
+    assert_select "select[data-classroom-target=mode] option", 9
     assert_select ".mac-runs li", 2
     assert_includes response.body, "Prof. Example"
     assert_includes response.body, "(AI tutor)"

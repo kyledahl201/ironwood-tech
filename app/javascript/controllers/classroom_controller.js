@@ -7,7 +7,7 @@ import { buildTutorNote } from "lib/tutor_note"
 
 // The classroom. The professor's steps play in the board on top; the student
 // works in the bench underneath (practice Terminal, and a console and an editor
-// each for Ruby, Python and SQL).
+// each for Ruby, Python, JavaScript and SQL).
 // A step with a task opens the next one when its checks pass. Checks run in
 // the browser, so they are self-checked practice; the server keeps the place.
 const TOOLS = {
@@ -18,6 +18,9 @@ const TOOLS = {
             note: "Python runs in your browser. Variables last until you reset." },
   ruby: { kind: "editor", language: "ruby", name: "Ruby", note: "Ruby runs in your browser." },
   python: { kind: "editor", language: "python", name: "Python", note: "Python runs in your browser. Standard library only: no pip, files or internet." },
+  jsrepl: { kind: "console", language: "javascript", name: "JavaScript", prompt: ">", more: "…", arrow: "",
+            note: "JavaScript runs in your browser, away from this page. Names last until you reset." },
+  js: { kind: "editor", language: "javascript", name: "JavaScript", note: "JavaScript runs in your browser, away from this page. No web page or files here: just the language." },
   sqlrepl: { kind: "console", language: "sql", name: "SQL", prompt: "sql>", more: "...>", arrow: "", thing: "changes", greeting: "SQL console. End each statement with a semicolon and press Enter. Type .tables to see the tables.",
              note: "A practice database in your browser: a small made-up library (books, members, loans). Changes last until you reset." },
   sql: { kind: "editor", language: "sql", name: "SQL", note: "A practice database in your browser (books, members, loans). Every run starts from a fresh copy." }
