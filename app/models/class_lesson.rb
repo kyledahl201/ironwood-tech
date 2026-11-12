@@ -61,20 +61,34 @@ class ClassLesson < ApplicationRecord
     open.min_by { |l| [ codes.index(l.course_code) || codes.size, l.course_code, l.lesson_number ] }
   end
 
-  # The class a student is in right now, which is what the Classroom tab opens:
-  # the one they last worked in and haven't finished, else the next class of
-  # the course they last finished a class in, else the next class of a course
-  # their transcript says they are taking. nil for a student who hasn't begun.
+  # The class a student is in right now, which is what the Classroom tab opens.
+  # Real courses come first; the tours are a side room:
+  # - the class they last worked in and haven't finished, in a real course;
+  # - else the next class of the course they last finished a class in;
+  # - a tour counts only while it is partway done and nothing in a real course
+  #   is more recent;
+  # - else the next class their transcript says they are taking;
+  # - a finished tour leads to the next tour only for a student with no course
+  #   in progress at all.
+  # nil for a student who hasn't begun, or has nothing left open.
   def self.current_for(user)
     progresses = user.class_progresses.includes(:class_lesson).order(updated_at: :desc).to_a
-    started = progresses.find { |p| !p.completed? && p.step_index.positive? }
-    return started.class_lesson if started
+    tours, real = progresses.partition { |p| p.class_lesson.tour? }
     done = progresses.select(&:completed?).map(&:class_lesson_id).to_set
-    if (last = progresses.select(&:completed?).max_by(&:completed_at)&.class_lesson)
-      upcoming = where(course_code: last.course_code).order(:lesson_number).find { |l| !done.include?(l.id) && l.unlocked_for?(user) }
-      return upcoming if upcoming
+    upcoming = lambda do |code|
+      where(course_code: code).order(:lesson_number).find { |l| !done.include?(l.id) && l.unlocked_for?(user) }
     end
-    user.course_records.any?(&:in_progress?) ? next_for(user) : nil
+
+    started = real.find { |p| !p.completed? && p.step_index.positive? }
+    finished = real.select(&:completed?).max_by(&:completed_at)
+    in_course = started&.class_lesson || (finished && upcoming.call(finished.class_lesson.course_code))
+    latest_real = [ started&.updated_at, finished&.completed_at ].compact.max
+
+    tour = tours.find { |p| !p.completed? && p.step_index.positive? }
+    return tour.class_lesson if tour && (latest_real.nil? || tour.updated_at > latest_real)
+    return in_course if in_course
+    return next_for(user) if user.course_records.any?(&:in_progress?)
+    upcoming.call(TOUR) if real.empty? && tours.any?(&:completed?)
   end
 
   # Finished classes whose homework isn't all handed in yet, oldest first.

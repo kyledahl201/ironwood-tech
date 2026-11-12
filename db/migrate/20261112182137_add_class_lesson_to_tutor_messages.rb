@@ -5,6 +5,7 @@ class AddClassLessonToTutorMessages < ActiveRecord::Migration[8.1]
   def change
     add_reference :tutor_messages, :class_lesson, null: true, foreign_key: true
     add_column :tutor_messages, :context, :text
+    add_column :tutor_messages, :homework, :boolean, default: false, null: false # asked from the homework page
     change_column_null :tutor_messages, :lesson_id, true
   end
 end

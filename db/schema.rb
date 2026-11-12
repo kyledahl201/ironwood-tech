@@ -235,6 +235,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_182137) do
     t.boolean "pending", default: false, null: false
     t.integer "class_lesson_id"
     t.text "context"
+    t.boolean "homework", default: false, null: false
     t.index ["class_lesson_id"], name: "index_tutor_messages_on_class_lesson_id"
     t.index ["lesson_id"], name: "index_tutor_messages_on_lesson_id"
     t.index ["user_id"], name: "index_tutor_messages_on_user_id"

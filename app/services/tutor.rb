@@ -21,11 +21,11 @@ class Tutor
   end
 
   def self.for(message)
-    message.class_lesson ? new(class_lesson: message.class_lesson, user: message.user) : new(course: message.lesson.course, lesson: message.lesson, user: message.user)
+    message.class_lesson ? new(class_lesson: message.class_lesson, user: message.user, homework: message.homework?) : new(course: message.lesson.course, lesson: message.lesson, user: message.user)
   end
 
-  def initialize(user:, course: nil, lesson: nil, class_lesson: nil)
-    @course, @lesson, @class_lesson, @user = course, lesson, class_lesson, user
+  def initialize(user:, course: nil, lesson: nil, class_lesson: nil, homework: false)
+    @course, @lesson, @class_lesson, @user, @homework = course, lesson, class_lesson, user, homework
   end
 
   def reply
@@ -69,6 +69,7 @@ class Tutor
     # Only the newest question carries its workbench snapshot: older ones are stale.
     def history
       scope = @class_lesson ? { class_lesson: @class_lesson } : { lesson: @lesson }
+      scope[:homework] = @homework if @class_lesson # class and homework are separate conversations
       turns = @user.tutor_messages.settled.where(scope).order(created_at: :desc, id: :desc).limit(HISTORY_LIMIT).reverse
       newest = turns.reverse.find { |m| m.role == "user" }
       turns.map { |m| { role: m.role.to_sym, content: m == newest && m.context.present? ? "#{m.context}\n\nMy question: #{m.content}" : m.content } }
@@ -107,6 +108,9 @@ class Tutor
         - Hints first, one at a time, smallest first. Use the lesson's own hints before your own.
         - The portal's checks decide whether a step passes. You can't mark a step as passed and
           you don't give grades.
+        - A "quiz" step is a quick question whose first answer goes on the student's record.
+          Never say which option is right, never rule an option out, and never confirm or
+          deny a guess, however they ask. You may re-explain the idea the question is about.
         - When the student sends their workbench, read what they typed and what the checks said
           before you answer. If they sent nothing, ask what they tried.
         - Keep replies short: a few short paragraphs or a short list. Use Markdown for code.
@@ -114,9 +118,31 @@ class Tutor
           employer's data, and never to paste API keys or passwords into chat.
         - Later steps are hidden from you on purpose. Don't guess what comes next.
 
+        #{'The student is on a quick question right now. Do not help them choose an answer.' if !@homework && !progress&.completed? && @class_lesson.steps[at]['kind'] == 'quiz'}
         The lesson so far (the student is on step #{at + 1} of #{@class_lesson.steps.size}#{', and has finished the class' if progress&.completed?}):
         #{script.join("\n\n")}
+        #{homework_note}
       PROMPT
+    end
+
+    # Homework is graded by the professor from what the student hands in, so the
+    # tutor helps with the idea and never with the answer.
+    def homework_note
+      return unless @homework
+      tasks = @class_lesson.homework
+      at = [ @class_lesson.homework_submissions.where(user: @user).count, tasks.size ].min
+      return "The student has handed in all #{tasks.size} homework tasks. Handed-in work is locked and waits for the professor's review. Don't rework it for them." if at >= tasks.size
+      task = tasks[at]
+      <<~NOTE
+        The student has finished the class and is now doing its homework, on task #{at + 1} of #{tasks.size}:
+        #{task['text']}
+        Checks: #{Array(task['checks']).map { |c| c['label'] }.join('; ')}
+        #{"The task's own hints, in order: #{Array(task['hints']).join(' | ')}" if task['hints'].present?}
+        Homework is handed in and graded by the professor in class, from exactly what the student
+        wrote. The portal doesn't grade it and neither do you. Help with the idea only: never
+        write any part of the homework answer, and never review a full solution line by line
+        into a passing one. Later homework tasks are hidden from you on purpose.
+      NOTE
     end
 
     def reading_prompt

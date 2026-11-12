@@ -132,7 +132,7 @@ class ClassLessonsController < ApplicationController
       catalog = Catalog.new(current_user)
       @entries = catalog.entries
       @entry = catalog.for_code(@lesson.course_code)
-      @messages = current_user.tutor_messages.where(class_lesson: @lesson).chronological.last(40)
+      @messages = current_user.tutor_messages.where(class_lesson: @lesson, homework: @homework || false).chronological.last(40)
     end
 
     def study_record = @lesson.study_records.find_or_create_by!(user: current_user)

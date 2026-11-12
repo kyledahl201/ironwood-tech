@@ -12,9 +12,11 @@ class ClassTutorMessagesController < ApplicationController
 
     # The snapshot is only sent when the student left "send my workbench" ticked.
     context = params.dig(:tutor_message, :context).to_s.first(16_000).presence
-    @question = current_user.tutor_messages.new(class_lesson: @lesson, role: "user", content: content, context: context)
+    # Homework opens when the class is finished; a question from there is its own conversation.
+    homework = params.dig(:tutor_message, :homework) == "1" && @lesson.completed_by?(current_user)
+    @question = current_user.tutor_messages.new(class_lesson: @lesson, role: "user", content: content, context: context, homework: homework)
     return refuse(@question.errors.full_messages.to_sentence) unless @question.save
-    @placeholder = current_user.tutor_messages.create!(class_lesson: @lesson, role: "assistant", content: "Thinking…", pending: true)
+    @placeholder = current_user.tutor_messages.create!(class_lesson: @lesson, role: "assistant", content: "Thinking…", pending: true, homework: homework)
     TutorReplyJob.perform_later(@placeholder.id)
 
     respond_to do |format|

@@ -108,7 +108,7 @@
       <p>AI tutor, not a person. Can make mistakes; check important answers. Never paste passwords, API keys or private data.</p>
     </div>
     <div class="tutor-log" id="tutor-log" aria-live="polite">
-      <div class="msg msg-assistant"><div class="msg-who"><%= professor %></div><p>Stuck, or curious about something in this class? Ask me here. I'll give you a hint or explain the idea, and you'll write the code yourself.</p></div>
+      <div class="msg msg-assistant"><div class="msg-who"><%= professor %></div><p><% if @homework %>Stuck on the homework? Ask me here. I can explain the idea again, and the work stays yours: I grade what you hand in.<% else %>Stuck, or curious about something in this class? Ask me here. I'll give you a hint or explain the idea, and you'll write the code yourself.<% end %></p></div>
       <%= render partial: "learn/tutor_messages/tutor_message", collection: @messages, as: :tutor_message %>
     </div>
     <%= turbo_stream_from current_user, @lesson %>
@@ -118,6 +118,7 @@
         <%= f.label :content, "Ask #{professor}", class: "visually-hidden", for: "tutor-input" %>
         <%= f.text_area :content, required: true, maxlength: 8000, placeholder: "Ask a question about this step…", id: "tutor-input" %>
         <%= f.hidden_field :context, id: "tutor-context", data: { classroom_target: "tutorContext" } %>
+        <%= f.hidden_field :homework, value: (@homework ? 1 : 0), id: "tutor-homework" %>
         <label class="tutor-send-work small"><input type="checkbox" checked data-classroom-target="tutorSendWork"><span>Send my workbench with it <span class="muted">(this task, what I typed and what the checks said)</span></span></label>
         <div class="quick">
           <button type="submit" name="tutor_message[content]" value="I'm stuck on this step. Can I have a hint?" formnovalidate>Hint</button>

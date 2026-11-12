@@ -276,6 +276,129 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_equal [ { role: :user, content: "What is a token?" } ], Tutor.for(reading).send(:history)
   end
 
+  test "tours are a side room: they never take the Classroom tab from a real course" do
+    lessons_for_everyone
+    tours = [ @tour ] + (2..6).map { |n| ClassLesson.create!(script.merge(slug: "zz-tour-#{n}", course_code: "TOUR", lesson_number: n, title: "Made up: tour #{n}")) }
+    user = users(:two)
+    at = Time.current
+    place = lambda do |lesson, minutes, step: 1, done: false|
+      record = ClassProgress.find_or_initialize_by(user: user, class_lesson: lesson)
+      record.update!(step_index: done ? lesson.steps.size : step, completed_at: (at + minutes.minutes if done), updated_at: at + minutes.minutes)
+    end
+
+    # Only tours so far: a tour partway is the class they're in, and a finished one leads to the next tour.
+    place.call(tours[0], 1)
+    assert_equal tours[0], ClassLesson.current_for(user)
+    place.call(tours[0], 2, done: true)
+    assert_equal tours[1], ClassLesson.current_for(user)
+
+    # A real class in progress. The finished tour no longer leads anywhere.
+    place.call(@one, 3)
+    assert_equal @one, ClassLesson.current_for(user)
+
+    # They dip into a tour: while it is partway and the newest thing, it is where they are.
+    place.call(tours[1], 4)
+    assert_equal tours[1], ClassLesson.current_for(user)
+    # Finishing that tour goes back to the course, not on to the next tour.
+    place.call(tours[1], 5, done: true)
+    assert_equal @one, ClassLesson.current_for(user)
+
+    # A tour left partway long ago doesn't outrank the course once the course is worked in again.
+    place.call(tours[2], 6)
+    place.call(@one, 7, step: 2)
+    assert_equal @one, ClassLesson.current_for(user)
+
+    # Finishing a class leads to the next class in that course, with five tours still unfinished.
+    place.call(@one, 8, done: true)
+    assert_equal @two, ClassLesson.current_for(user)
+    place.call(@two, 9, done: true)
+    assert_nil ClassLesson.current_for(user) # the course is finished; old tours don't fill the gap
+    place.call(tours[3], 10)
+    assert_equal tours[3], ClassLesson.current_for(user) # unless they are in one right now
+
+    sign_in_as user
+    get class_lesson_path(@one)
+    assert_select "dialog .course-pick.is-current h3", text: "Intro to Programming in Ruby" # marked by the class on screen
+  end
+
+  test "a transcript course in progress wins over finished tours" do
+    lessons_for_everyone
+    tour2 = ClassLesson.create!(script.merge(slug: "zz-tour-2", course_code: "TOUR", lesson_number: 2))
+    TranscriptImport.call(file_fixture("transcript.md").read, user: users(:one))
+    users(:one).course_records.find_by(code: "CS 101").update!(lessons_done: 1)
+    ClassProgress.create!(user: users(:one), class_lesson: @tour, step_index: @tour.steps.size, completed_at: Time.current)
+    assert_equal @two, ClassLesson.current_for(users(:one))
+    assert_not_equal tour2, ClassLesson.current_for(users(:one))
+  end
+
+  test "the tutor never helps pick a quick-question answer" do
+    lessons_for_everyone
+    user = users(:two)
+    quiz_at = @one.steps.index { |s| s["kind"] == "quiz" }
+    progress = ClassProgress.create!(user: user, class_lesson: @one, step_index: quiz_at)
+    prompt = Tutor.new(class_lesson: @one, user: user).send(:system_prompt)
+    assert_includes prompt, "Step #{quiz_at + 1} (quiz):"
+    assert_match(/Never say which option is right, never rule an option out, and never confirm or\s+deny a guess/, prompt)
+    assert_includes prompt, "The student is on a quick question right now. Do not help them choose an answer."
+    assert_not_includes prompt, "SECRET-RIGHT"
+    assert_not_includes prompt, "Wrong answer" # the options themselves aren't sent
+
+    # The standing rule is there on every step; the "right now" line only on the question itself.
+    progress.update!(step_index: quiz_at + 1)
+    prompt = Tutor.new(class_lesson: @one, user: user).send(:system_prompt)
+    assert_includes prompt, "Never say which option is right"
+    assert_not_includes prompt, "on a quick question right now"
+  end
+
+  test "on homework the tutor knows the task, that the professor grades it, and keeps a separate conversation" do
+    lessons_for_everyone
+    @one.update!(homework: @one.homework + [ @one.homework.first.merge("text" => "Second task, held back.") ])
+    user = users(:two)
+    sign_in_as user
+    finish @one
+
+    get homework_class_lesson_path(@one)
+    with_tutor_key do
+      get homework_class_lesson_path(@one)
+      assert_select "aside#class-tutor input[type=hidden][name='tutor_message[homework]'][value='1']"
+      assert_select "aside#class-tutor .msg-assistant", text: /Stuck on the homework\?.*I grade what you hand in/m
+      get class_lesson_path(@one)
+      assert_select "aside#class-tutor input[type=hidden][name='tutor_message[homework]'][value='0']"
+    end
+
+    post class_lesson_tutor_messages_path(@one), params: { tutor_message: { content: "A class question" } }, as: :turbo_stream
+    post class_lesson_tutor_messages_path(@one), params: { tutor_message: { content: "A homework question", homework: "1" } }, as: :turbo_stream
+    perform_enqueued_jobs
+    homework_reply = TutorMessage.where(role: "assistant", homework: true).last
+    assert homework_reply
+
+    tutor = Tutor.for(homework_reply)
+    prompt = tutor.send(:system_prompt)
+    assert_includes prompt, "is now doing its homework, on task 1 of 2:\nSet x."
+    assert_includes prompt, "The task's own hints, in order: A hint."
+    assert_includes prompt, "graded by the professor in class"
+    assert_includes prompt, "never\nwrite any part of the homework answer"
+    assert_not_includes prompt, "Second task, held back."
+    assert_equal [ "A homework question" ], tutor.send(:history).select { |m| m[:role] == :user }.map { |m| m[:content] }
+    assert_not_includes Tutor.for(TutorMessage.where(role: "assistant", homework: false).last).send(:system_prompt), "doing its homework"
+
+    # Each page shows its own conversation.
+    get homework_class_lesson_path(@one)
+    assert_select "aside#class-tutor .msg-user", text: /A homework question/, count: 1
+    assert_select "aside#class-tutor .msg-user", text: /A class question/, count: 0
+
+    # After a task is handed in the tutor is told about the next one, and when all are in, that the work is locked.
+    post homework_class_lesson_path(@one), params: { task_index: 0, work: "x = 5" }, as: :json
+    assert_includes tutor.send(:system_prompt), "on task 2 of 2:\nSecond task, held back."
+    post homework_class_lesson_path(@one), params: { task_index: 1, work: "x = 5" }, as: :json
+    assert_includes tutor.send(:system_prompt), "handed in all 2 homework tasks. Handed-in work is locked"
+
+    # A student who hasn't finished the class can't open a homework conversation.
+    sign_in_as users(:one)
+    post class_lesson_tutor_messages_path(@one), params: { tutor_message: { content: "Sneaky", homework: "1" } }, as: :turbo_stream
+    assert_not TutorMessage.find_by(content: "Sneaky").homework?
+  end
+
   test "a tutor message belongs to one lesson, and goes when its class lesson goes" do
     lessons_for_everyone
     user = users(:two)
