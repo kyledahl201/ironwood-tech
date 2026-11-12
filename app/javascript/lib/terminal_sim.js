@@ -328,14 +328,31 @@ const GIT = {
     return ""
   },
 
-  rm(args, { root, repo }) {
+  rm(args, { root, repo, files, tree }) {
     const targets = plain(args).filter(a => !a.startsWith("--"))
     if (!targets.length) return "usage: git rm file_name"
-    for (const item of targets) {
-      const rel = this.resolve(item).slice(root.length + 1)
-      if (!(rel in repo.index)) return `fatal: pathspec '${item}' did not match any files`
+    const cached = args.includes("--cached"), force = args.some(a => a === "--force" || /^-[a-zA-Z]*f/.test(a))
+    const rels = targets.map(item => this.resolve(item).slice(root.length + 1))
+    const missing = targets.find((_, i) => !(rels[i] in repo.index))
+    if (missing) return `fatal: pathspec '${missing}' did not match any files`
+    // Like git, never throw away work that no commit holds: refuse first, before touching anything.
+    if (!force) {
+      const edited = rels.filter(f => f in files && files[f] !== repo.index[f])
+      const staged = rels.filter(f => repo.index[f] !== tree[f])
+      const list = found => found.map(f => `    ${f}`).join("\n")
+      const many = found => found.length > 1 ? "the following files have" : "the following file has"
+      if (cached) {
+        const both = edited.filter(f => staged.includes(f))
+        if (both.length) return `error: ${many(both)} staged content different from both the\nfile and the HEAD:\n${list(both)}\n(use -f to force removal)`
+      } else {
+        if (edited.length) return `error: ${many(edited)} local modifications:\n${list(edited)}\n(use --cached to keep the file, or -f to force removal)`
+        if (staged.length) return `error: ${many(staged)} changes staged in the index:\n${list(staged)}\n(use --cached to keep the file, or -f to force removal)`
+      }
+    }
+    for (const [i, item] of targets.entries()) {
+      const rel = rels[i]
       delete repo.index[rel]
-      if (!args.includes("--cached") && this.isFile(item)) { const { dir: folder, name } = this.parent(item); delete folder.children[name] }
+      if (!cached && this.isFile(item)) { const { dir: folder, name } = this.parent(item); delete folder.children[name] }
     }
     return targets.map(f => `rm '${f}'`).join("\n")
   },

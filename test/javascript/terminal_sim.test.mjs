@@ -300,3 +300,28 @@ test("practice git: git rm --cached unstages a new file without deleting it", as
   assert.equal(await run(sim, "cat a.txt"), "a")
   assert.match(await run(sim, "git status"), /Untracked files:[\s\S]*\ta\.txt/)
 })
+
+test("practice git: git rm refuses to throw away work that no commit holds", async () => {
+  const sim = await project()
+  await run(sim, "echo more >> README.md")
+  // Edited since the last add: refused, and both the file and the index are untouched.
+  assert.equal(await run(sim, "git rm README.md"), "error: the following file has local modifications:\n    README.md\n(use --cached to keep the file, or -f to force removal)")
+  assert.equal(await run(sim, "cat README.md"), "# Site\nmore")
+  assert.match(await run(sim, "git status"), /Changes not staged for commit:[\s\S]*modified:   README\.md/)
+  // Staged but not committed: refused too.
+  await run(sim, "git add README.md")
+  assert.equal(await run(sim, "git rm README.md"), "error: the following file has changes staged in the index:\n    README.md\n(use --cached to keep the file, or -f to force removal)")
+  assert.equal(await run(sim, "cat README.md"), "# Site\nmore")
+  // --cached keeps the file; the edits are still on disk.
+  assert.equal(await run(sim, "git rm --cached README.md"), "rm 'README.md'")
+  assert.equal(await run(sim, "cat README.md"), "# Site\nmore")
+  // -f is the student saying they mean it.
+  await run(sim, "git add README.md", "echo again >> README.md")
+  assert.match(await run(sim, "git rm --cached README.md"), /^error: the following file has staged content different from both the\nfile and the HEAD:\n    README\.md\n\(use -f to force removal\)$/)
+  assert.equal(await run(sim, "git rm -f README.md"), "rm 'README.md'")
+  assert.match(await run(sim, "cat README.md"), /No such file/)
+  // One bad file in a list stops the whole command.
+  await run(sim, "git restore --staged README.md", "git restore README.md", "echo a > a.txt", "git add a.txt", "git commit -m a", "echo b >> a.txt")
+  assert.match(await run(sim, "git rm README.md a.txt"), /local modifications:\n    a\.txt/)
+  assert.equal(await run(sim, "cat README.md"), "# Site")
+})
