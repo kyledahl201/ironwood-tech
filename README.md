@@ -41,6 +41,8 @@ bin/dev                       # http://localhost:3000
 The seed creates an owner account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, or prints a random password if you don't set one. Optional settings:
 
 - `ANTHROPIC_API_KEY` turns on the tutor. Without it, the tutor saves the question and replies that it's offline.
+- `TUTOR_MODEL` picks the tutor's model: `claude-sonnet-5-5` (the default, cheaper) or `claude-opus-5-5`. Any other value uses the default.
+- `TUTOR_DAILY_CAP` is how many questions a student may ask per course per day (default 40).
 - `APP_TIME_ZONE` sets the day boundary for streaks (default Central Time).
 - `RUBY_WASM_URL` overrides where the code lab loads Ruby from.
 

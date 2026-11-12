@@ -3,12 +3,21 @@
 # It answers on a reading lesson (a Course and one of its lessons) and in the
 # classroom (a ClassLesson and the step the student is on).
 class Tutor
-  MODEL = :"claude-opus-5-5"
+  # The models the tutor may run on, cheapest first. TUTOR_MODEL picks one;
+  # anything else falls back to the default, so a typo can't take the tutor down
+  # or point it at a model whose request shape this code hasn't been checked on.
+  MODELS = %w[claude-sonnet-5-5 claude-opus-5-5].freeze
+  DEFAULT_MODEL = MODELS.first
   HISTORY_LIMIT = 20
   OFFLINE = "The tutor is offline right now, so your question is saved. " \
             "Keep working through the lesson, and ask again in a little while.".freeze
 
   def self.enabled? = ENV["ANTHROPIC_API_KEY"].present?
+
+  def self.model
+    chosen = ENV["TUTOR_MODEL"].to_s.strip
+    MODELS.include?(chosen) ? chosen : DEFAULT_MODEL
+  end
 
   # Daily question cap per student and course, to bound API spend.
   def self.daily_cap(_course = nil) = ENV.fetch("TUTOR_DAILY_CAP", 40).to_i
@@ -32,7 +41,7 @@ class Tutor
     return OFFLINE unless self.class.enabled?
 
     message = client.messages.create(
-      model: MODEL,
+      model: self.class.model,
       max_tokens: 4_000,
       thinking: { type: "adaptive" },
       output_config: { effort: "low" },
