@@ -6,13 +6,20 @@ class ClassLessonsController < ApplicationController
   before_action :require_finished_class, only: %i[homework hand_in]
   rate_limit to: 120, within: 1.minute, by: -> { current_user.id }, with: -> { head :too_many_requests }, only: %i[progress quiz hand_in sort_card restart_study]
 
+  # The Classroom tab opens the class the student is in. A student who hasn't
+  # begun (or has nothing left open) gets a welcome with one class to start
+  # and the full course list. ?pick=1 always shows that page.
   def index
-    @lessons = ClassLesson.ordered.to_a
-    @progress = current_user.class_progresses.index_by(&:class_lesson_id)
-    @next = ClassLesson.next_for(current_user)
-    @handed_in = current_user.homework_submissions.group(:class_lesson_id).count
-    @studied = current_user.study_records.includes(:class_lesson).index_by(&:class_lesson_id)
-    @kits = TutorKit.all.index_by(&:course_code)
+    current = ClassLesson.current_for(current_user)
+    if current && params[:pick].blank?
+      flash.keep
+      return redirect_to class_lesson_path(current)
+    end
+    @entries = Catalog.new(current_user).entries
+    @begun = current_user.class_progresses.any? { |p| p.completed? || p.step_index.positive? }
+    @current = current
+    @recommended = current || ClassLesson.find_by(course_code: ClassLesson::TOUR, lesson_number: 1) || ClassLesson.next_for(current_user)
+    @recommended = nil if @recommended&.completed_by?(current_user)
   end
 
   def show
@@ -20,6 +27,7 @@ class ClassLessonsController < ApplicationController
     @steps = @lesson.steps
     @index = progress.step_index
     @tools = VisualizersController::TOOLS
+    classroom_extras
   end
 
   # Study guide, flashcards and (once class is finished) the quiz again.
@@ -39,6 +47,7 @@ class ClassLessonsController < ApplicationController
     @steps = @lesson.homework
     @index = [ @lesson.homework_submissions.where(user: current_user).count, @steps.size ].min
     @tools = VisualizersController::TOOLS
+    classroom_extras
     render :show
   end
 
@@ -118,6 +127,14 @@ class ClassLessonsController < ApplicationController
   end
 
   private
+    # The course list behind "Switch class", and the chat with the professor.
+    def classroom_extras
+      catalog = Catalog.new(current_user)
+      @entries = catalog.entries
+      @entry = catalog.for_code(@lesson.course_code)
+      @messages = current_user.tutor_messages.where(class_lesson: @lesson).chronological.last(40)
+    end
+
     def study_record = @lesson.study_records.find_or_create_by!(user: current_user)
 
     def require_finished_class
@@ -132,7 +149,7 @@ class ClassLessonsController < ApplicationController
       @lesson = ClassLesson.find_by!(slug: params[:id])
       return if @lesson.unlocked_for?(current_user)
       respond_to do |format|
-        format.html { redirect_to class_lessons_path, alert: "That class opens when #{@lesson.course_code} lesson #{@lesson.lesson_number - 1} is finished." }
+        format.html { redirect_to (@lesson.lesson_number > 1 && Catalog.new(current_user).for_code(@lesson.course_code)&.then { |e| course_path(e) }) || class_lessons_path(pick: 1), alert: "That class opens when #{@lesson.course_code} lesson #{@lesson.lesson_number - 1} is finished." }
         format.json { head :forbidden }
       end
     end

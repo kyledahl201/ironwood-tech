@@ -26,6 +26,7 @@ class ClassLesson < ApplicationRecord
   has_many :class_progresses, dependent: :destroy
   has_many :homework_submissions, dependent: :destroy
   has_many :study_records, dependent: :destroy
+  has_many :tutor_messages, dependent: :destroy
 
   validates :slug, :course_code, :lesson_number, :title, presence: true
   validates :slug, uniqueness: true, format: { with: /\A[a-z0-9-]+\z/ }
@@ -58,6 +59,22 @@ class ClassLesson < ApplicationRecord
     open = ordered.reject { |l| done.include?(l.id) || l.tour? || l.lesson_number <= taught.fetch(l.course_code, 0) || !l.unlocked_for?(user) }
     open = open.select { |l| codes.include?(l.course_code) } if codes.any? # Today never points a student at a course they aren't taking yet
     open.min_by { |l| [ codes.index(l.course_code) || codes.size, l.course_code, l.lesson_number ] }
+  end
+
+  # The class a student is in right now, which is what the Classroom tab opens:
+  # the one they last worked in and haven't finished, else the next class of
+  # the course they last finished a class in, else the next class of a course
+  # their transcript says they are taking. nil for a student who hasn't begun.
+  def self.current_for(user)
+    progresses = user.class_progresses.includes(:class_lesson).order(updated_at: :desc).to_a
+    started = progresses.find { |p| !p.completed? && p.step_index.positive? }
+    return started.class_lesson if started
+    done = progresses.select(&:completed?).map(&:class_lesson_id).to_set
+    if (last = progresses.select(&:completed?).max_by(&:completed_at)&.class_lesson)
+      upcoming = where(course_code: last.course_code).order(:lesson_number).find { |l| !done.include?(l.id) && l.unlocked_for?(user) }
+      return upcoming if upcoming
+    end
+    user.course_records.any?(&:in_progress?) ? next_for(user) : nil
   end
 
   # Finished classes whose homework isn't all handed in yet, oldest first.

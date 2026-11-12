@@ -1,7 +1,7 @@
 <% page_title "#{'Homework: ' if @homework}#{@lesson.tour? ? '' : "#{@lesson.course_code} L#{@lesson.lesson_number}: "}#{@lesson.title}" %>
 <% professor = @lesson.professor.presence || "Your professor" %>
 <% default_mode = @steps.find { |s| s["mode"] }&.fetch("mode") || "terminal" %>
-<div class="classroom" data-controller="classroom pulse" data-pulse-url-value="<%= portal_pulse_path %>" data-pulse-course-value="<%= @lesson.course_code %>" data-pulse-activity-value="<%= @homework ? "homework" : "class" %>"
+<div class="classroom" data-controller="classroom pulse course-dialog" data-action="keydown@window->classroom#tutorKey" data-pulse-url-value="<%= portal_pulse_path %>" data-pulse-course-value="<%= @lesson.course_code %>" data-pulse-activity-value="<%= @homework ? "homework" : "class" %>"
      data-classroom-slug-value="<%= @lesson.slug %>"
      data-classroom-steps-value="<%= @steps.map { |s| s.slice("kind", "mode", "visual", "starter", "hints").merge("checks" => Array(s["checks"]).map { |c| c.slice("type", "call", "expected", "label") }) }.to_json %>"
      data-classroom-index-value="<%= @index %>"
@@ -19,12 +19,16 @@
      data-classroom-pass-lines-value="<%= SentryLines::PASS.to_json %>">
 
   <header class="class-bar">
-    <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path %></li><% unless @lesson.tour? %><li><%= @lesson.course_code %> · Lesson <%= @lesson.lesson_number %></li><% end %></ol></nav>
+    <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path(pick: 1) %></li><% if @entry %><li><%= link_to (@lesson.tour? ? "Start here" : @lesson.course_code), course_path(@entry) %></li><% end %><% unless @lesson.tour? %><li>Lesson <%= @lesson.lesson_number %></li><% end %></ol></nav>
     <h1 class="class-title"><%= "Homework: " if @homework %><%= @lesson.title %></h1>
     <p class="class-prof"><%= professor %> <span class="muted">(AI tutor)</span> <span class="class-logged muted" data-pulse-target="today">· Your time here is logged by itself</span></p>
     <div class="class-meter" aria-label="Lesson progress">
       <div class="progress"><span data-classroom-target="meter" style="width:0%"></span></div>
       <span class="small" data-classroom-target="counter" aria-live="polite"><%= @homework ? "Task" : "Step" %> 1 of <%= @steps.size %></span>
+    </div>
+    <div class="class-tools">
+      <button type="button" class="btn btn-small btn-outline" data-action="classroom#toggleTutor" data-classroom-target="tutorButton" aria-expanded="false" aria-controls="class-tutor">Ask <%= professor %></button>
+      <%= link_to "Switch class", class_lessons_path(pick: 1), class: "btn btn-small btn-outline", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %>
     </div>
   </header>
 
@@ -95,6 +99,43 @@
       </div>
     </div>
   </section>
+
+  <%# The professor, in the room. A question goes to the AI tutor with the lesson so far and,
+      if the student leaves the box ticked, their own work and what the checks said. %>
+  <aside class="tutor class-tutor" id="class-tutor" data-classroom-target="tutor" aria-label="Ask <%= professor %>" hidden>
+    <div class="tutor-head">
+      <div class="class-tutor-top"><strong><%= professor %></strong><button type="button" class="link-button light" data-action="classroom#toggleTutor">Close</button></div>
+      <p>AI tutor, not a person. Can make mistakes; check important answers. Never paste passwords, API keys or private data.</p>
+    </div>
+    <div class="tutor-log" id="tutor-log" aria-live="polite">
+      <div class="msg msg-assistant"><div class="msg-who"><%= professor %></div><p>Stuck, or curious about something in this class? Ask me here. I'll give you a hint or explain the idea, and you'll write the code yourself.</p></div>
+      <%= render partial: "learn/tutor_messages/tutor_message", collection: @messages, as: :tutor_message %>
+    </div>
+    <%= turbo_stream_from current_user, @lesson %>
+    <% if Tutor.enabled? %>
+      <%= form_with model: TutorMessage.new, url: class_lesson_tutor_messages_path(@lesson), id: "tutor-form", data: { controller: "tutor", action: "submit->classroom#attachWork turbo:submit-end->tutor#reset" } do |f| %>
+        <p class="tutor-alert" id="tutor-alert" role="alert"></p>
+        <%= f.label :content, "Ask #{professor}", class: "visually-hidden", for: "tutor-input" %>
+        <%= f.text_area :content, required: true, maxlength: 8000, placeholder: "Ask a question about this step…", id: "tutor-input" %>
+        <%= f.hidden_field :context, id: "tutor-context", data: { classroom_target: "tutorContext" } %>
+        <label class="tutor-send-work small"><input type="checkbox" checked data-classroom-target="tutorSendWork"><span>Send my workbench with it <span class="muted">(this task, what I typed and what the checks said)</span></span></label>
+        <div class="quick">
+          <button type="submit" name="tutor_message[content]" value="I'm stuck on this step. Can I have a hint?" formnovalidate>Hint</button>
+          <button type="submit" name="tutor_message[content]" value="Can you explain this step another way?" formnovalidate>Explain it another way</button>
+          <button type="submit" name="tutor_message[content]" value="Why didn't my last try pass?" formnovalidate>Why didn't that pass?</button>
+        </div>
+        <%= f.submit "Send", class: "btn btn-primary" %>
+        <p class="small muted" style="margin:0">Up to <%= Tutor.daily_cap %> questions a day in this course.</p>
+      <% end %>
+    <% else %>
+      <div class="tutor-off">
+        <p><strong>The live tutor isn't switched on yet.</strong> The school hasn't connected it, so questions can't be answered here today.</p>
+        <p class="small">Until then, press <strong>Copy for my tutor</strong> in the workbench and paste it into a chat with your professor.</p>
+      </div>
+    <% end %>
+  </aside>
+
+  <%= render "courses/dialog", entries: @entries, current_code: @lesson.course_code %>
 
   <%# One template per step. The classroom script shows them one at a time. %>
   <% @steps.each_with_index do |step, i| %>

@@ -45,6 +45,7 @@ Rails.application.routes.draw do
       get :homework
       post :homework, action: :hand_in
     end
+    resources :tutor_messages, only: :create, path: "tutor", controller: "class_tutor_messages"
   end
 
   # Code lab and visualizers

@@ -1,12 +1,12 @@
 <% page_title "Courses" %>
 <header class="page-head"><div class="wrap"><p class="eyebrow">Catalog</p><h1>Courses</h1>
-  <p class="lede">Project-first courses with an AI tutor. You type the code yourself; the tutor guides one step at a time. Each course lists its hours and the rubric your work is reviewed against.</p>
+  <p class="lede">Every course at <%= brand.name %>, in one list. Press Details to see what a course covers, or Start to open it in the classroom.</p>
 </div></header>
 <section class="section"><div class="wrap">
-  <% if @courses.any? %>
-    <ul class="card-grid"><%= render partial: "courses/card", collection: @courses, as: :course %></ul>
+  <% if @entries.any? %>
+    <%= render "courses/list", entries: @entries %>
   <% else %>
-    <p class="muted">No online courses are published yet. Your classes with the faculty are on <%= link_to "Today", portal_path %>.</p>
+    <p class="muted">No courses are published yet. The faculty are writing them.</p>
   <% end %>
   <p class="muted small" style="margin-top:24px">Finishing a course earns a certificate of completion. It records what you did. It is not academic credit or a degree.</p>
 </div></section>

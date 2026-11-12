@@ -35,7 +35,8 @@ const isEditor = mode => TOOLS[mode]?.kind === "editor"
 
 export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
-                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead", "flipButton", "notes"]
+                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead", "flipButton", "notes",
+                    "tutor", "tutorButton", "tutorContext", "tutorSendWork"]
   static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
                     progressUrl: String, quizUrl: String, runtimes: Object, about: String,
                     firstTryLine: String, passLines: Array }
@@ -411,15 +412,15 @@ export default class extends Controller {
   // Copies where the student is, the task, their work and the checks, to paste
   // into a chat with their professor (the Dean's thread, or their own Claude
   // project set up from a course's tutor kit).
-  async copyForTutor(event) {
-    const button = event.currentTarget
+  // Where the student is, the task, their own work and what the checks said.
+  tutorNote() {
     const step = this.step
     const article = this.article
     const mode = this.mode
     const tool = TOOLS[mode]
     const task = step && !["teach", "show"].includes(step.kind)
     const select = this.modeTarget
-    const note = buildTutorNote({
+    return { tool, note: buildTutorNote({
       about: this.aboutValue,
       place: step ? `${this.homeworkValue ? "Homework task" : "Step"} ${this.current + 1} of ${this.steps.length}` : (this.homeworkValue ? "Homework handed in" : "Class finished"),
       task: article?.querySelector(".step-text")?.innerText,
@@ -432,7 +433,39 @@ export default class extends Controller {
       checks: task ? [...article.querySelectorAll("[data-role=chips] .chip")].map(chip => ({
         label: chip.querySelector(".chip-label").textContent, ok: chip.classList.contains("is-pass"), detail: chip.querySelector(".chip-detail")?.textContent })) : [],
       hints: this.attempt.hints
-    })
+    }) }
+  }
+
+  // The professor's chat, beside the class on a wide screen and over it on a phone.
+  toggleTutor() {
+    const open = this.tutorTarget.hidden
+    this.tutorTarget.hidden = !open
+    this.element.classList.toggle("has-tutor", open)
+    this.tutorButtonTarget.setAttribute("aria-expanded", open)
+    if (open) {
+      const log = this.tutorTarget.querySelector(".tutor-log")
+      log.scrollTop = log.scrollHeight
+      ;(this.tutorTarget.querySelector("textarea") || this.tutorTarget.querySelector("button")).focus({ preventScroll: true })
+    } else {
+      this.tutorButtonTarget.focus({ preventScroll: true })
+    }
+    this.editor?.view?.requestMeasure?.()
+  }
+
+  tutorKey(event) {
+    // Escape closes the chat, unless a list drawn over the page is the thing being closed.
+    if (event.key === "Escape" && !this.tutorTarget.hidden && !document.querySelector("dialog[open]")) this.toggleTutor()
+  }
+
+  // A question goes with the student's workbench unless they untick the box.
+  attachWork() {
+    document.getElementById("tutor-alert").textContent = ""
+    this.tutorContextTarget.value = this.tutorSendWorkTarget.checked ? this.tutorNote().note.replace(/\n\nMy question: $/, "") : ""
+  }
+
+  async copyForTutor(event) {
+    const button = event.currentTarget
+    const { tool, note } = this.tutorNote()
     try {
       await navigator.clipboard.writeText(note)
       toast("Copied. Paste it into a chat with your professor and add your question.", { sentry: false })

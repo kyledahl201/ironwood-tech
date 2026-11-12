@@ -1,54 +1,36 @@
 <% page_title "Classroom" %>
-<header class="page-head lab-head"><div class="wrap"><p class="eyebrow">Classroom</p><h1>Take class right here</h1>
-  <p class="lede">Your professor teaches one step at a time, and you do the work in the bench underneath: a practice Terminal, plus a console and an editor for Ruby and for Python. Each class opens when the one before it is finished.</p>
-  <% if @next %><p><%= link_to "#{@progress[@next.id]&.step_index.to_i.positive? ? 'Resume' : 'Start'} #{@next.course_code} lesson #{@next.lesson_number}", class_lesson_path(@next), class: "btn btn-copper btn-lg" %></p><% end %>
-</div></header>
-<section class="section"><div class="wrap">
-  <% if @lessons.empty? %><p class="muted">No classes yet. The faculty are writing them.</p><% end %>
-  <% @lessons.sort_by { |l| [ l.tour? ? 0 : 1, l.course_code, l.lesson_number ] }.group_by(&:course_code).each do |code, list| %>
-    <h2 class="lab-course"><%= list.first.tour? ? "Start here" : code %></h2>
-    <% if (kit = @kits[code]) %>
-      <details class="kit panel">
-        <summary><strong>Tutor kit:</strong> set up <%= list.first.professor %> in your own Claude project</summary>
-        <p>This course's professor coaches you in a Claude project of your own. You need a Claude Pro account. The kit is <%= pluralize(kit.files.size, "small text file") %>: who the professor is, the rules, the syllabus and the rubrics. It holds no answers.</p>
-        <ol>
-          <li>Download the kit and unzip it.</li>
-          <li>In Claude, make a new project. Paste <code>PROJECT-INSTRUCTIONS.md</code> into the project's instructions, and add the other files to the project.</li>
-          <li>In class, press <strong>Copy for my tutor</strong> in the workbench, then paste it into a chat in that project and ask your question.</li>
-        </ol>
-        <p><%= link_to "Download the tutor kit", tutor_kit_path(kit.slug), class: "btn btn-copper", data: { turbo: false } %> <span class="small muted">README.md inside has the full steps.</span></p>
-        <p class="small">Or one file at a time, for when a new week's notes are added: <% kit.names.each do |name| %><%= link_to name, tutor_kit_file_path(kit.slug, name), data: { turbo: false } %><%= " · " unless name == kit.names.last %><% end %></p>
-        <p class="small muted">The professor in your Claude project is an AI tutor persona. It can't see the portal, so it only knows what you paste. The portal's checks stay the record of your work.</p>
-      </details>
+<div data-controller="course-dialog">
+  <header class="page-head lab-head"><div class="wrap">
+    <p class="eyebrow">Classroom</p>
+    <% if @begun %>
+      <h1><%= @current ? "Pick a class" : "You're caught up, #{current_user.first_name}" %></h1>
+      <p class="lede"><%= @current ? "You're in a class right now. Carry on with it, or open a different course." : "Every class open to you is finished. Open a course to go through a class again, or start a new one." %></p>
+    <% else %>
+      <h1>Welcome to the classroom, <%= current_user.first_name %></h1>
+      <p class="lede">Class happens right here. Your professor teaches one step at a time, and you do the work in the workbench underneath. Nothing you type here touches your Mac.</p>
     <% end %>
-    <ol class="ex-list">
-      <% list.each do |lesson| %>
-        <% progress = @progress[lesson.id] %>
-        <% open = lesson.unlocked_for?(current_user) %>
-        <% state = progress&.completed? ? "is-passed" : (open ? "is-open" : "is-locked") %>
-        <li class="ex-row <%= state %>">
-          <span class="ex-state" aria-hidden="true"><%= progress&.completed? ? "✓" : (open ? "›" : "") %></span>
-          <div class="ex-body">
-            <% label = lesson.tour? ? lesson.title : "Lesson #{lesson.lesson_number}: #{lesson.title}" %>
-            <% if open %><%= link_to label, class_lesson_path(lesson), class: "ex-title" %><% else %><span class="ex-title"><%= label %></span><% end %>
-            <span class="muted small"><%= [ lesson.professor && "#{lesson.professor} (AI tutor)", lesson.minutes && "about #{lesson.minutes} min", "#{lesson.steps.size} steps" ].compact.join(" · ") %></span>
-            <% if open %>
-              <span class="lesson-links">
-                <%= link_to "Study guide and flashcards", study_class_lesson_path(lesson) %>
-                <% if (summary = @studied[lesson.id]&.summary).present? %><span class="muted"><%= summary %></span><% end %>
-                <% if progress&.completed? && lesson.homework.any? %>
-                  <% done = @handed_in[lesson.id].to_i %>
-                  <%= link_to (done >= lesson.homework.size ? "Homework handed in · awaiting review" : "Homework: #{done} of #{lesson.homework.size} handed in"), homework_class_lesson_path(lesson) %>
-                <% end %>
-              </span>
-            <% end %>
-          </div>
-          <span class="ex-tag small">
-            <% if progress&.completed? %>Finished<% elsif progress && progress.step_index.positive? %>Step <%= progress.step_index + 1 %> of <%= lesson.steps.size %><% elsif open %>Open<% else %>Opens after lesson <%= lesson.lesson_number - 1 %><% end %>
-          </span>
-        </li>
-      <% end %>
-    </ol>
-  <% end %>
-  <p class="small muted" style="margin-top:24px">Checks in the classroom run in your browser, so they are self-checked practice. Your professors give the grades.</p>
-</div></section>
+  </div></header>
+  <section class="section"><div class="wrap welcome">
+    <% if @recommended %>
+      <% entry = @entries.find { |e| e.code == @recommended.course_code } %>
+      <article class="welcome-first">
+        <p class="eyebrow"><%= @current ? "Your class" : (@begun ? "A good next class" : "A good first class") %></p>
+        <h2><%= @recommended.title %></h2>
+        <p><%= @recommended.tour? ? "A short tour with Sentry, the school's lookout. You'll run a few commands in the practice Terminal and see how steps, checks and hints work." : entry&.tagline %></p>
+        <p class="meta"><%= [ (@recommended.tour? ? nil : "#{@recommended.course_code} · Lesson #{@recommended.lesson_number}"), (@recommended.professor && "#{@recommended.professor} (AI tutor)"), (@recommended.minutes && "about #{@recommended.minutes} minutes"), "#{@recommended.steps.size} steps" ].compact.join(" · ") %></p>
+        <p class="actions">
+          <%= link_to (@current ? "Resume class" : "Start this class"), class_lesson_path(@recommended), class: "btn btn-copper btn-lg" %>
+          <%= link_to "Show full course list", courses_path, class: "btn btn-outline btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %>
+        </p>
+      </article>
+    <% else %>
+      <p class="actions"><%= link_to "Show full course list", courses_path, class: "btn btn-copper btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %></p>
+    <% end %>
+    <% if @begun %>
+      <h2 class="welcome-list-head">All courses</h2>
+      <%= render "courses/list", entries: @entries, current_code: @current&.course_code, prefix: "page" %>
+    <% end %>
+    <p class="small muted" style="margin-top:24px">Checks in the classroom run in your browser, so they are self-checked practice. Your professors give the grades. Professors here are AI tutor personas, not people.</p>
+  </div></section>
+  <%= render "courses/dialog", entries: @entries, current_code: @current&.course_code %>
+</div>

@@ -1,13 +1,20 @@
+# The course list: every course, what it covers, and a button into it.
 class CoursesController < ApplicationController
   def index
-    @courses = Course.published.includes(:lessons)
-    @enrollments = current_user.enrollments.includes(:lesson_completions).index_by(&:course_id)
+    @entries = Catalog.new(current_user).entries
   end
 
   def show
-    @course = Course.published.find_by!(slug: params[:id])
-    @lessons = @course.lessons
-    @enrollment = current_user.enrollments.includes(:lesson_completions).find_by(course: @course)
+    @entry = Catalog.new(current_user).find(params[:id]) or raise ActiveRecord::RecordNotFound
+    @course = @entry.course
+    @lessons = @course&.lessons || []
+    @enrollment = @entry.enrollment
+    return unless @entry.classroom?
+    ids = @entry.lessons.map(&:id)
+    @progress = current_user.class_progresses.where(class_lesson_id: ids).index_by(&:class_lesson_id)
+    @handed_in = current_user.homework_submissions.where(class_lesson_id: ids).group(:class_lesson_id).count
+    @studied = current_user.study_records.where(class_lesson_id: ids).index_by(&:class_lesson_id)
+    @kit = TutorKit.for(@entry.code)
   end
 
   def rubric

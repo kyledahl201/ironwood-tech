@@ -1,50 +1,102 @@
-<% page_title @course.title %>
-<% content_for :description, @course.tagline %>
+<% page_title @entry.title %>
+<% content_for :description, @entry.tagline %>
 <header class="page-head"><div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Courses", courses_path %></li><li aria-current="page"><%= @course.title %></li></ol></nav>
-  <p class="eyebrow"><%= @course.level %></p>
-  <h1><%= @course.title %></h1>
-  <p class="lede"><%= @course.tagline %></p>
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Courses", courses_path %></li><li aria-current="page"><%= @entry.title %></li></ol></nav>
+  <p class="eyebrow"><%= [ (@entry.code unless @entry.tour? || @entry.code.blank?), @entry.level ].compact.join(" · ") %></p>
+  <h1><%= @entry.title %></h1>
+  <p class="lede"><%= @entry.tagline %></p>
 </div></header>
 
 <section class="section"><div class="wrap course-layout">
   <div>
     <dl class="facts">
-      <dt>Level</dt><dd><%= @course.level %></dd>
-      <dt>Time</dt><dd><%= @course.hours %></dd>
-      <dt>Tutor</dt><dd><%= tutor_label(@course).upcase_first %></dd>
-          </dl>
+      <% if @entry.level.present? %><dt>Level</dt><dd><%= @entry.level %></dd><% end %>
+      <% if @entry.time.present? %><dt>Time</dt><dd><%= @entry.time %></dd><% end %>
+      <dt>Tutor</dt><dd><%= @course ? tutor_label(@course).upcase_first : "#{@entry.professor}, an AI tutor" %></dd>
+    </dl>
 
-    <% if @course.outcome_list.any? %>
+    <% if @entry.outcomes.any? %>
       <h2>What you'll be able to do</h2>
-      <ul class="prose"><% @course.outcome_list.each do |o| %><li><%= o %></li><% end %></ul>
+      <ul class="prose"><% @entry.outcomes.each do |o| %><li><%= o %></li><% end %></ul>
     <% end %>
 
-    <div class="prose"><%= markdown @course.description %></div>
-
-    <h2 style="margin-top:40px"><%= @course.lessons.size > 10 ? "The #{@course.lessons.size} weeks" : "Lessons" %></h2>
-    <ol class="syllabus">
-      <% @lessons.each do |lesson| %>
-        <li>
-          <span class="pos"><%= lesson.position %></span>
-          <% if @enrollment %><%= link_to lesson.title, learn_lesson_path(@course, lesson) %><% else %><span><%= lesson.title %></span><% end %>
-          <% if @enrollment&.completed?(lesson) %><span class="done">Done</span><% end %>
-        </li>
+    <% if @entry.classroom? %>
+      <h2 style="margin-top:40px"><%= @entry.tour? ? "The tours" : "Classes in the classroom" %></h2>
+      <ol class="ex-list">
+        <% @entry.lessons.each do |lesson| %>
+          <% progress = @progress[lesson.id] %>
+          <% open = @entry.open.include?(lesson.id) %>
+          <% state = progress&.completed? ? "is-passed" : (open ? "is-open" : "is-locked") %>
+          <li class="ex-row <%= state %>">
+            <span class="ex-state" aria-hidden="true"><%= progress&.completed? ? "✓" : (open ? "›" : "") %></span>
+            <div class="ex-body">
+              <% label = lesson.tour? ? lesson.title : "Lesson #{lesson.lesson_number}: #{lesson.title}" %>
+              <% if open %><%= link_to label, class_lesson_path(lesson), class: "ex-title" %><% else %><span class="ex-title"><%= label %></span><% end %>
+              <span class="muted small"><%= [ lesson.professor && "#{lesson.professor} (AI tutor)", lesson.minutes && "about #{lesson.minutes} min", "#{lesson.steps.size} steps" ].compact.join(" · ") %></span>
+              <% if open %>
+                <span class="lesson-links">
+                  <%= link_to "Study guide and flashcards", study_class_lesson_path(lesson) %>
+                  <% if (summary = @studied[lesson.id]&.summary).present? %><span class="muted"><%= summary %></span><% end %>
+                  <% if progress&.completed? && lesson.homework.any? %>
+                    <% done = @handed_in[lesson.id].to_i %>
+                    <%= link_to (done >= lesson.homework.size ? "Homework handed in · awaiting review" : "Homework: #{done} of #{lesson.homework.size} handed in"), homework_class_lesson_path(lesson) %>
+                  <% end %>
+                </span>
+              <% end %>
+            </div>
+            <span class="ex-tag small">
+              <% if progress&.completed? %>Finished<% elsif progress && progress.step_index.positive? %>Step <%= progress.step_index + 1 %> of <%= lesson.steps.size %><% elsif open %>Open<% else %>Opens after lesson <%= lesson.lesson_number - 1 %><% end %>
+            </span>
+          </li>
+        <% end %>
+      </ol>
+      <% if @kit %>
+        <details class="kit panel">
+          <summary><strong>Tutor kit:</strong> set up <%= @entry.professor %> in your own Claude project</summary>
+          <p>You can ask <%= @entry.professor %> a question inside any class. If you would rather have a longer conversation in a Claude project of your own, this kit sets one up. You need a Claude Pro account. The kit is <%= pluralize(@kit.files.size, "small text file") %>: who the professor is, the rules, the syllabus and the rubrics. It holds no answers.</p>
+          <ol>
+            <li>Download the kit and unzip it.</li>
+            <li>In Claude, make a new project. Paste <code>PROJECT-INSTRUCTIONS.md</code> into the project's instructions, and add the other files to the project.</li>
+            <li>In class, press <strong>Copy for my tutor</strong> in the workbench, then paste it into a chat in that project and ask your question.</li>
+          </ol>
+          <p><%= link_to "Download the tutor kit", tutor_kit_path(@kit.slug), class: "btn btn-copper", data: { turbo: false } %> <span class="small muted">README.md inside has the full steps.</span></p>
+          <p class="small">Or one file at a time, for when a new week's notes are added: <% @kit.names.each do |name| %><%= link_to name, tutor_kit_file_path(@kit.slug, name), data: { turbo: false } %><%= " · " unless name == @kit.names.last %><% end %></p>
+          <p class="small muted">The professor in your Claude project is an AI tutor persona. It can't see the portal, so it only knows what you paste. The portal's checks stay the record of your work.</p>
+        </details>
       <% end %>
-    </ol>
-    <p style="margin-top:16px"><%= link_to "Read the rubric your work is reviewed against", rubric_course_path(@course) %></p>
+    <% end %>
+
+    <% if @course&.description.present? %><div class="prose" style="margin-top:40px"><%= markdown @course.description %></div><% end %>
+
+    <% if @lessons.any? %>
+      <h2 style="margin-top:40px"><%= @entry.classroom? ? "Reading for each week" : (@lessons.size > 10 ? "The #{@lessons.size} weeks" : "Lessons") %></h2>
+      <% if @entry.classroom? %>
+        <p class="muted"><%= @enrollment ? "The written notes for each week, with the tutor beside them." : "The written notes for each week. Open the reading to see them." %></p>
+      <% end %>
+      <ol class="syllabus">
+        <% @lessons.each do |lesson| %>
+          <li>
+            <span class="pos"><%= lesson.position %></span>
+            <% if @enrollment %><%= link_to lesson.title, learn_lesson_path(@course, lesson) %><% else %><span><%= lesson.title %></span><% end %>
+            <% if @enrollment&.completed?(lesson) %><span class="done">Done</span><% end %>
+          </li>
+        <% end %>
+      </ol>
+      <% if @entry.classroom? && !@enrollment %><div style="margin-top:12px"><%= button_to "Open the reading", course_enrollment_path(@course), class: "btn btn-outline" %></div><% end %>
+      <p style="margin-top:16px"><%= link_to "Read the rubric your work is reviewed against", rubric_course_path(@course) %></p>
+    <% end %>
   </div>
 
   <aside class="buy-box" aria-label="Start">
-    <% if @enrollment %>
-      <p>You're in. <%= @enrollment.progress_percent %>% complete.</p>
-      <%= link_to (@enrollment.lesson_completions.empty? ? "Start lesson 1" : "Continue learning"), learn_lesson_path(@course, @enrollment.next_lesson || @lessons.first), class: "btn btn-copper" %>
+    <p><strong><%= @entry.status_line %></strong></p>
+    <% if @entry.classroom? %>
+      <p><%= @entry.tour? ? "#{@entry.next_lesson.title}." : "Lesson #{@entry.next_lesson.lesson_number}: #{@entry.next_lesson.title}." %> It opens in the classroom.</p>
     <% elsif @lessons.any? %>
       <p>Free, self-paced, with an AI tutor.</p>
-      <%= button_to "Start course", course_enrollment_path(@course), class: "btn btn-copper" %>
     <% else %>
       <p>Lessons are still being written.</p>
     <% end %>
+    <%= render "courses/launch", entry: @entry, size: "" %>
     <p class="small muted" style="margin-top:12px"><%= brand.disclosure %></p>
   </aside>
 </div></section>
