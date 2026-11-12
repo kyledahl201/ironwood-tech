@@ -14,6 +14,7 @@ Rails.application.routes.draw do
     resources :study_sessions, only: %i[index create destroy], path: "study-log"
     post "pulse", to: "pulses#create", as: :pulse
     resource :settings, only: :update
+    resource :account, only: %i[show update]
     resources :badges, only: :index
     post "eggs/:key", to: "eggs#create", as: :egg
     get "certificates/:course_id", to: "certificates#show", as: :certificate

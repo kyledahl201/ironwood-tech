@@ -29,8 +29,11 @@ Dir[Rails.root.join("db/seeds/lessons/*.md")].sort.each do |path|
 end
 
 # Owner account. In production set ADMIN_EMAIL, ADMIN_NAME and ADMIN_PASSWORD.
+# Made once: when an owner already exists it is left alone, so an owner who has
+# changed their email on the Account page doesn't get a second owner account
+# (with the password from the settings file) at the next start.
 admin_email = ENV.fetch("ADMIN_EMAIL", "owner@example.com")
-unless User.exists?(email_address: admin_email)
+unless User.admin.exists? || User.exists?(email_address: admin_email)
   password = ENV["ADMIN_PASSWORD"].presence || SecureRandom.base58(16)
   User.create!(name: ENV.fetch("ADMIN_NAME", "Kyle"), email_address: admin_email, password: password, role: :admin)
   puts "Created owner account #{admin_email}#{" with password #{password}" unless ENV['ADMIN_PASSWORD']}"
