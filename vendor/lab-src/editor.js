@@ -6,6 +6,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { StreamLanguage, HighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, indentUnit } from "@codemirror/language"
 import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 import { python } from "@codemirror/lang-python"
+import { html } from "@codemirror/lang-html"
 import { sqlite } from "@codemirror/legacy-modes/mode/sql"
 import { javascript } from "@codemirror/legacy-modes/mode/javascript"
 import { tags as t } from "@lezer/highlight"
@@ -29,13 +30,16 @@ const highlight = HighlightStyle.define([
   { tag: [t.keyword, t.controlKeyword, t.definitionKeyword, t.moduleKeyword, t.operatorKeyword], color: COPPER },
   { tag: [t.string, t.special(t.string), t.regexp], color: "#8FB3D9" },
   { tag: [t.number, t.bool, t.atom, t.null], color: "#A6C08F" },
+  { tag: [t.tagName, t.typeName], color: COPPER },
+  { tag: [t.attributeName, t.className, t.labelName], color: "#A6C08F" },
+  { tag: [t.angleBracket, t.documentMeta], color: "rgba(245,243,239,.55)" },
   { tag: t.comment, color: "rgba(245,243,239,.5)", fontStyle: "italic" },
   { tag: [t.variableName, t.propertyName, t.name], color: LINEN },
   { tag: [t.function(t.variableName), t.definition(t.variableName)], color: LINEN, fontWeight: "600" }
 ])
 
 export function createEditor(parent, { doc = "", language = "ruby", onRun = () => {}, onChange = () => {} } = {}) {
-  const lang = language === "python" ? python() : StreamLanguage.define({ sql: sqlite, javascript }[language] || ruby)
+  const lang = language === "python" ? python() : language === "html" ? html() : StreamLanguage.define({ sql: sqlite, javascript }[language] || ruby)
   const indent = language === "python" ? 4 : 2 // each language's own convention
   const runKeys = [
     { key: "Mod-Enter", run: () => { onRun(); return true } },

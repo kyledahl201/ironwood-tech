@@ -124,6 +124,9 @@
 .editor-side { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .editor-side .bench-actions { border-top: 0; border-bottom: 1px solid var(--night-line); padding: 8px 16px; }
 .editor-side .console-body { flex: 1; max-height: none; min-height: 0; }
+/* The web page preview: the student's own page, on a white sheet like a browser tab. */
+.editor-side .preview-frame { flex: 1; min-height: 120px; width: 100%; border: 0; background: #fff; margin-top: 8px; }
+.editor-side [hidden] { display: none; }
 @media (max-width: 760px) {
   .tool-editor { grid-template-columns: 1fr; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); }
   .tool-editor .editor-host { border-right: 0; border-bottom: 1px solid var(--night-line); }
