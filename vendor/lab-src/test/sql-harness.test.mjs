@@ -96,7 +96,7 @@ test("a script that fails part-way keeps what ran, says which statement failed, 
   const result = bench.run({ code: "SELECT 1 AS one;\nSELECT 2 AS two;\nSELECT * FROM nowhere;\nSELECT 4;", checks: [{ type: "rows_are", call: "", expected: "[[2]]" }, { type: "stdout", expected: "x" }] })
   assert.equal(result.stdout, "one\n---\n1\n(1 row)\ntwo\n---\n2\n(1 row)\n")
   assert.equal(result.error.raw, "Error: no such table: nowhere (statement 3)")
-  assert.deepEqual(result.checks, [{ ok: false, actual: "an error" }, null])
+  assert.deepEqual(result.checks, [{ ok: false, plain: true, actual: "Fix the error first." }, null])
   // a failure while a statement runs (not while it is read) is numbered the same way
   assert.equal(bench.run({ code: "SELECT 1; INSERT INTO books (title) VALUES ('x');" }).error.raw, "Error: NOT NULL constraint failed: books.author (statement 2)")
   assert.equal(bench.run({ code: "INSERT INTO books (title) VALUES ('x');" }).error.raw, "Error: NOT NULL constraint failed: books.author")
@@ -109,17 +109,49 @@ test("rows_are compares the last result in order; rows_any_order ignores order",
   assert.deepEqual(inOrder.checks.map(c => c.ok), [true, true, true])
   const byId = bench.run({ code: "SELECT title FROM books WHERE genre = 'mystery';", checks })
   assert.deepEqual(byId.checks.map(c => c.ok), [false, true, true])
-  assert.equal(byId.checks[0].actual, '3 rows: ["Rivers Under Glass"], ["The Long Division"], ["Night Trains to Avery"]')
+  assert.equal(byId.checks[0].actual, "These are the right rows, in the wrong order. Look at your ORDER BY.\ntitle\n---------------------\nRivers Under Glass\nThe Long Division\nNight Trains to Avery")
+  assert.deepEqual(inOrder.checks[0], { ok: true }) // a pass says nothing more
 
   const wide = bench.run({ code: "SELECT * FROM books WHERE genre = 'mystery';", checks })
   assert.deepEqual(wide.checks.map(c => c.ok), [false, false, false])
-  assert.equal(wide.checks[2].actual, "columns id, title, author, year, genre, copies")
+  assert.equal(wide.checks[2].actual, "Your columns are id, title, author, year, genre, copies.")
+  assert.match(wide.checks[0].actual, /^Your rows have 6 columns\. This needs a different number of columns\.\nid \| title/)
   const none = bench.run({ code: "SELECT title FROM books WHERE genre = 'Mystery';", checks })
   assert.equal(none.checks[1].ok, false)
-  assert.equal(none.checks[1].actual, "no rows")
+  assert.equal(none.checks[1].actual, "Your result has no rows. This needs a different number of rows.")
   // A row that appears twice is not the same as a row that appears once.
   const twice = bench.run({ code: "SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 2;", checks: [{ type: "rows_any_order", call: "", expected: "[[1], [2], [2]]" }, { type: "rows_any_order", call: "", expected: "[[2], [1], [1]]" }] })
   assert.deepEqual(twice.checks.map(c => c.ok), [false, true])
+})
+
+test("a missed row check says what is off in plain words and never shows the expected rows", () => {
+  const expected = '[["Salt and Signal", 2022], ["A Field Guide to Quiet", 2021], ["How Maps Lie", 2020], ["The Copper Lantern", 2019]]'
+  const miss = (sql, type = "rows_are") => bench.run({ code: sql, checks: [{ type, call: "", expected }] }).checks[0]
+  const order = miss("SELECT title, year FROM books WHERE year > 2015 ORDER BY year;")
+  assert.equal(order.actual.split("\n")[0], "These are the right rows, in the wrong order. Look at your ORDER BY.")
+  assert.deepEqual(order.actual.split("\n").slice(1), [
+    "title                  | year",
+    "-----------------------+-----",
+    "The Copper Lantern     | 2019",
+    "How Maps Lie           | 2020",
+    "A Field Guide to Quiet | 2021",
+    "… and 1 more"]) // the student's own first rows, as the console prints them
+  assert.equal(miss("SELECT title, year FROM books WHERE year > 2015 ORDER BY year;", "rows_any_order").ok, true)
+
+  assert.equal(miss("SELECT title, year FROM books;").actual.split("\n")[0], "Your result has 9 rows. This needs a different number of rows.")
+  assert.equal(miss("SELECT title, year FROM books WHERE year > 2030;").actual, "Your result has no rows. This needs a different number of rows.")
+  assert.equal(miss("SELECT title, year FROM books WHERE year < 2016;").actual.split("\n")[0], "That's the right number of rows, but some of them aren't the ones asked for.")
+  assert.equal(miss("SELECT title, year FROM books WHERE year < 2016;", "rows_any_order").actual.split("\n")[0], "That's the right number of rows, but some of them aren't the ones asked for.")
+  assert.equal(miss("SELECT title FROM books WHERE year > 2015 ORDER BY year DESC;").actual.split("\n")[0], "Your rows have 1 column. This needs a different number of columns.")
+  assert.equal(miss("SELECT year, title FROM books WHERE year > 2015 ORDER BY year DESC;").actual.split("\n")[0], "That's the right number of rows, but some of them aren't the ones asked for.")
+
+  // Whatever the miss, nothing from the expected rows that the student didn't produce is shown, and no numbers of rows are given away.
+  for (const sql of ["SELECT title, year FROM books WHERE year < 2000;", "SELECT 1;", "SELECT title, year FROM books WHERE year > 2030;"]) {
+    const { actual, ok, plain } = miss(sql)
+    assert.equal(ok, false)
+    assert.equal(plain, true)
+    assert.doesNotMatch(actual, /Salt and Signal|Copper Lantern|\b4\b|\[|"/, sql)
+  }
 })
 
 test("values compare the way a student would expect", () => {
@@ -133,7 +165,7 @@ test("values compare the way a student would expect", () => {
   assert.equal(check("SELECT 1, 2;", "[[1]]"), false)               // an extra column is not the same answer
   assert.equal(check("SELECT 7;", "[7]"), true)                     // a lesson may write one-column rows without the inner brackets
   assert.equal(check("CREATE TABLE t (x);", "[]"), false)           // nothing was selected
-  assert.equal(bench.run({ code: "CREATE TABLE t (x);", checks: [{ type: "rows_are", call: "", expected: "[]" }] }).checks[0].actual, "no result yet. Run a SELECT")
+  assert.equal(bench.run({ code: "CREATE TABLE t (x);", checks: [{ type: "rows_are", call: "", expected: "[]" }] }).checks[0].actual, "No result yet. Run a SELECT.")
 })
 
 test("a check can look at the database after the student's statements", () => {
@@ -141,10 +173,10 @@ test("a check can look at the database after the student's statements", () => {
   assert.deepEqual(bench.run({ code: "UPDATE members SET town = 'Avery' WHERE name = 'Finn Abara';", checks }).checks.map(c => c.ok), [true, true])
   const all = bench.run({ code: "UPDATE members SET town = 'Avery';", checks })
   assert.deepEqual(all.checks.map(c => c.ok), [true, false])
-  assert.equal(all.checks[1].actual, "1 row: [6]")
+  assert.equal(all.checks[1].actual, "When this check looked, it found 1 row:\ncount(*)\n--------\n6")
   const broken = bench.run({ code: "DROP TABLE loans; DROP TABLE members;", checks })
   assert.equal(broken.checks[0].ok, false)
-  assert.match(broken.checks[0].actual, /an error when the check looked: no such table: members/)
+  assert.equal(broken.checks[0].actual, "The check couldn't look: no such table: members.")
   assert.equal(bench.run({ code: "SELECT 1;", checks: [{ type: "rows_are", call: "", expected: "not json" }] }).checks[0].ok, false)
 })
 
@@ -162,7 +194,7 @@ test("the console keeps changes between statements and waits for the semicolon",
 
 test("console checks read the last result, and a check's own query doesn't replace it", () => {
   reset()
-  assert.deepEqual(values([{ type: "rows_are", call: "", expected: "[[1]]" }]), [{ ok: false, actual: "no result yet. Run a SELECT" }])
+  assert.deepEqual(values([{ type: "rows_are", call: "", expected: "[[1]]" }]), [{ ok: false, plain: true, actual: "No result yet. Run a SELECT." }])
   line("SELECT title FROM books WHERE id = 3;")
   line("UPDATE books SET copies = 9 WHERE id = 3;") // a change doesn't wipe the last result
   const checks = [{ type: "rows_are", call: "SELECT copies FROM books WHERE id = 3", expected: "[[9]]" }, { type: "rows_are", call: "", expected: '[["A Field Guide to Quiet"]]' }, { type: "columns_are", call: "", expected: "title" }, { type: "value_is", call: "x", expected: "1" }]
@@ -241,7 +273,7 @@ test("a statement typed over several lines runs once, and a stopped query keeps 
   await runner.restoring
   assert.equal((await runner.type("SELECT town FROM members WHERE id = 6;")).stdout, "town\n-----\nAvery\n(1 row)\n")
   assert.equal((await runner.type("SELECT count(*) AS n FROM members;")).stdout, "n\n-\n7\n(1 row)\n") // the insert ran once, not twice
-  assert.deepEqual(await runner.values([{ type: "rows_are", call: "", expected: "[[7]]" }]), [{ ok: true, actual: "1 row: [7]" }])
+  assert.deepEqual(await runner.values([{ type: "rows_are", call: "", expected: "[[7]]" }]), [{ ok: true }])
 
   // Ctrl+C gives up on a half-typed statement.
   await runner.type("DELETE FROM members")

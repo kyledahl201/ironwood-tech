@@ -599,7 +599,8 @@ class ClassroomTest < ActionDispatch::IntegrationTest
     assert_select "details.kit", text: /It holds no answers.*can't see the portal/m
 
     get class_lesson_path(python)
-    assert_select ".bench-bar button[data-action='classroom#copyForTutor']", text: "Copy for my tutor"
+    assert_select ".bench-bar button[data-action='classroom#copyForTutor'][aria-label='Copy for my tutor'] .when-wide", text: "Copy for my tutor"
+    assert_select ".bench-bar button[data-action='classroom#copyForTutor'] .when-narrow[aria-hidden=true]", text: "Copy" # the short label a phone shows
     assert_select ".classroom[data-classroom-about-value='AI 360 · Lesson 1 · Made up: Python · Prof. Example']"
   end
 end

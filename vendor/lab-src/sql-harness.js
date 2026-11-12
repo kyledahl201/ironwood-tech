@@ -171,33 +171,44 @@ const sameRow = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b
 const sortKey = row => JSON.stringify(row.map(v => typeof v === "number" ? Number(v.toFixed(9)) : v))
 const plain = rows => rows.map(row => row.map(v => v instanceof Uint8Array ? "(binary data)" : v))
 
-function describe(result) {
-  const { rows, total } = result
-  if (total === 0) return "no rows"
-  const sample = plain(rows.slice(0, 3)).map(row => JSON.stringify(row)).join(", ")
-  return `${total} ${total === 1 ? "row" : "rows"}: ${sample}${total > 3 ? ", …" : ""}`
+// The first few rows of a result as the console would print them.
+const sample = result => table(result.columns, result.rows.slice(0, 3), result.total).replace(/\n\(\d+ rows?\)\n$/, "")
+const count = total => total === 0 ? "no rows" : `${total} ${total === 1 ? "row" : "rows"}`
+const found = (text, result) => ({ ok: false, plain: true, actual: result && result.total ? `${text}\n${sample(result)}` : text })
+
+// Says what is off about a result without giving the expected rows away.
+function diagnose(result, want, ordered, own) {
+  const got = plain(result.rows)
+  if (!own) return `When this check looked, it found ${count(result.total)}${result.total ? ":" : "."}`
+  if (result.total !== want.length) return `Your result has ${count(result.total)}. This needs a different number of rows.`
+  if (want.length && got[0].length !== want[0].length) return `Your rows have ${got[0].length} ${got[0].length === 1 ? "column" : "columns"}. This needs a different number of columns.`
+  const a = got.map(sortKey).sort(), b = want.map(sortKey).sort()
+  if (ordered && a.every((key, i) => key === b[i])) return "These are the right rows, in the wrong order. Look at your ORDER BY."
+  return "That's the right number of rows, but some of them aren't the ones asked for."
 }
 
 // Checks only say pass or not yet, and describe what the student's own result holds.
 export function judge(db, last, check) {
   if (!SQL_CHECKS.includes(check.type)) return null
   let result = last
-  if (String(check.call || "").trim()) {
+  const own = !String(check.call || "").trim() // judging the student's last result, not a query of the lesson's
+  if (!own) {
     const ran = execute(db, check.call)
-    if (ran.error || !ran.last) return { ok: false, actual: ran.error ? "an error when the check looked: " + ran.error.raw.replace(/^Error:\s*/, "") : "nothing to look at yet" }
+    if (ran.error || !ran.last) return found(ran.error ? `The check couldn't look: ${ran.error.raw.replace(/^Error:\s*/, "")}.` : "There's nothing to look at yet.")
     result = ran.last
   }
-  if (!result) return { ok: false, actual: "no result yet. Run a SELECT" }
+  if (!result) return found("No result yet. Run a SELECT.")
   if (check.type === "columns_are") {
     const want = String(check.expected || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean)
     const got = result.columns.map(c => c.toLowerCase())
-    return { ok: want.length === got.length && want.every((c, i) => c === got[i]), actual: `columns ${result.columns.join(", ")}` }
+    const ok = want.length === got.length && want.every((c, i) => c === got[i])
+    return ok ? { ok } : found(`${own ? "Your columns are" : "The columns there are"} ${result.columns.join(", ")}.`)
   }
   let want
   try { want = JSON.parse(check.expected) } catch (_) { want = null }
-  if (!Array.isArray(want)) return { ok: false, actual: "a check the lesson wrote wrongly. Tell your professor" }
+  if (!Array.isArray(want)) return found("This check was written wrongly. Tell your professor.")
   want = want.map(row => Array.isArray(row) ? row : [row])
-  let got = plain(result.rows)
+  const got = plain(result.rows)
   let ok = result.total === want.length && got.length === want.length
   if (ok && check.type === "rows_any_order") {
     const a = got.map(sortKey).sort(), b = want.map(sortKey).sort()
@@ -205,7 +216,7 @@ export function judge(db, last, check) {
   } else if (ok) {
     ok = got.every((row, i) => sameRow(row, want[i]))
   }
-  return { ok, actual: describe(result) }
+  return ok ? { ok } : found(diagnose(result, want, check.type === "rows_are", own), result)
 }
 
 export class SqlBench {
@@ -227,7 +238,7 @@ export class SqlBench {
     const db = this.fresh()
     try {
       const { stdout, last, error } = execute(db, code)
-      return { stdout, error, checks: checks.map(check => error ? (SQL_CHECKS.includes(check.type) ? { ok: false, actual: "an error" } : null) : judge(db, last, check)) }
+      return { stdout, error, checks: checks.map(check => error ? (SQL_CHECKS.includes(check.type) ? { ok: false, plain: true, actual: "Fix the error first." } : null) : judge(db, last, check)) }
     } finally { db.close() }
   }
 
@@ -235,7 +246,7 @@ export class SqlBench {
   console({ op, line = "", checks = [] }) {
     if (op === "reset") { this.db?.close(); this.db = null; this.last = null; return {} }
     this.db ||= this.fresh()
-    if (op === "values") return { checks: checks.map(check => judge(this.db, this.last, check) || { ok: false, actual: "not there yet" }) }
+    if (op === "values") return { checks: checks.map(check => judge(this.db, this.last, check) || { ok: false, plain: true, actual: "This check doesn't work in the SQL console." }) }
     if (!complete(line)) return { stdout: "", value: null, incomplete: true, error: null }
     if (/^\s*\./.test(line)) return { ...this.dot(line.trim()), value: null, incomplete: false }
     const { stdout, last, error } = execute(this.db, line)

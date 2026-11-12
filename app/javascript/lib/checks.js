@@ -57,7 +57,8 @@ export async function evaluateChecks(checks, context) {
       default: // value_is, method_returns, method_stdout_empty: Ruby answers these
         if (inEditor) {
           const fromWorker = result.checks?.[i]
-          return fromWorker ? { ok: !!fromWorker.ok, actual: `gave ${fromWorker.actual}` } : { ok: false }
+          if (fromWorker?.plain || fromWorker?.ok) return { ok: !!fromWorker.ok, actual: fromWorker.ok ? null : fromWorker.actual } // SQL writes its own sentence
+          return fromWorker ? { ok: false, actual: `gave ${fromWorker.actual}` } : { ok: false }
         }
         return { pending: true }
     }
@@ -68,7 +69,7 @@ export async function evaluateChecks(checks, context) {
     const answers = runner ? await runner.values(waiting.map(i => checks[i])) : []
     waiting.forEach((at, n) => {
       const answer = answers[n]
-      outcomes[at] = answer ? { ok: !!answer.ok, actual: answer.ok ? null : (answer.actual === "not there yet" ? "not set yet" : `now ${answer.actual}`) } : { ok: false }
+      outcomes[at] = answer?.plain ? { ok: !!answer.ok, actual: answer.ok ? null : answer.actual } : answer ? { ok: !!answer.ok, actual: answer.ok ? null : (answer.actual === "not there yet" ? "not set yet" : `now ${answer.actual}`) } : { ok: false }
     })
   }
   return outcomes

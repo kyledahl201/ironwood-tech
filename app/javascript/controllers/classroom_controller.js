@@ -325,8 +325,12 @@ export default class extends Controller {
     let note = chip.querySelector(".chip-detail")
     if (!ok && detail) {
       if (!note) { note = document.createElement("span"); note.className = "chip-detail"; chip.querySelector(".chip-label").after(note) }
-      note.textContent = detail
-    } else note?.remove()
+      // A detail can carry a small table under its sentence (SQL shows the rows it found).
+      const [sentence, ...rows] = String(detail).split("\n")
+      note.textContent = sentence
+      if (rows.length) { const table = document.createElement("pre"); table.className = "chip-table"; table.textContent = rows.join("\n"); note.append(table) }
+      chip.classList.toggle("has-table", rows.length > 0)
+    } else { note?.remove(); chip.classList.remove("has-table") }
   }
 
   // Marks the chips and moves on when everything passes.
