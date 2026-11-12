@@ -229,13 +229,18 @@ export class TerminalSim {
     const state = this.gitState()
     if (!state) return "fatal: not a git repository (or any of the parent directories): .git"
     const command = GIT[sub]
-    if (!command) return `git: '${sub}' is not a practice git command.\n\nPractice git knows: ${GIT_KNOWS}`
+    if (!command && GIT_LATER.includes(sub)) return `git ${sub} is a real git command, but practice git doesn't have it. It comes later, in the Terminal app on your Mac.\n\nPractice git knows: ${GIT_KNOWS}`
+    if (!command) return `git: '${sub}' is not a git command. See 'git --help'.\n\nPractice git knows: ${GIT_KNOWS}`
     return command.call(this, args.slice(1), state)
   }
 }
 
 const GIT_KNOWS = "init, status, add, commit, log, diff, branch, switch, checkout, merge, restore, rm"
 const GIT_NEEDS_GITHUB = ["push", "pull", "clone", "fetch", "remote"]
+// Real commands that practice git leaves for the real Terminal.
+const GIT_LATER = ["stash", "reset", "rebase", "tag", "mv", "revert", "cherry-pick", "show", "blame", "bisect", "config", "reflog", "clean", "worktree", "submodule"]
+// The closing line of git status when nothing is staged.
+const nothingAdded = ({ unstaged }) => unstaged.length ? "no changes added to commit (use \"git add\" and/or \"git commit -a\")" : "nothing added to commit but untracked files present (use \"git add\" to track)"
 const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`
 
 // .gitignore, the everyday parts: a name, a folder/, or *.ending per line.
@@ -258,18 +263,34 @@ function lineDiff(before, after) {
   let i = 0, j = 0
   while (i < a.length || j < b.length) {
     if (i < a.length && j < b.length && a[i] === b[j]) { out.push(` ${a[i]}`); i++; j++ }
-    else if (j < b.length && (i >= a.length || table[i][j + 1] >= table[i + 1][j])) out.push(`+${b[j++]}`)
-    else out.push(`-${a[i++]}`)
+    else if (i < a.length && (j >= b.length || table[i + 1][j] >= table[i][j + 1])) out.push(`-${a[i++]}`) // what left comes first, as git shows it
+    else out.push(`+${b[j++]}`)
   }
   return out
+}
+
+// Groups those lines into hunks with three lines of context, each under an
+// @@ -start,count +start,count @@ header: where the hunk sits in the old file and in the new.
+function hunks(before, after) {
+  const lines = lineDiff(before, after)
+  const changed = lines.map((l, n) => l[0] === " " ? -1 : n).filter(n => n >= 0)
+  if (!changed.length) return []
+  const spans = []
+  changed.forEach(n => { const last = spans.at(-1); if (last && n - 3 <= last[1] + 1) last[1] = Math.min(lines.length - 1, n + 3); else spans.push([Math.max(0, n - 3), Math.min(lines.length - 1, n + 3)]) })
+  const range = (start, size) => `${size === 0 ? start - 1 : start}${size === 1 ? "" : `,${size}`}`
+  return spans.flatMap(([from, to]) => {
+    const old = lines.slice(0, from).filter(l => l[0] !== "+").length + 1, fresh = lines.slice(0, from).filter(l => l[0] !== "-").length + 1
+    const part = lines.slice(from, to + 1)
+    return [`@@ -${range(old, part.filter(l => l[0] !== "+").length)} +${range(fresh, part.filter(l => l[0] !== "-").length)} @@`, ...part]
+  })
 }
 
 function diffText(pairs) {
   return pairs.map(([file, before, after]) => [
     `diff --git a/${file} b/${file}`,
-    before === undefined ? "new file" : after === undefined ? "deleted file" : null,
+    before === undefined ? "new file mode 100644" : after === undefined ? "deleted file mode 100644" : null,
     `--- ${before === undefined ? "/dev/null" : `a/${file}`}`, `+++ ${after === undefined ? "/dev/null" : `b/${file}`}`,
-    ...lineDiff(before, after)
+    ...hunks(before, after)
   ].filter(l => l !== null).join("\n")).join("\n")
 }
 
@@ -280,12 +301,12 @@ const GIT = {
     if (repo.merging) lines.push(conflicts.length ? "You have unmerged paths.\n  (fix conflicts and run \"git commit\")\n  (use \"git merge --abort\" to abort the merge)" : "All conflicts fixed but you are still merging.\n  (use \"git commit\" to conclude merge)")
     if (!head) lines.push("", "No commits yet")
     const settled = staged.filter(([, f]) => !conflicts.includes(f))
-    if (settled.length) lines.push("", "Changes to be committed:", ...settled.map(([kind, f]) => `\t${`${kind}:`.padEnd(12)}${f}`))
+    if (settled.length) lines.push("", "Changes to be committed:", head ? "  (use \"git restore --staged <file>...\" to unstage)" : "  (use \"git rm --cached <file>...\" to unstage)", ...settled.map(([kind, f]) => `\t${`${kind}:`.padEnd(12)}${f}`))
     if (conflicts.length) lines.push("", "Unmerged paths:", "  (use \"git add <file>...\" to mark resolution)", ...conflicts.map(f => `\tboth modified:   ${f}`))
     const loose = unstaged.filter(([, f]) => !conflicts.includes(f))
-    if (loose.length) lines.push("", "Changes not staged for commit:", ...loose.map(([kind, f]) => `\t${`${kind}:`.padEnd(12)}${f}`))
-    if (untracked.length) lines.push("", "Untracked files:", ...untracked.map(f => `\t${f}`))
-    if (!staged.length && !unstaged.length && !untracked.length && !repo.merging) lines.push(head ? "nothing to commit, working tree clean" : "nothing to commit (create/copy files and use \"git add\" to track)")
+    if (loose.length) lines.push("", "Changes not staged for commit:", `  (use "git add${loose.some(([kind]) => kind === "deleted") ? "/rm" : ""} <file>..." to update what will be committed)`, "  (use \"git restore <file>...\" to discard changes in working directory)", ...loose.map(([kind, f]) => `\t${`${kind}:`.padEnd(12)}${f}`))
+    if (untracked.length) lines.push("", "Untracked files:", "  (use \"git add <file>...\" to include in what will be committed)", ...untracked.map(f => `\t${f}`))
+    if (!staged.length && !repo.merging) lines.push(...(unstaged.length || untracked.length ? ["", nothingAdded({ unstaged, untracked })] : [head ? "nothing to commit, working tree clean" : "nothing to commit (create/copy files and use \"git add\" to track)"]))
     return lines.join("\n")
   },
 
@@ -308,13 +329,13 @@ const GIT = {
   },
 
   rm(args, { root, repo }) {
-    const targets = plain(args)
+    const targets = plain(args).filter(a => !a.startsWith("--"))
     if (!targets.length) return "usage: git rm file_name"
     for (const item of targets) {
       const rel = this.resolve(item).slice(root.length + 1)
       if (!(rel in repo.index)) return `fatal: pathspec '${item}' did not match any files`
       delete repo.index[rel]
-      if (this.isFile(item)) { const { dir: folder, name } = this.parent(item); delete folder.children[name] }
+      if (!args.includes("--cached") && this.isFile(item)) { const { dir: folder, name } = this.parent(item); delete folder.children[name] }
     }
     return targets.map(f => `rm '${f}'`).join("\n")
   },
@@ -334,7 +355,7 @@ const GIT = {
     }
     if (!message) return "Practice git needs a message: git commit -m \"what changed\""
     const changed = [...new Set([...Object.keys(tree), ...Object.keys(repo.index)])].filter(f => repo.index[f] !== tree[f])
-    if (!changed.length) return state.unstaged.length || state.untracked.length ? `On branch ${repo.branch}\nno changes added to commit (use "git add")` : `On branch ${repo.branch}\nnothing to commit, working tree clean`
+    if (!changed.length) return state.unstaged.length || state.untracked.length ? GIT.status.call(this, [], state) : `On branch ${repo.branch}\nnothing to commit, working tree clean`
     const id = this.commit(repo, message, repo.index, head ? [head] : [])
     return `[${repo.branch} ${head ? "" : "(root-commit) "}${id}] ${message}\n ${count(changed.length, "file")} changed`
   },

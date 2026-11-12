@@ -111,14 +111,14 @@ test("practice git: init, status, add, commit, log", async () => {
   const sim = fresh()
   assert.match(await run(sim, "git status"), /not a git repository/)
   await run(sim, "mkdir proj", "cd proj", "git init", "echo a > a.txt")
-  assert.match(await run(sim, "git status"), /Untracked files:\n\ta\.txt/)
+  assert.match(await run(sim, "git status"), /Untracked files:\n  \(use "git add <file>\.\.\." to include in what will be committed\)\n\ta\.txt\n\nnothing added to commit but untracked files present \(use "git add" to track\)$/)
   await run(sim, "git add .")
-  assert.match(await run(sim, "git status"), /Changes to be committed:\n\tnew file:   a\.txt/)
+  assert.match(await run(sim, "git status"), /Changes to be committed:\n  \(use "git rm --cached <file>\.\.\." to unstage\)\n\tnew file:   a\.txt/)
   assert.match(await run(sim, 'git commit -m "first"'), /\[main \(root-commit\) [0-9a-f]{7}\] first\n 1 file changed/)
   assert.match(await run(sim, "git status"), /nothing to commit, working tree clean/)
   await run(sim, "echo b >> a.txt")
-  assert.match(await run(sim, "git status"), /Changes not staged for commit:\n\tmodified:   a\.txt/)
-  assert.match(await run(sim, 'git commit -m "second"'), /no changes added to commit/)
+  assert.match(await run(sim, "git status"), /Changes not staged for commit:\n  \(use "git add <file>\.\.\." to update what will be committed\)\n  \(use "git restore <file>\.\.\." to discard changes in working directory\)\n\tmodified:   a\.txt\n\nno changes added to commit \(use "git add" and\/or "git commit -a"\)$/)
+  assert.match(await run(sim, 'git commit -m "second"'), /no changes added to commit \(use "git add" and\/or "git commit -a"\)$/)
   assert.match(await run(sim, "git log --oneline"), /^[0-9a-f]{7} \(HEAD -> main\) first$/)
 })
 
@@ -143,32 +143,32 @@ test("practice git: the index holds what was added, not what came after", async 
   const sim = await project()
   await run(sim, "echo one >> README.md", "git add README.md", "echo two >> README.md")
   const status = await run(sim, "git status")
-  assert.match(status, /Changes to be committed:\n\tmodified:   README\.md/)
-  assert.match(status, /Changes not staged for commit:\n\tmodified:   README\.md/)
-  assert.equal(await run(sim, "git diff --staged"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n # Site\n+one")
-  assert.equal(await run(sim, "git diff"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n # Site\n one\n+two")
+  assert.match(status, /Changes to be committed:\n  \(use "git restore --staged <file>\.\.\." to unstage\)\n\tmodified:   README\.md/)
+  assert.match(status, /Changes not staged for commit:\n  \(use "git add <file>\.\.\." to update what will be committed\)\n  \(use "git restore <file>\.\.\." to discard changes in working directory\)\n\tmodified:   README\.md$/)
+  assert.equal(await run(sim, "git diff --staged"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1,2 @@\n # Site\n+one")
+  assert.equal(await run(sim, "git diff"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1,2 +1,3 @@\n # Site\n one\n+two")
   await run(sim, 'git commit -m "Add one"')
   assert.equal(sim.gitState().tree["README.md"], "# Site\none\n") // "two" was never added
   assert.match(await run(sim, 'git commit -am "Add two"'), /\[main [0-9a-f]{7}\] Add two\n 1 file changed/)
   assert.equal(sim.gitState().clean, true)
   assert.match(await run(sim, "git commit -m again"), /nothing to commit, working tree clean/)
-  assert.match(await run(sim, "echo x > new.txt", "git commit -m x"), /no changes added to commit/)
+  assert.match(await run(sim, "echo x > new.txt", "git commit -m x"), /nothing added to commit but untracked files present \(use "git add" to track\)$/)
 })
 
 test("practice git: deleted files, git rm, restore and .gitignore", async () => {
   const sim = await project()
   await run(sim, "echo a > a.txt", "echo secret > .env", "echo '.env' > .gitignore", "echo '*.log' >> .gitignore", "echo 'tmp/' >> .gitignore", "mkdir tmp", "echo t > tmp/t.txt", "echo l > run.log")
-  assert.match(await run(sim, "git status"), /Untracked files:\n\t\.gitignore\n\ta\.txt$/)
+  assert.match(await run(sim, "git status"), /Untracked files:\n  \(use "git add <file>\.\.\." to include in what will be committed\)\n\t\.gitignore\n\ta\.txt\n/)
   assert.match(await run(sim, "git add .env"), /ignored by one of your \.gitignore files:\n\.env/)
   await run(sim, "git add .", "git commit -m files")
   assert.deepEqual(Object.keys(sim.gitState().tree).sort(), [".gitignore", "README.md", "a.txt"])
 
   await run(sim, "rm a.txt")
-  assert.match(await run(sim, "git status"), /Changes not staged for commit:\n\tdeleted:    a\.txt/)
+  assert.match(await run(sim, "git status"), /Changes not staged for commit:\n  \(use "git add\/rm <file>\.\.\." to update what will be committed\)\n  \(use "git restore <file>\.\.\." to discard changes in working directory\)\n\tdeleted:    a\.txt/)
   await run(sim, "git restore a.txt")
   assert.equal(await run(sim, "cat a.txt"), "a")
   assert.equal(await run(sim, "git rm a.txt"), "rm 'a.txt'")
-  assert.match(await run(sim, "git status"), /Changes to be committed:\n\tdeleted:    a\.txt/)
+  assert.match(await run(sim, "git status"), /Changes to be committed:\n  \(use "git restore --staged <file>\.\.\." to unstage\)\n\tdeleted:    a\.txt/)
   await run(sim, "git restore --staged a.txt", "git restore a.txt")
   assert.equal(sim.gitState().clean, true)
   await run(sim, "echo junk >> README.md", "git add .", "git restore --staged .", "git restore .")
@@ -238,7 +238,12 @@ test("practice git: a merge of two lines of work, and a real conflict to fix", a
 test("practice git: what it doesn't do, it says plainly, and its state survives a reload", async () => {
   const sim = await project()
   for (const real of ["push", "pull", "clone https://example.com/x.git", "fetch", "remote -v"]) assert.match(await run(sim, `git ${real}`), /talks to another computer \(like GitHub\)[\s\S]*on your Mac/)
-  assert.match(await run(sim, "git stash"), /'stash' is not a practice git command\.\n\nPractice git knows: init, status, add, commit, log, diff, branch, switch, checkout, merge, restore, rm/)
+  // A real command that practice git leaves out is named as real, and as coming later.
+  for (const later of ["stash", "reset --hard", "rebase main", "tag v1", "mv a b", "revert HEAD", "show", "config user.name Sam"]) {
+    assert.match(await run(sim, `git ${later}`), new RegExp(`^git ${later.split(" ")[0]} is a real git command, but practice git doesn't have it\\. It comes later, in the Terminal app on your Mac\\.\\n\\nPractice git knows: init, status, add, commit, log, diff, branch, switch, checkout, merge, restore, rm$`))
+  }
+  // Only a word git itself wouldn't know gets git's own "not a git command".
+  assert.match(await run(sim, "git comit"), /^git: 'comit' is not a git command\. See 'git --help'\./)
   assert.match(await run(sim, "git commit --amend"), /doesn't rewrite commits/)
   assert.match(await run(sim, "git"), /Practice commands: init, status/)
   assert.match(await run(sim, "help"), /Practice git: init, status/)
@@ -254,7 +259,44 @@ test("practice git: what it doesn't do, it says plainly, and its state survives 
   const old = fresh()
   await run(old, "mkdir p", "cd p", "echo a > a.txt", "echo b > b.txt")
   old.repos["/Users/sam/p"] = { staged: ["b.txt"], commits: [{ id: "aaaaaaa", message: "first", files: { "a.txt": "a\n" } }] }
-  assert.match(await run(old, "git status"), /On branch main\n\nChanges to be committed:\n\tnew file:   b\.txt$/)
+  assert.match(await run(old, "git status"), /On branch main\n\nChanges to be committed:\n  \(use "git restore --staged <file>\.\.\." to unstage\)\n\tnew file:   b\.txt$/)
   assert.match(await run(old, 'git commit -m "second"'), /\[main [0-9a-f]{7}\] second/)
   assert.match(await run(old, "git log --oneline"), /second\naaaaaaa first$/)
+})
+
+test("practice git: diff prints real @@ hunk headers for an add, a change and a delete", async () => {
+  const sim = await project()
+  const twenty = skip => Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).filter((_, i) => i !== skip).join("\n") + "\n"
+  sim.write("/Users/sam/site/long.txt", twenty())
+  await run(sim, "git add .")
+  // A new file: nothing before, twenty lines after.
+  assert.match(await run(sim, "git diff --staged"), /^diff --git a\/long\.txt b\/long\.txt\nnew file mode 100644\n--- \/dev\/null\n\+\+\+ b\/long\.txt\n@@ -0,0 \+1,20 @@\n\+line 1\n/)
+  await run(sim, "git commit -m long")
+
+  // A line added in the middle: three lines of context each side, and the new file is one longer.
+  sim.write("/Users/sam/site/long.txt", twenty().replace("line 10\n", "line 10\nten and a half\n"))
+  assert.equal(await run(sim, "git diff"), ["diff --git a/long.txt b/long.txt", "--- a/long.txt", "+++ b/long.txt", "@@ -8,6 +8,7 @@", " line 8", " line 9", " line 10", "+ten and a half", " line 11", " line 12", " line 13"].join("\n"))
+
+  // A line changed: the old one leaves, then the new one arrives, and the counts match.
+  sim.write("/Users/sam/site/long.txt", twenty().replace("line 2\n", "LINE TWO\n"))
+  assert.equal(await run(sim, "git diff"), ["diff --git a/long.txt b/long.txt", "--- a/long.txt", "+++ b/long.txt", "@@ -1,5 +1,5 @@", " line 1", "-line 2", "+LINE TWO", " line 3", " line 4", " line 5"].join("\n"))
+
+  // A line deleted near the end, and two changes far apart get a hunk each.
+  sim.write("/Users/sam/site/long.txt", twenty(15))
+  assert.equal(await run(sim, "git diff"), ["diff --git a/long.txt b/long.txt", "--- a/long.txt", "+++ b/long.txt", "@@ -13,7 +13,6 @@", " line 13", " line 14", " line 15", "-line 16", " line 17", " line 18", " line 19"].join("\n"))
+  sim.write("/Users/sam/site/long.txt", twenty(15).replace("line 2\n", "LINE TWO\n"))
+  assert.deepEqual((await run(sim, "git diff")).split("\n").filter(l => l.startsWith("@@")), ["@@ -1,5 +1,5 @@", "@@ -13,7 +13,6 @@"])
+
+  // A whole file deleted, and a one-line file.
+  await run(sim, "git restore .", "rm README.md")
+  assert.equal(await run(sim, "git diff"), "diff --git a/README.md b/README.md\ndeleted file mode 100644\n--- a/README.md\n+++ /dev/null\n@@ -1 +0,0 @@\n-# Site")
+  assert.equal(await run(sim, "git restore .", "git diff"), "")
+})
+
+test("practice git: git rm --cached unstages a new file without deleting it", async () => {
+  const sim = fresh()
+  await run(sim, "mkdir p", "cd p", "git init", "echo a > a.txt", "git add .")
+  assert.equal(await run(sim, "git rm --cached a.txt"), "rm 'a.txt'")
+  assert.equal(await run(sim, "cat a.txt"), "a")
+  assert.match(await run(sim, "git status"), /Untracked files:[\s\S]*\ta\.txt/)
 })
