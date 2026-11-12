@@ -35,7 +35,7 @@ const isEditor = mode => TOOLS[mode]?.kind === "editor"
 
 export default class extends Controller {
   static targets = ["board", "steps", "template", "finish", "meter", "counter", "divider", "bench", "mode", "status", "safe",
-                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead"]
+                    "pane", "termLines", "termPrompt", "termInput", "editor", "output", "runButton", "checkButton", "preview", "outputHead", "flipButton"]
   static values = { slug: String, steps: Array, index: Number, homework: Boolean, user: String, store: String,
                     progressUrl: String, quizUrl: String, runtimes: Object, about: String,
                     firstTryLine: String, passLines: Array }
@@ -535,6 +535,8 @@ export default class extends Controller {
     this.previewTarget.hidden = !tool.page
     this.outputTarget.hidden = this.runButtonTarget.hidden = !!tool.page
     this.outputHeadTarget.textContent = tool.page ? "Preview" : "Output"
+    this.flipButtonTarget.hidden = !tool.page
+    this.pane("editor").classList.toggle("is-page", !!tool.page)
     if (tool.kind === "editor") this.openEditor(`${index === undefined ? "scratch" : `step-${index}`}${tool.language === "ruby" ? "" : `-${tool.language}`}`, starter, tool.language)
   }
 
@@ -698,6 +700,13 @@ export default class extends Controller {
     await this.mounting
     this.mounting = null
     this.draw(0)
+  }
+
+  // On a narrow screen the web page editor shows the code or the preview, one at a time.
+  flipPreview() {
+    const showing = this.pane("editor").classList.toggle("show-preview")
+    this.flipButtonTarget.textContent = showing ? "Show code" : "Show preview"
+    this.flipButtonTarget.setAttribute("aria-pressed", String(showing))
   }
 
   // Redraws the web page preview shortly after the student stops typing.

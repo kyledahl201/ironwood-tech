@@ -80,6 +80,8 @@
         <div class="bench-actions">
           <button type="button" class="btn btn-copper" data-action="classroom#runEditor" data-classroom-target="runButton" title="Shift+Enter">Run</button>
           <button type="button" class="btn btn-outline-light" data-action="classroom#checkEditor" data-classroom-target="checkButton" title="Ctrl/Cmd+Enter">Check</button>
+          <%# On a phone there's room for the code or the page, not both. %>
+          <button type="button" class="btn btn-outline-light flip-preview" data-action="classroom#flipPreview" data-classroom-target="flipButton" aria-pressed="false" hidden>Show preview</button>
         </div>
         <div class="console-head" data-classroom-target="outputHead">Output</div>
         <pre class="console-body" data-classroom-target="output" aria-live="polite">Press Run to see what your code prints.</pre>
