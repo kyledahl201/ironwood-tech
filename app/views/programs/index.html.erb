@@ -1,0 +1,35 @@
+<% page_title "Programs" %>
+<% content_for :description, "Every program at #{brand.name}, an AI school, in three tiers." %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Catalog</p><h1>Programs</h1>
+  <p class="lede"><%= brand.name %> is an AI school. A program is what you get: a set of classes, and every class in it opens once the program is yours. Programs come in three tiers, from everyday AI to building with it.</p>
+</div></header>
+<section class="section"><div class="wrap">
+  <% if @tours.any? %>
+    <%= render "courses/list", entries: @tours, prefix: "course", heading: 2 %>
+  <% end %>
+
+  <div class="tier-list" data-controller="disclosure">
+    <% Program.tiers.each_with_index do |tier, i| %>
+      <% programs = @programs.select { |p| p.tier == tier.code } %>
+      <% next if programs.empty? %>
+      <section class="tier" aria-labelledby="tier-<%= tier.code.downcase %>">
+        <div class="tier-head">
+          <p class="eyebrow">Tier <%= i + 1 %><% if current_user&.admin? %> · <span class="tier-code" title="Internal code, shown to the owner only"><%= tier.code %></span><% end %></p>
+          <h2 id="tier-<%= tier.code.downcase %>"><%= tier.name %></h2>
+          <% if tier.blurb.present? %><p class="tier-blurb"><%= tier.blurb %></p><% end %>
+        </div>
+        <div class="program-cards">
+          <% programs.each do |program| %>
+            <%= render "programs/program", program: program, entries: @catalog.for_program(program), heading: 3 %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  </div>
+
+  <% if @unplaced.any? %>
+    <%= render "courses/list", entries: @unplaced, prefix: "more", heading: 2 %>
+  <% end %>
+
+  <p class="muted small" style="margin-top:24px">Lesson guides and tutors here are AI personas, not people. A program shows what you'll practice; it doesn't promise a job, a raise or any income.</p>
+</div></section>

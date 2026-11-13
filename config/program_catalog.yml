@@ -1,0 +1,59 @@
+# Programs: what a buyer gets. A program holds classes (Course records), and
+# owning the program opens every class in it (ProgramEnrollment).
+#
+# tiers: the internal code (PX1, PYX, PX2) and the public name shown on the
+# site. Change a public name or blurb here and it changes everywhere. `band`
+# is for the owner only and is never shown.
+#
+# programs: in the order the Programs page lists them. `classes` names the
+# courses that belong to the program, by slug or classroom code. Program.sync!
+# (run by db/seeds.rb on every start) makes missing programs and places
+# unplaced courses; it never changes text or a price the owner set later, and
+# never moves a course the owner moved. A program with no classes shows as
+# "Coming" and can't be bought.
+tiers:
+  - code: PX1
+    name: Everyday AI
+    band: low price
+    blurb: Start here. Use AI for everyday life and work, no experience needed.
+  - code: PYX
+    name: AI at Work
+    band: mid price
+    blurb: AI for the work you already do, one field at a time.
+  - code: PX2
+    name: Build with AI
+    band: premium
+    blurb: Longer programs for people who want to build things with AI and code.
+
+programs:
+  - slug: life-and-work
+    tier: PX1
+    title: "Life and Work, With Claude: AI 101"
+    tagline: Set up Claude on your Mac, hire a family team of AI helpers, plan a real week and build your own family hub app. No coding experience needed.
+    classes: [ px1 ]
+  - slug: ai-for-boomers
+    tier: PX1
+    title: AI for Boomers
+    tagline: A patient, plain-English start with AI. Ask good questions, write letters and emails, and spot scams, at your own pace.
+  - slug: ai-for-boomers-2
+    tier: PYX
+    title: "AI for Boomers 2: Electric Boogaloo"
+    tagline: The next step after AI for Boomers. Sort photos, plan trips, organize paperwork and keep up with family, with AI helping.
+  - slug: ai-for-contractors
+    tier: PYX
+    title: AI for Contractors
+    tagline: Practice using AI on the office side of a trade business. Estimates, job notes, customer emails and schedules.
+  - slug: ai-for-sales
+    tier: PYX
+    title: AI for Sales
+    tagline: Practice using AI for the everyday parts of selling. Research before a meeting, notes, follow-up emails and role-play practice.
+  - slug: agentic-ai
+    tier: PX2
+    title: 14-Week Agentic AI
+    tagline: Fourteen weeks of building with AI models in Python. Prompts, tool use, memory, retrieval and agents, with a project every week.
+    classes: [ agentic-ai-bootcamp, AI 360 ]
+  - slug: rails-bootcamp
+    tier: PX2
+    title: Engineering / Rails Bootcamp
+    tagline: Learn to program from the ground up. The Terminal and Ruby first, then on toward building web apps with Rails, one class at a time.
+    classes: [ CS 090, CS 101 ]

@@ -29,7 +29,7 @@ class SellingTest < ActionDispatch::IntegrationTest
     assert_response :not_found
 
     sign_in_as users(:one)
-    get courses_path
+    get programs_path
     assert_response :success
     assert_select "a[href=?]", course_path(@course), count: 0
     post "/courses/#{@course.slug}/enrollment" # starting a course yourself is gone
@@ -457,7 +457,7 @@ class SellingTest < ActionDispatch::IntegrationTest
     get class_lessons_path
     assert_response :success
     assert_includes response.body, "Your classroom opens with your first course"
-    get courses_path
+    get programs_path
     assert_response :success
     assert_select ".course-pick a.btn[href^='/classroom/'], .course-pick a.btn[href^='/learn/']", 0
     post "/courses/free-course/enrollment"
@@ -494,7 +494,7 @@ class SellingTest < ActionDispatch::IntegrationTest
     assert_response :success
     get learn_lesson_path(courses(:free), 1)
     assert_response :success
-    get courses_path
+    get programs_path
     assert_response :success
   end
 

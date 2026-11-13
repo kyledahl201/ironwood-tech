@@ -1,7 +1,8 @@
 # Three ways to get an account:
 #   * an invite link from the owner (/join?invite=...): the whole portal. Its
 #     courses still open only once they're owned.
-#   * buying a course (/join?course=...): only while that course can be bought.
+#   * buying a course (/join?course=...) or a program (/join?program=...):
+#     only while it can be bought.
 #     The account sees the store, what it owns and its own account page.
 #   * claiming a gift (/join?gift=...): only while the gift can be claimed.
 #     The same kind of account as a buyer's.
@@ -26,9 +27,9 @@ class RegistrationsController < ApplicationController
     if @invite
       redirect_to portal_path, notice: "Welcome to #{brand.name}, #{@user.first_name}."
     elsif @gift
-      redirect_to gift_claim_path(params[:gift]), notice: "Your account is ready, #{@user.first_name}. One step left: press Get my course."
+      redirect_to gift_claim_path(params[:gift]), notice: "Your account is ready, #{@user.first_name}. One step left: press the button to get your gift."
     else
-      redirect_to store_course_path(@course), notice: "Your account is ready, #{@user.first_name}. One step left: check the details below and pay."
+      redirect_to @product_path, notice: "Your account is ready, #{@user.first_name}. One step left: check the details below and pay."
     end
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
@@ -41,8 +42,16 @@ class RegistrationsController < ApplicationController
       @gift = Gift.find_by_token(params[:gift])
       return if @gift&.claimable?
       @gift = nil
-      @course = Course.published.sold.find_by(slug: params[:course].to_s)
-      render :invite_only, status: :forbidden unless @course&.on_sale? && Payments.enabled?
+      if params[:program].present?
+        @product = Program.listed.find_by(slug: params[:program].to_s)
+        @product_path = @product && program_path(@product)
+        @join_path = @product && registration_path(program: @product.slug)
+      else
+        @product = Course.published.sold.find_by(slug: params[:course].to_s)
+        @product_path = @product && store_course_path(@product)
+        @join_path = @product && registration_path(course: @product.slug)
+      end
+      render :invite_only, status: :forbidden unless @product&.on_sale? && Payments.enabled?
     end
 
     def user_params

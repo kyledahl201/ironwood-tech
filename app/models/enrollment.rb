@@ -9,6 +9,9 @@ class Enrollment < ApplicationRecord
   belongs_to :user
   belongs_to :course
   belongs_to :gift, optional: true
+  # Set when the course came with a program the student owns; ending the
+  # program ends this enrollment too.
+  belongs_to :program_enrollment, optional: true
   has_many :lesson_completions, dependent: :destroy
 
   validates :source, inclusion: { in: SOURCES }, on: :create

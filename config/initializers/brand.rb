@@ -25,9 +25,11 @@ Rails.application.config.x.brand = ActiveSupport::OrderedOptions.new.tap do |b|
   b.checkout_descriptions = {
     "px1" => "Life and Work, With Claude: AI 101. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas."
   }.freeze
-  b.checkout_description = ->(course) {
-    b.checkout_descriptions[course.slug] ||
-      "#{course.title}. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas."
+  # A program's description says "program". Program slugs never match a course slug above.
+  b.checkout_description = ->(product) {
+    kind = product.is_a?(Program) ? "program" : "course"
+    (kind == "course" && b.checkout_descriptions[product.slug]) ||
+      "#{product.title}. Self-paced online #{kind} by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas."
   }
   # Keep the site out of search engines unless the owner opts in.
   b.indexable = ENV["ALLOW_INDEXING"] == "1"

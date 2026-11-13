@@ -2,14 +2,15 @@
 <div class="auth">
   <p class="eyebrow">A gift</p>
   <% if @gift.status == :waiting %>
-    <h1><%= @gift.course.title %></h1>
-    <p><%= @gift.purchaser ? "#{@gift.purchaser.first_name} bought you this course" : "#{brand.name} is giving you this course" %>. <%= @gift.course.tagline %></p>
+    <% kind = @gift.program? ? "program" : "course" %>
+    <h1><%= @gift.title %></h1>
+    <p><%= @gift.purchaser ? "#{@gift.purchaser.first_name} bought you this #{kind}" : "#{brand.name} is giving you this #{kind}" %><%= ", with every class in it" if @gift.program? %>. <%= @gift.product.tagline %></p>
     <% if current_user %>
       <p>It goes on the account you're signed in to: <strong><%= current_user.email_address %></strong>.</p>
-      <%= button_to "Get my course", redeem_gift_path(@token), class: "btn btn-copper" %>
+      <%= button_to "Get my #{kind}", redeem_gift_path(@token), class: "btn btn-copper" %>
       <p class="small muted" style="margin-top:12px">Not you? <%= button_to "Sign out", session_path, method: :delete, class: "link-button small", form: { style: "display:inline" } %> and open this link again.</p>
     <% else %>
-      <p>Sign in, or make an account in a minute, and the course is yours. The link works once.</p>
+      <p>Sign in, or make an account in a minute, and the <%= kind %> is yours. The link works once.</p>
       <p class="actions">
         <%= link_to "Make an account", new_registration_path(gift: @token), class: "btn btn-copper" %>
         <%= link_to "Sign in", new_session_path(return_to: gift_claim_path(@token)), class: "btn btn-outline" %>
@@ -19,7 +20,7 @@
   <% elsif @gift.status == :claimed %>
     <h1>This gift has been claimed</h1>
     <% if current_user && @gift.redeemed_by == current_user %>
-      <p><%= @gift.course.title %> is on your account. <%= link_to "Go to your courses", (@gift.course.paid? ? store_course_path(@gift.course) : courses_path) %>.</p>
+      <p><%= @gift.title %> is on your account. <%= link_to "Go to it", (@gift.program? ? program_path(@gift.program) : (@gift.course.paid? ? store_course_path(@gift.course) : programs_path)) %>.</p>
     <% else %>
       <p>Each gift link works once, and this one has been used. If you think that's a mistake, email <%= mail_to brand.contact_email %>.</p>
     <% end %>

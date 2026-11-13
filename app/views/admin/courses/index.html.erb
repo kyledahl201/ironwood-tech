@@ -1,8 +1,8 @@
 <% page_title "Courses" %>
 <header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Courses</h1></div></header>
 <section class="section"><div class="wrap"><div class="table-scroll"><table>
-  <thead><tr><th>Course</th><th>Price</th><th>Published</th><th>Lessons</th><th>Students</th><th></th></tr></thead>
+  <thead><tr><th>Course</th><th>Program</th><th>Price</th><th>Published</th><th>Lessons</th><th>Students</th><th></th></tr></thead>
   <tbody><% @courses.each do |c| %>
-    <tr><td><%= link_to c.title, (c.paid? ? store_course_path(c) : course_path(c)) %></td><td><%= c.paid? ? (c.price || "Not set") : "Free" %></td><td><%= c.published ? "Yes" : "No" %></td><td><%= c.lessons.size %></td><td><%= c.enrollments.count(&:active?) %></td><td><%= link_to "Edit", edit_admin_course_path(c) %></td></tr>
+    <tr><td><%= link_to c.title, (c.paid? ? store_course_path(c) : course_path(c)) %></td><td><%= c.program&.title || "None" %></td><td><%= c.paid? ? (c.price || "Not set") : "Free" %></td><td><%= c.published ? "Yes" : "No" %></td><td><%= c.lessons.size %></td><td><%= c.enrollments.count(&:active?) %></td><td><%= link_to "Edit", edit_admin_course_path(c) %></td></tr>
   <% end %></tbody>
 </table></div></div></section>

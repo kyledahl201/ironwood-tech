@@ -259,9 +259,9 @@
   .bench .bench-status { overflow: hidden; text-overflow: ellipsis; }
 }
 
-/* The course list: one list for the Courses page, the welcome screen and "Switch class". */
+/* The class list: one list for the Programs page, the welcome screen and "Switch class". */
 .course-list { list-style: none; padding: 0; margin: 0; }
-/* Programs: each department is a block with its courses inside it. */
+/* Programs: each program is a block with its classes inside it. */
 .program { margin: 0 0 28px; border-left: 4px solid var(--rule); padding-left: 16px; }
 .program.is-current { border-left-color: var(--copper); }
 .program-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 10px 0 8px; border-bottom: 2px solid var(--midnight); }
@@ -270,6 +270,30 @@
 .program-meta { margin: 0; font-size: 14px; color: var(--muted); }
 .program-meta strong { color: var(--midnight); }
 .course-dialog .program { margin-top: 16px; }
+/* The Programs page: three tiers, each with its program cards. */
+.tier-list { margin-top: 40px; }
+.tier { margin: 0 0 48px; }
+.tier-head { border-top: 3px solid var(--copper); padding-top: 16px; margin-bottom: 20px; }
+.tier-head h2 { margin: 0; font-size: 32px; }
+.tier-blurb { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
+.tier-code { font-family: var(--font-code); letter-spacing: .05em; }
+.program-cards { display: grid; gap: 20px; }
+.program-card { background: var(--white); border: 1px solid var(--rule); border-left: 4px solid var(--midnight); padding: 20px 20px 8px; margin: 0; }
+.program-card.is-owned { border-left-color: var(--copper); }
+.program-card.is-coming { border-left-color: var(--rule); background: transparent; border-style: dashed; padding-bottom: 20px; }
+.program-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; padding-bottom: 12px; border-bottom: 2px solid var(--midnight); }
+.program-card.is-coming .program-card-head { border-bottom: 0; padding-bottom: 4px; }
+.program-card-title { flex: 1 1 320px; min-width: 0; }
+.program-card-title h3, .program-card-title h2 { margin: 0; font-size: 26px; line-height: 1.2; }
+.program-card-title a { color: var(--midnight); text-decoration: none; }
+.program-card-title a:hover { text-decoration: underline; text-decoration-color: var(--copper); }
+.program-tagline { margin: 6px 0 0; }
+.program-card-act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.program-price { font: 700 22px var(--font-heading); }
+.program-card > .program-meta { margin: 10px 0 0; }
+.program-card .course-list .course-pick:last-child { border-bottom: 0; }
+.pill-coming { background: var(--midnight); border-color: var(--midnight); color: var(--linen); letter-spacing: .08em; text-transform: uppercase; }
+.pill-owned { background: #F3E6D8; border-color: var(--copper); color: var(--midnight); }
 .course-dialog .program-head h3 { font-size: 22px; }
 .course-pick { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: center; padding: 18px 4px; border-bottom: 1px solid var(--rule); }
 .course-pick.is-current { padding-left: 12px; padding-right: 12px; background: var(--white); }
@@ -295,6 +319,9 @@
 .course-facts dt { font-weight: 600; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
 .course-facts dd { margin: 0; }
 @media (max-width: 640px) {
+  .tier-head h2 { font-size: 26px; }
+  .program-card { padding: 16px 16px 4px; }
+  .program-card-title h3, .program-card-title h2 { font-size: 22px; }
   .course-pick { grid-template-columns: 1fr; }
   .course-pick-act { justify-content: space-between; }
   .course-facts { grid-template-columns: 1fr; gap: 0; }

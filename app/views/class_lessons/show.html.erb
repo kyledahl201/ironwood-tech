@@ -19,7 +19,7 @@
      data-classroom-pass-lines-value="<%= SentryLines::PASS.to_json %>">
 
   <header class="class-bar">
-    <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path(pick: 1) %></li><% if @entry && !@lesson.tour? %><li><%= @entry.program %></li><% end %><% if @entry %><li><%= link_to (@lesson.tour? ? "Start here" : "#{@lesson.course_code} #{@entry.title}"), course_path(@entry) %></li><% end %><% unless @lesson.tour? %><li>Lesson <%= @lesson.lesson_number %></li><% end %></ol></nav>
+    <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Classroom", class_lessons_path(pick: 1) %></li><% if @entry && !@lesson.tour? %><li><%= @entry.program_record ? link_to(@entry.program, program_path(@entry.program_record)) : @entry.program %></li><% end %><% if @entry %><li><%= link_to (@lesson.tour? ? "Start here" : "#{@lesson.course_code} #{@entry.title}"), course_path(@entry) %></li><% end %><% unless @lesson.tour? %><li>Lesson <%= @lesson.lesson_number %></li><% end %></ol></nav>
     <%# A phone has no room for the trail, so it gets one line saying where this class sits. %>
     <p class="class-where small"><%= @lesson.tour? ? "Start here · Tours of the classroom" : [ @entry&.program, @lesson.course_code, "Lesson #{@lesson.lesson_number}" ].compact.join(" · ") %></p>
     <h1 class="class-title"><%= "Homework: " if @homework %><%= @lesson.title %></h1>

@@ -1,0 +1,18 @@
+<% page_title "Programs" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Programs</h1>
+  <p class="lede">What buyers get. Owning a program opens every class in it. Tiers, their public names and the list of programs are in config/program_catalog.yml. A program with no classes shows as Coming and can't be bought or given.</p>
+</div></header>
+<section class="section"><div class="wrap"><div class="table-scroll"><table>
+  <thead><tr><th>Program</th><th>Tier</th><th>Classes</th><th>Price</th><th>Published</th><th>Holders</th><th></th></tr></thead>
+  <tbody><% @programs.each do |p| %>
+    <tr>
+      <td><%= link_to p.title, program_path(p) %></td>
+      <td><%= p.tier %> · <%= p.tier_name %></td>
+      <td><%= p.coming? ? "Coming (none yet)" : p.courses.map { |c| [ c.code, c.title ].compact.uniq.join(" ") }.join(", ") %></td>
+      <td><%= p.price || "Not set" %></td>
+      <td><%= p.published? ? "Yes" : "No" %></td>
+      <td><%= p.program_enrollments.count(&:active?) %></td>
+      <td><%= link_to "Edit", edit_admin_program_path(p) %></td>
+    </tr>
+  <% end %></tbody>
+</table></div></div></section>

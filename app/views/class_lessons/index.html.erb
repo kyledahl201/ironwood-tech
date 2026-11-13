@@ -20,18 +20,18 @@
         <p class="meta"><%= [ (@recommended.tour? ? nil : "#{entry&.program} · #{@recommended.course_code} · Lesson #{@recommended.lesson_number}"), (@recommended.professor && "#{@recommended.professor} (AI tutor)"), (@recommended.minutes && "about #{@recommended.minutes} minutes"), "#{@recommended.steps.size} steps" ].compact.join(" · ") %></p>
         <p class="actions">
           <%= link_to (@current ? "Resume class" : "Start this class"), class_lesson_path(@recommended), class: "btn btn-copper btn-lg" %>
-          <%= link_to "Show full course list", courses_path, class: "btn btn-outline btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %>
+          <%= link_to "Show full course list", programs_path, class: "btn btn-outline btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %>
         </p>
       </article>
     <% elsif @entries.empty? %>
       <article class="welcome-first">
         <p class="eyebrow">No courses yet</p>
         <h2>Your classroom opens with your first course</h2>
-        <p>Courses here open once you own them. Buy one in the store, or ask the owner for access. When a course is yours, its classes show up right here.</p>
-        <p class="actions"><%= link_to "See all courses", courses_path, class: "btn btn-copper btn-lg" %> <%= link_to "Visit the store", store_path, class: "btn btn-outline btn-lg" %></p>
+        <p>Classes here open once you own them. Get a program, or ask the owner for access. When a class is yours, it shows up right here.</p>
+        <p class="actions"><%= link_to "See all programs", programs_path, class: "btn btn-copper btn-lg" %> <%= link_to "Visit the store", store_path, class: "btn btn-outline btn-lg" %></p>
       </article>
     <% else %>
-      <p class="actions"><%= link_to "Show full course list", courses_path, class: "btn btn-copper btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %></p>
+      <p class="actions"><%= link_to "Show full course list", programs_path, class: "btn btn-copper btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %></p>
     <% end %>
     <% if @begun %>
       <h2 class="welcome-list-head">Your courses</h2>

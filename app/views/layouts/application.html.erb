@@ -15,7 +15,7 @@
         data-eggs-lines-value="<%= SentryLines::EGGS.to_json %>" data-eggs-sentry-value="<%= image_path("brand/sentry-watching.svg") %>" data-sentry-cheering="<%= image_path("brand/sentry-cheering.svg") %>" data-sentry-sleepy="<%= image_path("brand/sentry-sleepy.svg") %>">
     <a class="skip" href="#main">Skip to content</a>
     <% if current_user&.admin? %>
-      <div class="admin-bar no-print"><div class="wrap"><strong>Owner:</strong> <%= link_to "Overview", admin_root_path %><%= link_to "Transcript", admin_transcript_path %><%= link_to "Invites", admin_invites_path %><%= link_to "Students", admin_users_path %><%= link_to "Enrollments", admin_enrollments_path %><%= link_to "Gifts", admin_gifts_path %><%= link_to "Exercises", admin_exercises_path %><%= link_to "Courses", admin_courses_path %></div></div>
+      <div class="admin-bar no-print"><div class="wrap"><strong>Owner:</strong> <%= link_to "Overview", admin_root_path %><%= link_to "Transcript", admin_transcript_path %><%= link_to "Invites", admin_invites_path %><%= link_to "Students", admin_users_path %><%= link_to "Enrollments", admin_enrollments_path %><%= link_to "Gifts", admin_gifts_path %><%= link_to "Exercises", admin_exercises_path %><%= link_to "Programs", admin_programs_path %><%= link_to "Courses", admin_courses_path %></div></div>
     <% end %>
     <%= render "shared/header" %>
     <% flash.each do |type, message| %>

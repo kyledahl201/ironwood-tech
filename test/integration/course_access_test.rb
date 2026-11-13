@@ -135,11 +135,13 @@ class CourseAccessTest < ActionDispatch::IntegrationTest
   end
 
   test "course pages and lists show a course that isn't owned only by its title and description" do
+    Program.sync! # CS 101 is a class in the Rails bootcamp, AI 360 in the agentic AI program
     sign_in_as @stranger
     get course_path("cs-101")
     assert_response :success
     assert_select "h1", text: "Intro to Programming in Ruby"
-    assert_includes response.body, "You don't have this course yet."
+    assert_includes response.body, "You don't have this class yet."
+    assert_select ".buy-box a[href=?]", program_path("rails-bootcamp"), text: "Engineering / Rails Bootcamp"
     assert_select "a[href=?]", class_lesson_path(@lesson), 0
     assert_select "a[href=?]", study_class_lesson_path(@lesson), 0
     assert_select "a[href^='/classroom/kits']", 0
@@ -149,9 +151,9 @@ class CourseAccessTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", rubric_course_path(@reading), 0
     assert_no_match(/First lesson/, response.body)
 
-    get courses_path
+    get programs_path
     assert_select ".course-pick a[href^='/classroom/'], .course-pick a[href^='/learn/']", 0
-    assert_select ".course-pick .course-state", text: "Not yours yet", minimum: 1
+    assert_select ".course-pick .course-state", text: "Comes with the program", minimum: 1
     assert_select ".course-pick form", 0
 
     get class_lessons_path
@@ -171,7 +173,7 @@ class CourseAccessTest < ActionDispatch::IntegrationTest
 
   test "the owner of a course sees it in the lists with a way in" do
     sign_in_as @owner_student
-    get courses_path
+    get programs_path
     assert_select ".course-pick a.btn[href=?]", class_lesson_path(@lesson)
     get course_path("cs-101")
     assert_select "a[href=?]", class_lesson_path(@lesson)
@@ -184,7 +186,7 @@ class CourseAccessTest < ActionDispatch::IntegrationTest
     sign_in_as @customer
     get class_lesson_path(@lesson)
     assert_response :success
-    get courses_path
+    get programs_path
     assert_response :success
     assert_select "nav a[href=?]", class_lessons_path
     %w[/portal /portal/study-log /visualizers].each do |path|

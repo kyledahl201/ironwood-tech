@@ -56,10 +56,13 @@ module Payments
   # Stripe Tax in the Stripe dashboard.
   def tax_enabled? = ENV["STRIPE_TAX"] == "1"
 
-  # gift_to: the recipient's email when the course is bought as a gift. The
-  # buyer then gets no access; the recipient gets a claim link (Gift).
-  def create_session(course:, user:, success_url:, cancel_url:, terms_accepted_at:, gift_to: nil)
-    metadata = { user_id: user.id, course_id: course.id, terms_accepted_at: terms_accepted_at.iso8601 }
+  # Sells a course, or a whole program (program:). gift_to: the recipient's
+  # email when it's bought as a gift. The buyer then gets no access; the
+  # recipient gets a claim link (Gift).
+  def create_session(user:, success_url:, cancel_url:, terms_accepted_at:, course: nil, program: nil, gift_to: nil)
+    product = program || course
+    metadata = { user_id: user.id, terms_accepted_at: terms_accepted_at.iso8601 }
+    program ? metadata[:program_id] = program.id : metadata[:course_id] = course.id
     metadata[:gift_recipient] = gift_to if gift_to.present?
     client.v1.checkout.sessions.create(
       mode: "payment",
@@ -74,8 +77,8 @@ module Payments
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: course.price_cents,
-          product_data: { name: gift_to.present? ? "#{course.title} (gift)" : course.title, description: Rails.configuration.x.brand.checkout_description.call(course) }
+          unit_amount: product.price_cents,
+          product_data: { name: gift_to.present? ? "#{product.title} (gift)" : product.title, description: Rails.configuration.x.brand.checkout_description.call(product) }
         }
       } ],
       success_url: success_url,
@@ -102,9 +105,11 @@ module Payments
     return nil unless session.payment_status == "paid"
     metadata = session.metadata
     user = User.find_by(id: metadata && metadata["user_id"])
-    course = Course.find_by(id: metadata && metadata["course_id"])
-    return nil unless user && course
+    return nil unless user
     return nil if expected_user && expected_user != user
+    return grant_program(session, user) if metadata["program_id"].present?
+    course = Course.find_by(id: metadata["course_id"])
+    return nil unless course
     return grant_gift(session, user, course) if metadata["gift_recipient"].present?
 
     paid = { source: "purchase", amount_cents: session.amount_total, stripe_session_id: session.id,
@@ -125,13 +130,28 @@ module Payments
     enrollment
   end
 
+  # A paid program: the buyer holds the program, and so every class in it. Or,
+  # bought as a gift, the recipient gets a claim link. Safe to call twice.
+  def grant_program(session, user)
+    program = Program.find_by(id: session.metadata["program_id"])
+    return nil unless program
+    return grant_gift(session, user, program) if session.metadata["gift_recipient"].present?
+    existing = ProgramEnrollment.find_by(stripe_session_id: session.id)
+    return existing if existing # a replay, or the other caller; a refunded payment stays refunded
+    ProgramEnrollment.grant!(user: user, program: program, source: "purchase", amount_cents: session.amount_total,
+                             stripe_session_id: session.id, payment_intent_id: session.payment_intent.to_s.presence,
+                             terms_accepted_at: session.metadata["terms_accepted_at"].presence, gift: nil)
+  rescue ActiveRecord::RecordNotUnique
+    ProgramEnrollment.find_by!(user: user, program: program)
+  end
+
   # A paid gift: the Gift is made once (the success page and the webhook both
   # call this), and the recipient is emailed the claim link the first time.
   # The buyer is not enrolled.
-  def grant_gift(session, buyer, course)
+  def grant_gift(session, buyer, product)
     gift = Gift.find_by(stripe_session_id: session.id)
     return gift if gift
-    gift = Gift.create!(course: course, purchaser: buyer, recipient_email: session.metadata["gift_recipient"].to_s,
+    gift = Gift.create!((product.is_a?(Program) ? :program : :course) => product, purchaser: buyer, recipient_email: session.metadata["gift_recipient"].to_s,
                         amount_cents: session.amount_total, stripe_session_id: session.id,
                         payment_intent_id: session.payment_intent.to_s.presence,
                         terms_accepted_at: session.metadata["terms_accepted_at"].presence)
@@ -141,7 +161,7 @@ module Payments
     Gift.find_by!(stripe_session_id: session.id) # the other caller made it
   end
 
-  # Full refunds and disputes end access to the course, and end a gift (and
+  # Full refunds and disputes end access to the course (or the program), and end a gift (and
   # the access it gave, if it was claimed).
   def handle_event(event)
     object = event.data.object
@@ -155,10 +175,19 @@ module Payments
     end
   end
 
+  # A program the student still holds keeps its classes open: a course they
+  # also bought on its own, now refunded, comes back through the program.
   def revoke(payment_intent_id, reason)
     return if payment_intent_id.blank?
-    Enrollment.where(payment_intent_id: payment_intent_id.to_s).find_each { |e| e.revoke!(reason) }
+    users = Set.new
+    Enrollment.where(payment_intent_id: payment_intent_id.to_s).includes(:program_enrollment).find_each do |e|
+      next if e.program_enrollment&.active? # held by a program now, not by this payment
+      e.revoke!(reason)
+      users << e.user
+    end
+    ProgramEnrollment.where(payment_intent_id: payment_intent_id.to_s).find_each { |pe| pe.revoke!(reason) }
     Gift.where(payment_intent_id: payment_intent_id.to_s).find_each { |g| g.revoke!(reason) }
+    users.each { |user| user.program_enrollments.active.each { |pe| pe.fan_out!(reinstate: true) } }
   end
 
   # Raises InvalidSignature unless the payload was signed with our webhook

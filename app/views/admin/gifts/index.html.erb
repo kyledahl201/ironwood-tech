@@ -1,6 +1,6 @@
 <% page_title "Gifts" %>
 <header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Gifts</h1>
-  <p class="lede">Give any course to anyone by email. They get a link that works once, for <%= Gift::LIFETIME.inspect %>, and the course is theirs when they claim it. Courses bought as gifts in the store show here too.</p>
+  <p class="lede">Give a whole program, or any one course, to anyone by email. They get a link that works once, for <%= Gift::LIFETIME.inspect %>, and it's theirs when they claim it. A program opens every class in it. Gifts bought in the store show here too.</p>
 </div></header>
 <section class="section"><div class="wrap">
   <% if @claim_link %>
@@ -13,10 +13,13 @@
     <p class="small" role="status"><strong>Email isn't set up yet.</strong> Gifts still work: each new link shows here once, for you to send. docs/DEPLOY-FLY.md, "Turn on email", has the steps.</p>
   <% end %>
 
-  <h2>Gift a course</h2>
+  <h2>Send a gift</h2>
   <%= form_with url: admin_gifts_path, class: "inline-form" do |f| %>
-    <%= f.label :course_id, "Course", class: "visually-hidden" %>
-    <%= f.select :course_id, @courses.map { |c| [ [ c.title, c.code ].compact.uniq.join(" · ") + (c.published? ? "" : " (not published)"), c.id ] } %>
+    <%= f.label :gift_for, "Program or course", class: "visually-hidden" %>
+    <%= f.select :gift_for, grouped_options_for_select({
+          "Programs (every class in it)" => @programs.map { |p| [ "#{p.title} (#{p.tier} · #{pluralize(p.courses.size, 'class')})", "program:#{p.id}" ] },
+          "One course" => @courses.map { |c| [ [ c.title, c.code ].compact.uniq.join(" · ") + (c.published? ? "" : " (not published)"), "course:#{c.id}" ] }
+        }) %>
     <%= f.label :recipient_email, "Their email", class: "visually-hidden" %>
     <%= f.email_field :recipient_email, placeholder: "Their email", required: true, maxlength: 254, autocomplete: "off" %>
     <%= f.submit "Send gift", class: "btn btn-primary" %>
@@ -25,10 +28,10 @@
   <h2 style="margin-top:32px">All gifts</h2>
   <% if @gifts.any? %>
     <div class="table-scroll"><table>
-      <thead><tr><th>Course</th><th>To</th><th>From</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Gift</th><th>To</th><th>From</th><th>Status</th><th></th></tr></thead>
       <tbody><% @gifts.each do |g| %>
         <tr>
-          <td><%= g.course.title %></td>
+          <td><%= g.title %><% if g.program? %><br><span class="small muted">Program</span><% end %></td>
           <td><%= g.recipient_email %><br><span class="small muted"><%= g.emailed_at ? "Emailed #{g.emailed_at.to_date.to_fs(:short)}" : "Not emailed" %></span></td>
           <td><%= g.purchaser ? "Bought by #{g.purchaser.name}#{" (#{number_to_currency(g.amount_cents / 100.0)})" if g.amount_cents}" : "You" %></td>
           <td>

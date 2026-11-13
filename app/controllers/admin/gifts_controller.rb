@@ -1,6 +1,6 @@
 module Admin
-  # "Gift a course": the owner sends any course (sold or not, published or
-  # not) to an email address. The recipient gets the same one-time claim link
+  # "Send a gift": the owner sends a whole program (every class in it), or any
+  # one course (sold or not, published or not), to an email address. The recipient gets the same one-time claim link
   # as a bought gift, even when they already have an account, so every gift
   # works the same way. When email isn't set up, the link is shown here once
   # for the owner to send by hand.
@@ -10,10 +10,13 @@ module Admin
     end
 
     def create
-      course = Course.find(params[:course_id])
-      gift = Gift.new(course: course, recipient_email: params[:recipient_email].to_s, created_by: current_user)
-      if gift.save
-        send_link(gift, "Gift made: #{course.title} for #{gift.recipient_email}.")
+      product = chosen_product
+      gift = Gift.new((product.is_a?(Program) ? :program : :course) => product, recipient_email: params[:recipient_email].to_s, created_by: current_user)
+      if product.is_a?(Program) && product.coming?
+        gift.errors.add(:base, "#{product.title} has no classes yet")
+      end
+      if gift.errors.none? && gift.save
+        send_link(gift, "Gift made: #{product.title} for #{gift.recipient_email}.")
       else
         flash.now[:alert] = "That gift couldn't be made: #{gift.errors.full_messages.to_sentence}."
         load_page
@@ -34,13 +37,21 @@ module Admin
     def revoke
       gift = Gift.find(params[:id])
       gift.revoke!("owner")
-      redirect_to admin_gifts_path, notice: "The gift of #{gift.course.title} to #{gift.recipient_email} has ended."
+      redirect_to admin_gifts_path, notice: "The gift of #{gift.title} to #{gift.recipient_email} has ended."
     end
 
     private
       def load_page
-        @gifts = Gift.includes(:course, :purchaser, :redeemed_by).newest_first.limit(200)
+        @gifts = Gift.includes(:course, :program, :purchaser, :redeemed_by).newest_first.limit(200)
         @courses = Course.order(:position)
+        @programs = Program.ordered.includes(:courses).reject(&:coming?)
+      end
+
+      # The form sends gift_for ("program:3" or "course:7"); course_id alone still works.
+      def chosen_product
+        kind, id = params[:gift_for].to_s.split(":", 2)
+        return Program.find(id) if kind == "program"
+        Course.find(kind == "course" ? id : params[:course_id])
       end
 
       def send_link(gift, done)

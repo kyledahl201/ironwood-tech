@@ -1,0 +1,75 @@
+<% page_title @program.title %>
+<% content_for :description, @program.tagline %>
+<% holder = current_user&.holds_program?(@program) %>
+<header class="page-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Programs", programs_path %></li><li aria-current="page"><%= @program.title %></li></ol></nav>
+  <p class="eyebrow"><%= @program.tier_name %><% if current_user&.admin? %> · <%= @program.tier %><% end %></p>
+  <h1><%= @program.title %></h1>
+  <p class="lede"><%= @program.tagline %></p>
+</div></header>
+
+<section class="section"><div class="wrap course-layout">
+  <div>
+    <% unless @program.published? %><p class="callout" role="status"><strong>Not published.</strong> Only the owner can see this page. Publish the program in the owner area to list it.</p><% end %>
+    <dl class="facts">
+      <dt>Tier</dt><dd><%= @program.tier_name %></dd>
+      <dt>Classes</dt><dd><%= @program.coming? ? "Being written" : pluralize(@entries.size, "class") %></dd>
+      <dt>Taught by</dt><dd>AI lesson guides and tutors (not people), self-paced.</dd>
+    </dl>
+
+    <% if @program.description.present? %><div class="prose" style="margin-top:32px"><%= markdown @program.description %></div><% end %>
+
+    <h2 style="margin-top:40px">Classes in this program</h2>
+    <% if @program.coming? %>
+      <p class="muted">This program is coming. Its classes are being written, and it can't be bought yet.</p>
+    <% else %>
+      <div class="program-list" data-controller="disclosure">
+        <ul class="course-list">
+          <% @entries.each do |entry| %>
+            <%= render "courses/pick", entry: entry, current_code: nil, prefix: "class", level: 2, in_program: true %>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+
+  <aside class="buy-box" aria-label="Get this program">
+    <% if @program.coming? %>
+      <p><span class="pill pill-coming">Coming</span></p>
+      <p>This program is still being built. When its classes are ready, it will show up here with a way to get it.</p>
+    <% elsif @owned %>
+      <p><strong><%= current_user.admin? && !holder ? "You're the owner, so every class is open to you." : "This program is yours." %></strong></p>
+      <p>Every class in it is open. Pick one from the list to start.</p>
+      <% if @program.on_sale? && !@blocked && EmailDelivery.enabled? && holder %>
+        <details style="margin-top:20px">
+          <summary class="small">Give it to someone else (<%= @program.price %>)</summary>
+          <div style="margin-top:12px"><%= render "store/buy_form", product: @program, url: checkout_program_path(@program), gift_only: true %></div>
+        </details>
+      <% end %>
+    <% elsif !@program.on_sale? %>
+      <p class="price">Price coming</p>
+      <p>This program can't be bought yet. To hear when it can, email <%= mail_to brand.contact_email %>.</p>
+    <% else %>
+      <p class="price"><%= @program.price %></p>
+      <p class="small seller-line">Sold by KD Farm and Garden LLC, doing business as Digital Farm and Garden. Ironwood Tech is a learning brand of Digital Farm and Garden.</p>
+      <div class="disclosure-box">
+        <p>You're buying <strong><%= @program.title %></strong>, with every class in it, for <strong><%= @program.price %></strong>, as one payment.</p>
+        <p><%= brand.disclosure %></p>
+        <p>One-time payment, no subscription. Self-paced, with access for at least 12 months. 14-day refund. Sales tax added at checkout if it applies.</p>
+        <p><%= link_to "Terms of Sale", terms_path %> · <%= link_to "Refund policy", refunds_path %> · <%= link_to "Privacy Policy", privacy_path %></p>
+      </div>
+      <% if @blocked %>
+        <button type="button" class="btn btn-copper" disabled aria-describedby="checkout-closed">Buy for <%= @program.price %></button>
+        <p class="small" id="checkout-closed" role="status" style="margin-top:12px"><strong>Checkout isn't open yet.</strong> Nothing can be bought or charged right now. To hear when it opens, email <%= mail_to brand.contact_email %>.</p>
+      <% elsif current_user %>
+        <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>
+        <%= render "store/buy_form", product: @program, url: checkout_program_path(@program) %>
+        <p class="small muted" style="margin-top:12px">You'll pay on Stripe's secure page. <%= brand.name %> never sees your card number.</p>
+      <% else %>
+        <%= link_to "Buy for #{@program.price}", new_registration_path(program: @program.slug), class: "btn btn-copper" %>
+        <p class="small" style="margin-top:12px">You'll make an account first, then pay on Stripe's secure page. Already have an account? <%= link_to "Sign in", new_session_path(return_to: program_path(@program)) %></p>
+      <% end %>
+    <% end %>
+    <p class="small muted" style="margin-top:12px"><%= brand.disclosure %></p>
+  </aside>
+</div></section>

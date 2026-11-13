@@ -1,29 +1,34 @@
-# The one course list. The Courses page, the classroom's "switch class" list
-# and the welcome screen all read it, so a course looks the same everywhere.
+# The one class list. The Programs page, the classroom's "switch class" list
+# and the welcome screen all read it, so a class looks the same everywhere.
 #
-# A course is the classroom lessons that share a course code, an online
-# reading course, or both (config/course_catalog.yml pairs them up).
+# A class (a Course record) is the classroom lessons that share a course code,
+# an online reading course, a course player, or a mix (config/course_catalog.yml
+# pairs them up). Entries are grouped by the program they're in (Program), with
+# the Start here tours first and classes in no program last.
 class Catalog
   FILE = Rails.root.join("config/course_catalog.yml")
-  # Where a course goes until the faculty place it in a department.
-  OTHER = "More courses".freeze
+  # Where a class goes until it's placed in a program.
+  OTHER = "More classes".freeze
+  START = "Start here".freeze
 
   # course is the online reading course, when there is one. access_course is
   # the Course a student must own to open anything in the entry: the course
   # for its code (Catalog.sync_courses!), else the reading course.
   Entry = Struct.new(:slug, :code, :program, :title, :professor, :level, :time, :tagline, :outcomes, :course, :lessons, :done, :open, :started, :enrollment,
-                     :access_course, :owned, keyword_init: true) do
+                     :access_course, :owned, :program_record, keyword_init: true) do
     def to_param = slug
     def owned? = owned
     def classroom? = lessons.any?
+    def player? = course&.player.present?
     def tour? = code == ClassLesson::TOUR
     def total = classroom? ? lessons.size : course.lessons.size
+    def placed? = ![ Catalog::OTHER, Catalog::START ].include?(program)
     def finished_count = classroom? ? lessons.count { |l| done.include?(l.id) } : enrollment&.lesson_completions&.size.to_i
 
     # :new, :going or :finished, for this student.
     def state
       return :finished if total.positive? && finished_count >= total
-      finished_count.positive? || started || (!classroom? && enrollment) ? :going : :new
+      finished_count.positive? || started || (!classroom? && !player? && enrollment) ? :going : :new
     end
 
     # The classroom lesson to open: the first one not finished that is open to
@@ -31,6 +36,7 @@ class Catalog
     def next_lesson = lessons.find { |l| !done.include?(l.id) && open.include?(l.id) } || lessons.first
 
     def status_line
+      return "Ready to open" if player? && !classroom?
       unit = classroom? ? (tour? ? "tour" : "class") : "lesson"
       case state
       when :finished then "Finished · #{total} of #{total} #{unit.pluralize(total)}"
@@ -75,17 +81,20 @@ class Catalog
 
   attr_reader :entries
 
+  # user may be nil (a signed-out visitor on the Programs page): nothing is
+  # owned and nothing is open.
   def initialize(user)
     lessons = ClassLesson.ordered.to_a.group_by(&:course_code)
-    progresses = user.class_progresses.to_a
+    progresses = user ? user.class_progresses.to_a : []
     done = progresses.select(&:completed?).map(&:class_lesson_id).to_set
     started = progresses.select { |p| p.step_index.positive? }.map(&:class_lesson_id).to_set
-    open = lessons.values.flatten.select { |l| l.unlocked_for?(user) }.map(&:id).to_set
-    # Sold courses live in the store, not in this list.
-    courses = Course.published.free_to_members.includes(:lessons).index_by(&:slug)
-    by_code = Course.where.not(code: nil).index_by(&:code)
-    enrollments = user.enrollments.active.includes(:lesson_completions).index_by(&:course_id)
-    owns = ->(course) { course.present? && (user.admin? || enrollments.key?(course.id)) }
+    open = user ? lessons.values.flatten.select { |l| l.unlocked_for?(user) }.map(&:id).to_set : Set.new
+    # Sold courses live in the store, unless they're a class in a program.
+    courses = Course.where(published: true, paid: false).or(Course.where.not(program_id: nil)).includes(:lessons, :program).index_by(&:slug)
+    by_code = Course.where.not(code: nil).includes(:program).index_by(&:code)
+    enrollments = user ? user.enrollments.active.includes(:lesson_completions).index_by(&:course_id) : {}
+    owns = ->(course) { course.present? && user.present? && (user.admin? || enrollments.key?(course.id)) }
+    placed = ->(access, fallback) { access&.program ? { program: access.program.title, program_record: access.program } : { program: fallback || OTHER } }
 
     paired = []
     @entries = self.class.rows.filter_map do |row|
@@ -94,7 +103,7 @@ class Catalog
       list = lessons[row[:code]] || []
       next if list.empty? && course.nil?
       access = by_code[row[:code]] || course
-      Entry.new(access_course: access, owned: owns.call(access), slug: row[:slug] || course&.slug || row[:code].parameterize, code: row[:code], program: row[:program] || OTHER,
+      Entry.new(access_course: access, owned: owns.call(access), slug: row[:slug] || course&.slug || row[:code].parameterize, code: row[:code], **placed.call(access, row[:program]),
                 title: row[:title] || course&.title || row[:code], professor: row[:professor] || list.first&.professor || course&.tutor_name,
                 level: row[:level] || course&.level, time: row[:time] || course&.hours, tagline: row[:tagline] || course&.tagline,
                 outcomes: row[:outcomes] || course&.outcome_list || [], course: course, lessons: list, done: done, open: open,
@@ -104,15 +113,26 @@ class Catalog
     (lessons.keys - @entries.map(&:code)).sort.each do |code|
       list = lessons[code]
       access = by_code[code]
-      @entries << Entry.new(access_course: access, owned: owns.call(access), slug: code.parameterize, code: code, program: OTHER, title: code, professor: list.first.professor, outcomes: [], lessons: list,
+      @entries << Entry.new(access_course: access, owned: owns.call(access), slug: code.parameterize, code: code, **placed.call(access, nil), title: code, professor: list.first.professor, outcomes: [], lessons: list,
                             done: done, open: open, started: list.any? { |l| started.include?(l.id) })
     end
     # A course that carries a classroom code is the classroom course itself, not a reading course of its own.
-    (courses.values - paired).reject { |course| by_code.key?(course.code) }.each do |course|
-      @entries << Entry.new(access_course: course, owned: owns.call(course), slug: course.slug, program: OTHER, title: course.title, professor: course.tutor_name, level: course.level, time: course.hours, tagline: course.tagline,
+    (courses.values - paired).reject { |course| by_code.key?(course.code) }.sort_by { |c| [ c.position, c.id ] }.each do |course|
+      @entries << Entry.new(access_course: course, owned: owns.call(course), slug: course.slug, **placed.call(course, nil), title: course.title, professor: course.tutor_name, level: course.level, time: course.hours, tagline: course.tagline,
                             outcomes: course.outcome_list, course: course, lessons: [], done: done, open: open, started: false, enrollment: enrollments[course.id])
     end
+    # Start here first, then each program in its order, then classes in no program.
+    @entries = @entries.each_with_index.sort_by do |entry, i|
+      rank = if entry.program == START then [ 0, 0 ]
+      elsif entry.program_record then [ 1, entry.program_record.position ]
+      else [ 2, 0 ]
+      end
+      [ *rank, i ]
+    end.map(&:first)
   end
+
+  # The entries for one program's classes.
+  def for_program(program) = entries.select { |e| e.program_record&.id == program.id }
 
   def find(slug) = entries.find { |e| e.slug == slug }
   def for_code(code) = entries.find { |e| e.code == code }

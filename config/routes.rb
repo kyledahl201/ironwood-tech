@@ -37,7 +37,16 @@ Rails.application.routes.draw do
     get "certificates/:course_id", to: "certificates#show", as: :certificate
   end
 
-  resources :courses, only: %i[index show] do
+  # Programs: what a buyer gets, in three tiers. Each holds classes (courses).
+  resources :programs, only: %i[index show] do
+    member do
+      post :checkout, to: "program_checkouts#create"
+      get "checkout/success", to: "program_checkouts#success", as: :checkout_success
+    end
+  end
+  # The old Courses page is the Programs page now. A class keeps its own page.
+  get "courses", to: redirect("/programs", status: 301), as: :courses
+  resources :courses, only: :show do
     get :rubric, on: :member
   end
   scope "learn/:course_id", module: "learn", as: "learn" do
@@ -89,6 +98,13 @@ Rails.application.routes.draw do
         post :reinstate
       end
     end
+    resources :program_enrollments, only: :create do
+      member do
+        post :revoke
+        post :reinstate
+      end
+    end
+    resources :programs, only: %i[index edit update]
     resources :courses, only: %i[index edit update]
     resource :transcript, only: %i[show create]
     resources :exercises, only: %i[index update]

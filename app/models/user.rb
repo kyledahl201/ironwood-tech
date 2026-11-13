@@ -2,6 +2,7 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_many :enrollments, dependent: :destroy
+  has_many :program_enrollments, dependent: :destroy
   has_many :study_sessions, dependent: :destroy
   has_many :course_records, -> { ordered }, dependent: :destroy
   has_one :transcript_snapshot, dependent: :destroy
@@ -28,6 +29,13 @@ class User < ApplicationRecord
   # Revoked (refunded) enrollments don't count.
   def enrolled_in?(course)
     enrollments.active.exists?(course: course)
+  end
+
+  # Holds the program itself (bought, given or a claimed gift), not just its
+  # classes. Owning a program gives an enrollment in each of its courses
+  # (ProgramEnrollment#fan_out!), so can_open? below needs nothing more.
+  def holds_program?(program)
+    program_enrollments.active.exists?(program: program)
   end
 
   # The one ownership rule. Course content (lessons, the player, classroom

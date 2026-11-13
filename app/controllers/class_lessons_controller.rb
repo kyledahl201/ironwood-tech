@@ -153,7 +153,7 @@ class ClassLessonsController < ApplicationController
       @lesson = ClassLesson.find_by!(slug: params[:id])
       unless @lesson.owned_by?(current_user)
         entry = Catalog.new(current_user).for_code(@lesson.course_code)
-        return refuse_course_access(entry ? course_path(entry) : courses_path)
+        return refuse_course_access(entry ? course_path(entry) : programs_path)
       end
       return if @lesson.unlocked_for?(current_user)
       respond_to do |format|

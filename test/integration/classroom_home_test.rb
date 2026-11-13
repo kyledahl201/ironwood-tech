@@ -36,7 +36,7 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_select ".welcome-first h2", text: "Made up: the tour"
     assert_select ".welcome-first a.btn[href=?]", class_lesson_path(@tour), text: "Start this class"
     # The button is a real link to the Courses page, which the page's script turns into the list drawn over the page.
-    assert_select ".welcome-first a[href=?][data-action='course-dialog#open'][aria-haspopup=dialog]", courses_path, text: "Show full course list"
+    assert_select ".welcome-first a[href=?][data-action='course-dialog#open'][aria-haspopup=dialog]", programs_path, text: "Show full course list"
     assert_select "dialog.course-dialog[aria-labelledby=course-dialog-title] h2#course-dialog-title", text: "Your courses"
     assert_select "dialog .course-pick", 3 # the tour, CS 101 and the reading course they own (not Other Course)
     assert_select "dialog .program h3", text: "Start here"
@@ -112,7 +112,7 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_redirected_to class_lesson_path(@two)
   end
 
-  test "Courses is one list: details in place, and one button into each course" do
+  test "Programs lists each program's classes: details in place, and one button into each class the student owns" do
     lessons_for_everyone
     bootcamp = Course.create!(title: "Agentic AI Bootcamp", slug: "agentic-ai-bootcamp", tagline: "Made-up tagline", level: "Intermediate", hours: "14 weeks", tutor_name: "Prof. Tomas Reyes", published: true, position: 3, outcomes: "Build an agent\nTest it")
     bootcamp.lessons.create!(position: 1, title: "Week 1 notes", body: "Read this.")
@@ -122,57 +122,61 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     users(:two).enrollments.destroy_all
     %i[tour cs101 free].each { |c| users(:two).enrollments.create!(course: courses(c), source: "admin") }
     users(:two).enrollments.create!(course: bootcamp, source: "gift")
+    Program.sync! # the bootcamp is the agentic AI program's class, CS 101 the Rails bootcamp's
     sign_in_as users(:two)
-    get courses_path
+    get programs_path
     assert_response :success
-    assert_select ".course-list .course-pick", 5
-    assert_select ".course-list .course-pick h3 a", text: "Tours of the classroom"
+    assert_select ".course-list .course-pick", 5 # the tour, PX1's class, CS 101, the bootcamp and Free Course (theirs, in no program yet)
+    assert_select "#life-and-work .course-pick .course-state", text: "Comes with the program"
+    assert_select "#life-and-work .course-pick a.btn", 0 # not theirs: the program is the way in, not the class
+    assert_select ".course-list .course-pick .course-name a", text: "Tours of the classroom"
     assert_select ".course-pick .eyebrow", text: "CS 101 · Prof. Hale (AI tutor)"
 
     # The classroom course and its reading are one row, and the button goes to the classroom.
-    assert_select ".course-pick h3 a[href=?]", course_path("agentic-ai-bootcamp"), text: "Agentic AI Bootcamp", count: 1
+    assert_select ".course-pick .course-name a[href=?]", course_path("agentic-ai-bootcamp"), text: "Agentic AI Bootcamp", count: 1
     assert_select ".course-pick a.btn[href=?]", class_lesson_path(py), text: /Start\s*Agentic AI Bootcamp/
-    assert_select "#course-agentic-ai-bootcamp-more[hidden] dd", text: /1 class in the classroom, one step at a time and 1 reading lesson with an AI tutor/i
-    assert_select "#course-agentic-ai-bootcamp-more li", text: "Build an agent"
+    assert_select "#program-agentic-ai-agentic-ai-bootcamp-more[hidden] dd", text: /1 class in the classroom, one step at a time and 1 reading lesson with an AI tutor/i
+    assert_select "#program-agentic-ai-agentic-ai-bootcamp-more li", text: "Build an agent"
 
     # Details is a link to the course page that the page's script opens in place.
-    assert_select ".course-pick a.course-more-toggle[role=button][aria-expanded=false][aria-controls=course-cs-101-more][href=?]", course_path("cs-101"), text: /Details\s*of Intro to Programming in Ruby/
-    assert_select "#course-cs-101-more[hidden] li", text: "Write methods, and tell puts from return"
+    assert_select ".course-pick a.course-more-toggle[role=button][aria-expanded=false][aria-controls=program-rails-bootcamp-cs-101-more][href=?]", course_path("cs-101"), text: /Details\s*of Intro to Programming in Ruby/
+    assert_select "#program-rails-bootcamp-cs-101-more[hidden] li", text: "Write methods, and tell puts from return"
 
-    # A reading-only course the student owns opens with its own button. One they don't own says how to get it.
+    # A reading-only course the student owns opens with its own button. One in no program that they don't own isn't listed.
     assert_select ".course-pick a.btn[href=?]", learn_lesson_path(courses(:free), 1), text: /Resume\s*Free Course/
-    assert_select ".course-pick a.btn[href^='mailto:']", text: /Ask for access\s*to Other Course/
+    assert_select ".course-pick", text: /Other Course/, count: 0
     assert_select ".course-pick a[href=?]", learn_lesson_path(courses(:other), 1), 0
     assert_select ".course-pick form", 0 # nothing here starts a course by itself
   end
 
-  test "the course list is grouped by program, in catalogue order, with unplaced courses last" do
+  test "the class list is grouped by program, in program order, with unplaced classes last" do
     lessons_for_everyone
     ClassLesson.create!(script.merge(slug: "zz-090", course_code: "CS 090", lesson_number: 1))
     ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
     ClassLesson.create!(script.merge(slug: "zz-new", course_code: "ZZ 999", lesson_number: 1)) # nobody has placed this one yet
-    sign_in_as users(:two)
-    get courses_path
-    assert_equal [ "Start here", "Program Computing Foundations", "Program Data Science & AI", "More courses" ], css_select(".program-head h2").map { |h| h.text.squish }
-    assert_select "section.program[aria-labelledby=course-program-computing-foundations] h2#course-program-computing-foundations"
-    assert_select "section[aria-labelledby=course-program-computing-foundations] .course-pick h3", 2
-    assert_equal [ "Computing Orientation", "Intro to Programming in Ruby" ], css_select("section[aria-labelledby=course-program-computing-foundations] .course-name").map { |h| h.text.squish }
-    assert_select "section[aria-labelledby=course-program-computing-foundations] .program-meta", text: "2 courses"
-    assert_select "section[aria-labelledby=course-program-more-courses] .course-name", 3 # ZZ 999 and the two reading courses
-    assert_select "section[aria-labelledby=course-program-start-here] .program-meta", text: "1 tour" # tours are counted as tours
-    assert_select "#course-zz-999-more dt", text: "Program", count: 0 # an unplaced course doesn't claim a program, here or on its page
+    Program.sync!
+    sign_in_as users(:owner) # owns every class, so the whole list shows
+    get class_lesson_path(@one)
+    assert_equal [ "Start here", "Program Life and Work, With Claude: AI 101", "Program 14-Week Agentic AI", "Program Engineering / Rails Bootcamp", "More classes" ], css_select("dialog .program-head h3").map { |h| h.text.squish }
+    assert_select "dialog section.program[aria-labelledby=pick-program-engineering-rails-bootcamp] h3#pick-program-engineering-rails-bootcamp"
+    assert_equal [ "Computing Orientation", "Intro to Programming in Ruby" ], css_select("dialog section[aria-labelledby=pick-program-engineering-rails-bootcamp] .course-name").map { |h| h.text.squish }
+    assert_select "dialog section[aria-labelledby=pick-program-engineering-rails-bootcamp] .program-meta", text: /2 classes/
+    assert_select "dialog section[aria-labelledby=pick-program-start-here] .program-meta", text: "1 tour" # tours are counted as tours
+    assert_select "dialog #pick-zz-999-more dt", text: "Program", count: 0 # an unplaced class doesn't claim a program, here or on its page
     get course_path("zz-999")
     assert_select ".facts dt", text: "Program", count: 0
-    get courses_path
+    get programs_path
     assert_select ".program.is-current", 0 # no class on screen here
-    assert_select "#course-cs-101-more dt + dd", text: "Computing Foundations"
+    assert_select "#program-rails-bootcamp-cs-101-more dt + dd", text: "Engineering / Rails Bootcamp"
 
     get course_path("cs-101")
-    assert_select ".page-head .eyebrow", text: "Computing Foundations · CS 101"
+    assert_select ".page-head .eyebrow", text: "Engineering / Rails Bootcamp · CS 101"
+    assert_select ".crumbs a[href=?]", program_path("rails-bootcamp")
     assert_select ".facts dt", text: "Program"
     get course_path(courses(:free))
     assert_select ".facts dt", text: "Program", count: 0
 
+    sign_in_as users(:two)
     # A table in a course description is a table, not a run-on paragraph.
     courses(:free).update!(description: "| Part | Time |\n|---|---|\n| Lesson | 45 min |\n\n<script>alert(1)</script>")
     get course_path(courses(:free))
@@ -183,8 +187,8 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     # The welcome card says which program its class is in, and a tour says Start here.
     post progress_class_lesson_path(@one), params: { step_index: 1 }, as: :json
     get class_lessons_path(pick: 1)
-    assert_select ".welcome-first .meta", text: /Computing Foundations · CS 101 · Lesson 1/
-    assert_select ".welcome > .program-list .program.is-current h3", text: /Computing Foundations/
+    assert_select ".welcome-first .meta", text: /Engineering \/ Rails Bootcamp · CS 101 · Lesson 1/
+    assert_select ".welcome > .program-list .program.is-current h3", text: /Engineering \/ Rails Bootcamp/
     get class_lesson_path(@tour)
     assert_select ".class-where", text: "Start here · Tours of the classroom"
     assert_select "dialog .program.is-current h3", text: "Start here"
@@ -215,15 +219,16 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
 
   test "the class bar switches class and opens the professor's chat, which says so when it isn't connected" do
     lessons_for_everyone
+    Program.sync!
     sign_in_as users(:two)
     get class_lesson_path(@one)
     assert_response :success
     assert_select ".class-bar .crumbs a[href=?]", class_lessons_path(pick: 1), text: "Classroom"
-    assert_select ".class-bar .crumbs li", text: "Computing Foundations"
+    assert_select ".class-bar .crumbs li a[href=?]", program_path("rails-bootcamp"), text: "Engineering / Rails Bootcamp"
     assert_select ".class-bar .crumbs a[href=?]", course_path("cs-101"), text: "CS 101 Intro to Programming in Ruby"
-    assert_select ".class-bar .class-where", text: "Computing Foundations · CS 101 · Lesson 1" # the line a phone shows instead of the trail
-    assert_select "dialog .program.is-current h3", text: /Program\s+Computing Foundations/
-    assert_select "dialog .program.is-current .program-meta", text: /1 course\s*·\s*You are in this program now/
+    assert_select ".class-bar .class-where", text: "Engineering / Rails Bootcamp · CS 101 · Lesson 1" # the line a phone shows instead of the trail
+    assert_select "dialog .program.is-current h3", text: /Program\s+Engineering \/ Rails Bootcamp/
+    assert_select "dialog .program.is-current .program-meta", text: /1 class\s*·\s*You are in this program now/
     assert_select "dialog .program.is-current", 1
     assert_select ".class-tools a[href=?][data-action='course-dialog#open']", class_lessons_path(pick: 1), text: "Switch class"
     assert_select "dialog.course-dialog h2", text: "Switch class"

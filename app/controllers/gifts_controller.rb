@@ -15,13 +15,13 @@ class GiftsController < ApplicationController
   end
 
   def redeem
-    course = @gift.course
+    title = @gift.title
     if !@gift.claimable?
       redirect_to gift_claim_path(@token)
-    elsif current_user.enrolled_in?(course)
-      redirect_to gift_claim_path(@token), notice: "You already have #{course.title}, so this gift is still waiting. You can pass the link on to someone else."
+    elsif @gift.already_owned_by?(current_user)
+      redirect_to gift_claim_path(@token), notice: "You already have #{title}, so this gift is still waiting. You can pass the link on to someone else."
     elsif @gift.redeem!(current_user)
-      redirect_to destination(course), notice: "#{course.title} is yours. Have fun with it."
+      redirect_to destination, notice: "#{title} is yours#{", with every class in it" if @gift.program?}. Have fun with it."
     else
       redirect_to gift_claim_path(@token), alert: "That gift couldn't be claimed. Please try the link again."
     end
@@ -34,7 +34,9 @@ class GiftsController < ApplicationController
       render :missing, status: :not_found unless @gift
     end
 
-    def destination(course)
+    def destination
+      return program_path(@gift.program) if @gift.program?
+      course = @gift.course
       return store_course_path(course) if course.paid?
       entry = Catalog.new(current_user).for_course(course)
       entry ? course_path(entry) : home_url_for(current_user)
