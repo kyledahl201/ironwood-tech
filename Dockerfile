@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Production image, built and run by Kamal (config/deploy.yml).
+# Production image: run with Docker on the Mac, by Fly.io (fly.toml) or by Kamal (config/deploy.yml).
 ARG RUBY_VERSION=3.3.6
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
