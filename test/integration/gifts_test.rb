@@ -189,7 +189,7 @@ class GiftsTest < ActionDispatch::IntegrationTest
     sign_in_as users(:owner)
     get admin_gifts_path
     assert_response :success
-    assert_select "select[name=course_id] option", text: /Hidden Course \(not published\)/
+    assert_select "select[name=gift_for] option[value=?]", "course:#{hidden.id}", text: /Hidden Course \(not published\)/
 
     post admin_gifts_path, params: { course_id: hidden.id, recipient_email: "one@example.com" }
     assert_redirected_to admin_gifts_path

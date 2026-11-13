@@ -7,6 +7,7 @@ module Admin
     def show
       @user = User.find(params[:id])
       @courses = Course.order(:position)
+      @programs = Program.ordered.includes(:courses).reject(&:coming?)
     end
 
     # The one thing the owner changes here: whether an account made by buying

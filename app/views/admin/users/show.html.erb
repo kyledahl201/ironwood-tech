@@ -1,7 +1,35 @@
 <% page_title @user.name %>
 <header class="page-head"><div class="wrap"><p class="eyebrow">Student</p><h1><%= @user.name %></h1><p><%= @user.email_address %> · joined <%= @user.created_at.to_date.to_fs(:long) %></p></div></header>
 <section class="section"><div class="wrap">
-  <h2>Courses <%= @user.first_name %> owns</h2>
+  <h2>Programs <%= @user.first_name %> holds</h2>
+  <% pes = @user.program_enrollments.includes(:program).order(:created_at) %>
+  <% if pes.any? %>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Program</th><th>How</th><th>Paid</th><th>Since</th><th>Access</th><th></th></tr></thead>
+      <tbody><% pes.each do |pe| %>
+        <tr>
+          <td><%= pe.program.title %></td>
+          <td><%= { "admin" => "Given by owner", "purchase" => "Bought (Stripe)", "gift" => "Claimed a gift" }[pe.source] %></td>
+          <td><%= pe.amount_cents ? number_to_currency(pe.amount_cents / 100.0) : "—" %></td>
+          <td><%= pe.created_at.to_date.to_fs(:short) %></td>
+          <td><%= pe.active? ? "Active" : "Ended #{pe.revoked_at.to_date.to_fs(:short)} (#{pe.revoke_reason})" %></td>
+          <td><% if pe.active? %><%= button_to "End program", revoke_admin_program_enrollment_path(pe), class: "link-button small", form: { data: { turbo_confirm: "End #{@user.name}'s #{pe.program.title}, and the classes it gave? This does not refund any payment." } } %><% else %><%= button_to "Give back", reinstate_admin_program_enrollment_path(pe), class: "link-button small" %><% end %></td>
+        </tr>
+      <% end %></tbody>
+    </table></div>
+  <% else %>
+    <p class="muted">None.</p>
+  <% end %>
+  <% if @programs.any? %>
+    <%= form_with url: admin_program_enrollments_path, class: "inline-form" do |f| %>
+      <%= f.hidden_field :user_id, value: @user.id %>
+      <%= f.label :program_id, "Program", class: "visually-hidden" %>
+      <%= f.select :program_id, @programs.map { |p| [ "#{p.title} (#{p.tier})", p.id ] } %>
+      <%= f.submit "Give program", class: "btn btn-primary" %>
+    <% end %>
+  <% end %>
+
+  <h2 style="margin-top:32px">Courses <%= @user.first_name %> owns</h2>
   <div class="table-scroll"><%= render "admin/enrollments/table", enrollments: @user.enrollments.includes(:course, :user), show_student: false %></div>
   <h2 style="margin-top:32px">Give a course</h2>
   <p class="muted small">Gives <%= @user.first_name %> a course right away, without payment and without an email. Every course must be owned to open, including the classroom courses. To send a claim link by email instead, use <%= link_to "Gifts", admin_gifts_path %>.</p>

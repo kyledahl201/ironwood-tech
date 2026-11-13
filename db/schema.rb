@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_000000) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -92,7 +92,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
     t.boolean "paid", default: false, null: false
     t.integer "price_cents"
     t.string "code"
+    t.integer "program_id"
     t.index ["code"], name: "index_courses_on_code", unique: true
+    t.index ["program_id"], name: "index_courses_on_program_id"
     t.index ["slug"], name: "index_courses_on_slug", unique: true
   end
 
@@ -109,9 +111,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
     t.string "revoke_reason"
     t.datetime "terms_accepted_at"
     t.integer "gift_id"
+    t.integer "program_enrollment_id"
     t.index ["course_id"], name: "index_enrollments_on_course_id"
     t.index ["gift_id"], name: "index_enrollments_on_gift_id"
     t.index ["payment_intent_id"], name: "index_enrollments_on_payment_intent_id"
+    t.index ["program_enrollment_id"], name: "index_enrollments_on_program_enrollment_id"
     t.index ["stripe_session_id"], name: "index_enrollments_on_stripe_session_id", unique: true
     t.index ["user_id", "course_id"], name: "index_enrollments_on_user_id_and_course_id", unique: true
     t.index ["user_id"], name: "index_enrollments_on_user_id"
@@ -137,7 +141,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
   end
 
   create_table "gifts", force: :cascade do |t|
-    t.integer "course_id", null: false
+    t.integer "course_id"
     t.string "recipient_email", null: false
     t.integer "purchaser_id"
     t.integer "created_by_id"
@@ -154,9 +158,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
     t.datetime "terms_accepted_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "program_id"
     t.index ["course_id"], name: "index_gifts_on_course_id"
     t.index ["created_by_id"], name: "index_gifts_on_created_by_id"
     t.index ["payment_intent_id"], name: "index_gifts_on_payment_intent_id"
+    t.index ["program_id"], name: "index_gifts_on_program_id"
     t.index ["purchaser_id"], name: "index_gifts_on_purchaser_id"
     t.index ["redeemed_by_id"], name: "index_gifts_on_redeemed_by_id"
     t.index ["stripe_session_id"], name: "index_gifts_on_stripe_session_id", unique: true
@@ -209,6 +215,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
     t.datetime "updated_at", null: false
     t.index ["course_id", "position"], name: "index_lessons_on_course_id_and_position", unique: true
     t.index ["course_id"], name: "index_lessons_on_course_id"
+  end
+
+  create_table "program_enrollments", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "program_id", null: false
+    t.string "source", null: false
+    t.integer "gift_id"
+    t.integer "amount_cents"
+    t.string "stripe_session_id"
+    t.string "payment_intent_id"
+    t.datetime "terms_accepted_at"
+    t.datetime "revoked_at"
+    t.string "revoke_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["gift_id"], name: "index_program_enrollments_on_gift_id"
+    t.index ["payment_intent_id"], name: "index_program_enrollments_on_payment_intent_id"
+    t.index ["program_id"], name: "index_program_enrollments_on_program_id"
+    t.index ["stripe_session_id"], name: "index_program_enrollments_on_stripe_session_id", unique: true
+    t.index ["user_id", "program_id"], name: "index_program_enrollments_on_user_id_and_program_id", unique: true
+    t.index ["user_id"], name: "index_program_enrollments_on_user_id"
+  end
+
+  create_table "programs", force: :cascade do |t|
+    t.string "slug", null: false
+    t.string "tier", null: false
+    t.string "title", null: false
+    t.string "tagline"
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.integer "price_cents"
+    t.boolean "published", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_programs_on_slug", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -325,6 +366,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
   add_foreign_key "lesson_completions", "enrollments"
   add_foreign_key "lesson_completions", "lessons"
   add_foreign_key "lessons", "courses"
+  add_foreign_key "program_enrollments", "gifts"
+  add_foreign_key "program_enrollments", "programs"
+  add_foreign_key "program_enrollments", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "study_records", "class_lessons"
   add_foreign_key "study_records", "users"

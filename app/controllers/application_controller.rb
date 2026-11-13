@@ -31,9 +31,9 @@ class ApplicationController < ActionController::Base
 
     # Course content someone doesn't own (User#can_open?). JSON requests get a
     # plain 403; pages go to the course's page, which says how to get access.
-    def refuse_course_access(back = courses_path)
+    def refuse_course_access(back = programs_path)
       respond_to do |format|
-        format.html { redirect_to back, alert: "That course isn't yours yet. Courses here open once you own them: buy one in the store, or ask the owner for access." }
+        format.html { redirect_to back, alert: "That class isn't yours yet. Classes here open once you own them: get the program it's in, or ask the owner for access." }
         format.any { head :forbidden }
       end
     end

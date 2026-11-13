@@ -58,6 +58,12 @@ end
 # can give it to a student or send it as a gift. Nobody is given anything here.
 Catalog.sync_courses!
 
+# Programs (config/program_catalog.yml): what buyers get. Makes the programs,
+# places each course in its program (PX1's course, the Agentic AI Bootcamp,
+# CS 090 and CS 101), and gives anyone who owns a program any class newly
+# placed in it. Never changes a price or text the owner set.
+Program.sync!
+
 # Owner account. In production set ADMIN_EMAIL, ADMIN_NAME and ADMIN_PASSWORD.
 # Made once: when an owner already exists it is left alone, so an owner who has
 # changed their email on the Account page doesn't get a second owner account

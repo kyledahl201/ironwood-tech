@@ -1,0 +1,29 @@
+<%# One class in a list. locals: entry, current_code, prefix, level (its heading level is level + 1),
+    in_program (true on a program's own list: a class the visitor doesn't own gets no button of its own, the program's buy box is the way in) %>
+<% in_program = local_assigns[:in_program] %>
+<% state = entry.state %>
+<li class="course-pick is-<%= entry.owned? ? state : "locked" %><%= " is-current" if current_code && entry.code == current_code %>">
+  <div class="course-pick-main">
+    <p class="eyebrow"><%= [ (entry.code unless entry.tour? || entry.code.blank?), (entry.professor.to_s.match?(/tutor/i) ? "AI tutor" : (entry.professor.present? ? "#{entry.professor} (AI tutor)" : nil)) ].compact.join(" · ") %></p>
+    <%= content_tag "h#{level + 1}", class: "course-name" do %><%= link_to entry.title, course_path(entry) %><% end %>
+    <% if entry.tagline.present? %><p class="course-tagline"><%= entry.tagline %></p><% end %>
+    <p class="meta"><span class="course-state"><% if !entry.owned? %><%= in_program ? "Comes with the program" : "Not yours yet" %><% else %><%= current_code && entry.code == current_code && state == :new ? entry.status_line.sub("Not started · ", "") : entry.status_line %><% end %></span><% if current_code && entry.code == current_code %> · <strong>You are in this class now</strong><% end %></p>
+  </div>
+  <div class="course-pick-act">
+    <% if entry.owned? || !in_program %><%= render "courses/launch", entry: entry, size: "" %><% end %>
+    <%= link_to course_path(entry), class: "link-button course-more-toggle", role: "button", aria: { expanded: false, controls: "#{prefix}-#{entry.slug}-more" }, data: { action: "disclosure#toggle keydown->disclosure#key" } do %>Details<span class="visually-hidden"> of <%= entry.title %></span><% end %>
+  </div>
+  <div class="course-more" id="<%= prefix %>-<%= entry.slug %>-more" hidden>
+    <dl class="course-facts">
+      <% if entry.placed? %><dt>Program</dt><dd><%= entry.program %></dd><% end %>
+      <% if entry.level.present? %><dt>Level</dt><dd><%= entry.level %></dd><% end %>
+      <% if entry.time.present? %><dt>Time</dt><dd><%= entry.time %></dd><% end %>
+      <dt>How it's taught</dt><dd><%= [ ("#{pluralize(entry.lessons.size, entry.tour? ? 'tour' : 'class')} in the classroom, one step at a time" if entry.classroom?), ("#{pluralize(entry.course.lessons.size, 'reading lesson')} with an AI tutor" if entry.course&.lessons&.any?), ("a guided course you open in your browser" if entry.player?) ].compact.to_sentence.upcase_first.presence || "Being written" %></dd>
+    </dl>
+    <% if entry.outcomes.any? %>
+      <p class="course-more-head">What you'll be able to do</p>
+      <ul><% entry.outcomes.each do |outcome| %><li><%= outcome %></li><% end %></ul>
+    <% end %>
+    <% if entry.owned? %><p class="small"><%= link_to "See every class in #{entry.title}", course_path(entry) %></p><% end %>
+  </div>
+</li>

@@ -39,10 +39,18 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "everything else needs a sign-in" do
-    %w[/portal /courses /lab /visualizers /visualizers/loop /portal/badges /portal/study-log].each do |path|
+    %w[/portal /lab /visualizers /visualizers/loop /portal/badges /portal/study-log /classroom].each do |path|
       get path
       assert_redirected_to new_session_path, path
     end
+  end
+
+  test "the Programs page is public, and the old Courses page goes to it" do
+    get "/courses"
+    assert_response :moved_permanently
+    assert_redirected_to "/programs"
+    get programs_path
+    assert_response :success
   end
 
   test "sign-up is invite-only and an invite works once" do

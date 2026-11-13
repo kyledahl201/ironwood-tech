@@ -1,4 +1,7 @@
 class Course < ApplicationRecord
+  # The program this course is a class in (Program.sync!). Owning the program
+  # gives an enrollment in this course.
+  belongs_to :program, optional: true
   has_many :lessons, -> { order(:position) }, dependent: :destroy
   has_many :enrollments, dependent: :restrict_with_error
   has_many :students, through: :enrollments, source: :user

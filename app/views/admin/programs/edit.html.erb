@@ -1,0 +1,18 @@
+<% page_title "Edit #{@program.title}" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner · <%= @program.tier %> · <%= @program.tier_name %></p><h1>Edit <%= @program.title %></h1></div></header>
+<section class="section"><div class="wrap">
+  <%= form_with model: [:admin, @program], class: "form" do |f| %>
+    <%= render "shared/errors", record: @program %>
+    <div class="field"><%= f.label :title %><%= f.text_field :title %></div>
+    <div class="field"><%= f.label :tagline %><%= f.text_field :tagline %></div>
+    <div class="field"><%= f.label :description, "Description (Markdown)" %><%= f.text_area :description, rows: 10 %></div>
+    <div class="field">
+      <%= f.label :price_cents, "Price in cents (US dollars)" %>
+      <span class="hint" id="price-hint">2900 means $29.00. Leave it empty and the program shows "Price coming" and can't be bought. The smallest price is 50.</span>
+      <%= f.number_field :price_cents, min: 50, step: 1, inputmode: "numeric", aria: { describedby: "price-hint" } %>
+    </div>
+    <p class="small" role="status">This program is <strong><%= @program.on_sale? ? "on sale for #{@program.price}" : "not on sale" %></strong><%= " (it needs #{[ ("classes" if @program.coming?), ("a price" unless @program.price_cents), ("to be published" unless @program.published?) ].compact.to_sentence})" unless @program.on_sale? %>. Checkout is <%= Payments.status_line %>. Move a class into a program from its page in <%= link_to "Courses", admin_courses_path %>.</p>
+    <label class="checkbox"><%= f.check_box :published %> Published (listed on the Programs page)</label>
+    <div><%= f.submit "Save", class: "btn btn-primary" %></div>
+  <% end %>
+</div></section>

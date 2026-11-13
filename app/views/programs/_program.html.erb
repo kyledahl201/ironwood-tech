@@ -1,0 +1,35 @@
+<%# One program on the Programs page. locals: program, entries (its classes, from Catalog), heading (the program title's heading level) %>
+<% owned = program.owned_by?(current_user) %>
+<% owner_view = owned && current_user.admin? && !current_user.holds_program?(program) %>
+<article class="program program-card<%= " is-coming" if program.coming? %><%= " is-owned" if owned %>" aria-labelledby="program-<%= program.slug %>" id="<%= program.slug %>">
+  <div class="program-card-head">
+    <div class="program-card-title">
+      <%= content_tag "h#{heading}", id: "program-#{program.slug}" do %><%= link_to program.title, program_path(program) %><% end %>
+      <% if program.tagline.present? %><p class="program-tagline"><%= program.tagline %></p><% end %>
+    </div>
+    <div class="program-card-act">
+      <% unless program.published? %><span class="pill">Not published</span><% end %>
+      <% if program.coming? %>
+        <span class="pill pill-coming">Coming</span>
+      <% elsif owned %>
+        <span class="pill pill-owned"><%= owner_view ? "Owner view" : "Yours" %></span>
+      <% elsif program.on_sale? %>
+        <span class="program-price"><%= program.price %></span>
+        <%= link_to program_path(program), class: "btn btn-copper" do %>See the program<span class="visually-hidden">: <%= program.title %></span><% end %>
+      <% else %>
+        <span class="pill">Price coming</span>
+        <%= link_to program_path(program), class: "btn btn-outline" do %>See the program<span class="visually-hidden">: <%= program.title %></span><% end %>
+      <% end %>
+    </div>
+  </div>
+  <% if program.coming? %>
+    <p class="program-meta">The classes for this program are being written.</p>
+  <% else %>
+    <p class="program-meta"><%= pluralize(entries.size, "class") %><% if owned %> · <strong><%= owner_view ? "Every class is open to you as the owner" : "Every class is open to you" %></strong><% end %></p>
+    <ul class="course-list">
+      <% entries.each do |entry| %>
+        <%= render "courses/pick", entry: entry, current_code: nil, prefix: "program-#{program.slug}", level: heading, in_program: true %>
+      <% end %>
+    </ul>
+  <% end %>
+</article>

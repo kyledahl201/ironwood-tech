@@ -18,7 +18,7 @@
           <% elsif @today.kind == :class %>
             <span class="muted small">Class happens with your professor. Log the time when you're done.</span>
           <% else %>
-            <%= link_to "Browse courses", courses_path, class: "btn btn-copper" %>
+            <%= link_to "Browse programs", programs_path, class: "btn btn-copper" %>
           <% end %>
           <%= render "portal/study_sessions/quick_log" %>
         </div>
@@ -74,9 +74,9 @@
 
 <section class="section band">
   <div class="wrap">
-    <div class="section-head"><h2>Courses</h2><%= link_to "Course catalog", courses_path %></div>
+    <div class="section-head"><h2>Courses</h2><%= link_to "Programs", programs_path %></div>
     <% if @records.empty? && @enrollments.empty? && @player_enrollments.empty? %>
-      <p class="muted">Nothing here yet. Your first lesson is one click away. <%= link_to "Browse courses", courses_path %></p>
+      <p class="muted">Nothing here yet. Your first lesson is one click away. <%= link_to "Browse programs", programs_path %></p>
     <% else %>
       <ul class="card-grid three">
         <% @records.each do |r| %>

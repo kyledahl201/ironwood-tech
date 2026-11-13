@@ -1,15 +1,15 @@
 <% if current_user && !current_user.portal_member? %>
   <% if current_user.owned_codes.any? %><%# a course claimed as a gift, or given by the owner %>
     <%= nav_link "Classroom", class_lessons_path %>
-    <%= nav_link "My courses", courses_path %>
   <% end %>
+  <%= nav_link "Programs", programs_path %>
   <%= nav_link "Store", store_path %>
   <%= nav_link "Account", portal_account_path %>
   <li><%= button_to "Sign out", session_path, method: :delete, class: "link-button" %></li>
 <% elsif current_user %>
   <%= nav_link "Today", portal_path %>
   <%= nav_link "Classroom", class_lessons_path %>
-  <%= nav_link "Courses", courses_path %>
+  <%= nav_link "Programs", programs_path %>
   <%= nav_link "Code lab", exercises_path %>
   <%= nav_link "Visualizers", visualizers_path %>
   <%= nav_link "Study log", portal_study_sessions_path %>
@@ -17,5 +17,6 @@
   <%= nav_link "Account", portal_account_path %>
   <li><%= button_to "Sign out", session_path, method: :delete, class: "link-button" %></li>
 <% else %>
+  <%= nav_link "Programs", programs_path %>
   <li class="nav-login"><%= link_to "Sign in", new_session_path, class: "btn btn-primary" %></li>
 <% end %>

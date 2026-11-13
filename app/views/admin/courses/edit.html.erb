@@ -5,6 +5,11 @@
     <%= render "shared/errors", record: @course %>
     <div class="field"><%= f.label :title %><%= f.text_field :title %></div>
     <div class="field"><%= f.label :tagline %><%= f.text_field :tagline %></div>
+    <div class="field">
+      <%= f.label :program_id, "Program this class is in" %>
+      <span class="hint" id="program-hint">Everyone who owns the program gets this class too, the next time the site starts (or when the program is given again).</span>
+      <%= f.select :program_id, @programs.map { |p| [ "#{p.title} (#{p.tier} · #{p.tier_name})", p.id ] }, { include_blank: "No program" }, aria: { describedby: "program-hint" } %>
+    </div>
     <div class="field"><%= f.label :level %><%= f.text_field :level %></div>
     <div class="field"><%= f.label :tutor_name %><%= f.text_field :tutor_name %></div>
     <div class="field"><%= f.label :tutor_bio, "Tutor persona (sent to the AI)" %><%= f.text_area :tutor_bio, rows: 4 %></div>

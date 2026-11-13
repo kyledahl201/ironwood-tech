@@ -1,12 +1,10 @@
-# The course list: every course and what it covers. A course the student
-# owns has a button into it; any other shows only its title and description,
-# with how to get it (the store, or the owner).
+# A class's page (a Course): what it covers, and for its owner, every lesson
+# in it. Anyone can read what a class covers; its lessons, rubric and content
+# open only for its owner (User#can_open?). The list of classes is the
+# Programs page now (ProgramsController).
 class CoursesController < ApplicationController
+  allow_unauthenticated_access only: :show
   allow_customer_accounts
-
-  def index
-    @entries = Catalog.new(current_user).entries
-  end
 
   def show
     @entry = Catalog.new(current_user).find(params[:id]) or raise ActiveRecord::RecordNotFound

@@ -1,6 +1,6 @@
 Hello,
 
-<%= @from ? "#{@from} bought you" : "#{Rails.configuration.x.brand.name} is giving you" %> a course: <%= @course.title %>.
+<%= @from ? "#{@from} bought you" : "#{Rails.configuration.x.brand.name} is giving you" %> a <%= @kind %>: <%= @product.title %><%= " (every class in it)" if @kind == "program" %>.
 
 Open this link to get it. You'll sign in, or make an account in a minute:
 <%= @url %>

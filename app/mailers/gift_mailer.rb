@@ -3,10 +3,11 @@ class GiftMailer < ApplicationMailer
   # is issued, so the token is passed in by the caller.
   def claim(gift, token)
     @gift = gift
-    @course = gift.course
+    @product = gift.product
+    @kind = gift.program? ? "program" : "course"
     @from = gift.purchaser&.name
     @url = gift_claim_url(token)
-    mail to: gift.recipient_email, subject: "#{@from || brand_name} gave you #{@course.title}"
+    mail to: gift.recipient_email, subject: "#{@from || brand_name} gave you #{@product.title}"
   end
 
   private
