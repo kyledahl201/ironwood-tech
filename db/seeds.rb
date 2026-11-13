@@ -31,7 +31,7 @@ Course.find_or_create_by!(slug: "px1") do |course|
 
       This hub lives on your Mac. Getting it onto everyone's phone, each with their own login, is the next course.
 
-      The lessons and cold opens are by AI personas, not real teachers. Your video instructor, [INSTRUCTOR NAME], is a real person.
+      The lessons and cold opens are by AI personas, not real teachers. Your video instructor, Kyle Dahl, is a real person.
 
       The Lindgrens, Cedar Hollow, and every schedule, meal, price and budget in this course are made up. Claude is a trademark of Anthropic. Apple, Mac, iPhone and Apple Calendar are trademarks of Apple Inc. Google, Gmail and Google Calendar are trademarks of Google LLC. This course is not made or endorsed by Anthropic, Apple or Google.
     MARKDOWN
