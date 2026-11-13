@@ -45,8 +45,9 @@ class Catalog
     done = progresses.select(&:completed?).map(&:class_lesson_id).to_set
     started = progresses.select { |p| p.step_index.positive? }.map(&:class_lesson_id).to_set
     open = lessons.values.flatten.select { |l| l.unlocked_for?(user) }.map(&:id).to_set
-    courses = Course.published.includes(:lessons).index_by(&:slug)
-    enrollments = user.enrollments.includes(:lesson_completions).index_by(&:course_id)
+    # Sold courses live in the store, not in this list of free ones.
+    courses = Course.published.free_to_members.includes(:lessons).index_by(&:slug)
+    enrollments = user.enrollments.active.includes(:lesson_completions).index_by(&:course_id)
 
     paired = []
     @entries = self.class.rows.filter_map do |row|

@@ -1,4 +1,8 @@
-<% if current_user %>
+<% if current_user && !current_user.portal_member? %>
+  <%= nav_link "Courses", store_path %>
+  <%= nav_link "Account", portal_account_path %>
+  <li><%= button_to "Sign out", session_path, method: :delete, class: "link-button" %></li>
+<% elsif current_user %>
   <%= nav_link "Today", portal_path %>
   <%= nav_link "Classroom", class_lessons_path %>
   <%= nav_link "Courses", courses_path %>

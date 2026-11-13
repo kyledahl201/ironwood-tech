@@ -3,7 +3,9 @@ module Portal
     def show
       @snapshot = current_user.transcript_snapshot
       @records = current_user.course_records.to_a
-      @enrollments = current_user.enrollments.includes(:lesson_completions, course: :lessons).order(updated_at: :desc)
+      enrollments = current_user.enrollments.active.includes(:lesson_completions, course: :lessons).order(updated_at: :desc)
+      # A course that ships as a player has no lesson rows; it gets its own card.
+      @player_enrollments, @enrollments = enrollments.partition { |e| e.course.player }
       @stats = ProgressStats.new(current_user)
       @tree = CrestTree.for(current_user)
       @today = TodayCard.new(current_user, records: @records, enrollments: @enrollments, stats: @stats)

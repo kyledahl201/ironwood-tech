@@ -1,0 +1,11 @@
+<% page_title "Enrollments" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Enrollments</h1>
+  <p class="lede">Who has which course, and how they got it. Ending access here does not move money: refund a payment in the Stripe dashboard, and access ends by itself when Stripe reports a full refund.</p>
+</div></header>
+<section class="section"><div class="wrap">
+  <% if @enrollments.any? %>
+    <div class="table-scroll"><%= render "admin/enrollments/table", enrollments: @enrollments, show_student: true %></div>
+  <% else %>
+    <p class="muted">Nobody is enrolled in anything yet.</p>
+  <% end %>
+</div></section>

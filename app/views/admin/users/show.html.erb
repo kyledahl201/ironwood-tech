@@ -2,17 +2,23 @@
 <header class="page-head"><div class="wrap"><p class="eyebrow">Student</p><h1><%= @user.name %></h1><p><%= @user.email_address %> · joined <%= @user.created_at.to_date.to_fs(:long) %></p></div></header>
 <section class="section"><div class="wrap">
   <h2>Enrollments</h2>
-  <div class="table-scroll"><table><thead><tr><th>Course</th><th>Source</th><th>Progress</th></tr></thead><tbody>
-    <% @user.enrollments.includes(:lesson_completions, course: :lessons).each do |e| %>
-      <tr><td><%= e.course.title %></td><td><%= e.source %></td><td><%= e.progress_percent %>%</td></tr>
-    <% end %>
-  </tbody></table></div>
+  <div class="table-scroll"><%= render "admin/enrollments/table", enrollments: @user.enrollments.includes(:course, :user), show_student: false %></div>
   <h2 style="margin-top:32px">Add a course</h2>
-  <p class="muted small">Enrolls this student in an online course.</p>
+  <p class="muted small">Enrolls this student in a course without payment. For a sold course, this gives it away.</p>
   <%= form_with url: admin_enrollments_path, class: "inline-form" do |f| %>
     <%= f.hidden_field :user_id, value: @user.id %>
     <%= f.label :course_id, "Course", class: "visually-hidden" %>
     <%= f.select :course_id, @courses.map { |c| [c.title, c.id] } %>
     <%= f.submit "Enroll", class: "btn btn-primary" %>
+  <% end %>
+  <% unless @user.admin? %>
+    <h2 style="margin-top:32px">Portal access</h2>
+    <% if @user.customer_only? %>
+      <p>This account was made by buying a course. It sees the store, what it bought and its account page, not the classroom, code lab or tutors.</p>
+      <%= button_to "Open the whole portal to #{@user.first_name}", admin_user_path(@user), method: :patch, params: { user: { customer_only: "0" } }, class: "btn btn-outline" %>
+    <% else %>
+      <p>This account has the whole portal, like every invited student.</p>
+      <%= button_to "Limit #{@user.first_name} to the store and purchases", admin_user_path(@user), method: :patch, params: { user: { customer_only: "1" } }, class: "link-button small" %>
+    <% end %>
   <% end %>
 </div></section>

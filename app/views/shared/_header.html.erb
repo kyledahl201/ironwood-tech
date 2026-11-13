@@ -1,6 +1,6 @@
 <header class="site-header">
   <div class="wrap header-row">
-    <%= link_to (current_user ? portal_path : root_path), class: "brand-mark", data: { eggs_target: "crest", action: "click->eggs#crestClick" } do %>
+    <%= link_to (current_user ? (current_user.portal_member? ? portal_path : store_path) : root_path), class: "brand-mark", data: { eggs_target: "crest", action: "click->eggs#crestClick" } do %>
       <%= image_tag "brand/crest-v5-badge.svg", alt: "", width: 36, height: 42 %><span><%= brand.name %></span>
     <% end %>
     <nav aria-label="Main">

@@ -8,5 +8,6 @@
   <% else %>
     <p class="muted">No courses are published yet. The faculty are writing them.</p>
   <% end %>
+  <% if Course.published.sold.exists? %><p style="margin-top:24px">Some courses are sold separately. <%= link_to "See the courses for sale", store_path %></p><% end %>
   <p class="muted small" style="margin-top:24px">Finishing a course earns a certificate of completion. It records what you did. It is not academic credit or a degree.</p>
 </div></section>

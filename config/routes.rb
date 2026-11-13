@@ -1,8 +1,21 @@
 Rails.application.routes.draw do
   root "pages#home"
   get "privacy", to: "pages#privacy"
+  get "terms", to: "pages#terms"
+  get "refunds", to: "pages#refunds"
 
-  # Accounts (invite-only)
+  # The store: public sales pages for sold courses, and Stripe Checkout
+  get "store", to: "store#index", as: :store
+  get "store/:id", to: "store#show", as: :store_course
+  post "store/:id/checkout", to: "checkouts#create", as: :store_checkout
+  get "store/:id/checkout/success", to: "checkouts#success", as: :store_checkout_success
+  post "webhooks/stripe", to: "stripe_webhooks#create"
+
+  # A course that ships as one player page: enrolled students and the owner only
+  get "learn/:course_id/player", to: "course_players#show", as: :course_player
+  get "learn/:course_id/downloads", to: "course_players#downloads", as: :course_downloads
+
+  # Accounts (by invite, or made while buying a course)
   resource :session
   resources :passwords, param: :token
   resource :registration, only: %i[new create], path: "join", path_names: { new: "" }
@@ -59,9 +72,14 @@ Rails.application.routes.draw do
   # Owner area
   namespace :admin do
     root "dashboard#show"
-    resources :users, only: %i[index show]
+    resources :users, only: %i[index show update]
     resources :invites, only: %i[index create destroy]
-    resources :enrollments, only: :create
+    resources :enrollments, only: %i[index create] do
+      member do
+        post :revoke
+        post :reinstate
+      end
+    end
     resources :courses, only: %i[index edit update]
     resource :transcript, only: %i[show create]
     resources :exercises, only: %i[index update]
