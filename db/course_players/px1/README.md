@@ -15,7 +15,7 @@ the owner and to students with an active enrollment in the `px1` course
 
 ## Where it came from
 
-Copied on 2026-11-13 from the project's shared files:
+Copied on 2026-11-13 (refreshed the same day after the course team's fixes) from the project's shared files:
 `university/px1/build/course-player/` (`index.html` and `source/`),
 `university/px1/build/lindgren-home/` and `university/px1/build/reference-hub/`.
 Nothing was edited. The lessons are not in the portal's lesson tables.

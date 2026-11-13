@@ -14,7 +14,7 @@ window.COURSE = {
       text: "You will set up Claude, hire a family team, plan a real week, and build a family hub app. You do it first for the Lindgrens, a made-up family, because practice data can't embarrass anyone. Then you do it for your own home." },
     steps: [
       { k: "do", text: "Play with the finished Lindgren hub below. Find Tuesday. Why is it outlined? Then tap a dinner to open its recipe, and check one thing off the shopping list.", demo: "hub" },
-      { k: "do", text: "Check what you need: a Mac, about seven hours (two sittings work best) and a paid Claude plan. Lessons 3 to 12 use Cowork and the Code tab, which are not on the free plan. As of November 2026, Pro is about $20 a month. Confirm today's price at claude.com/pricing before you buy. So the course plus one month of Pro is about $49." },
+      { k: "do", text: "Check what you need: a Mac, about seven hours (two sittings work best) and a paid Claude plan. Lessons 3 to 12 use Cowork and the Code tab, which are not on the free plan. In lesson 3 you download a practice folder from your course page. As of November 2026, Pro is about $20 a month. Confirm today's price at claude.com/pricing before you buy. So the course plus one month of Pro is about $49." },
       { k: "note", text: "Be clear on the limit from the start: this hub lives on your Mac. Getting it onto everyone's phone, each with their own login, is the next course. Lesson 12 shows you that door." }
     ],
     check: "You know why Tuesday is outlined (soccer runs until 6:30, so it's a busy night), and you know which plan you need.",
@@ -80,7 +80,7 @@ window.COURSE = {
     idea: { title: "A Project is a room you visit. A folder is a workshop.", svg: "folder",
       text: "With Cowork, you let Claude into one folder on your Mac, where it can read, make and change real files. A house file called CLAUDE.md tells it how your family works and what must never go in." },
     steps: [
-      { k: "do", text: "Download the practice folder from the course page and unzip it. Move <b>lindgren-home</b> into your Documents folder." },
+      { k: "do", text: "Get the practice files: <a href=\"downloads\" download>download the practice files (.zip)</a>, or use the <b>Download the practice files</b> button on your course page in the Ironwood portal. Double-click <b>ironwood-px1-practice-files.zip</b> in Downloads to unzip it. Open the folder and move <b>lindgren-home</b> into your Documents folder. (The <b>reference-hub</b> folder next to it is the finished hub from lesson 0, to compare against later.)", cos: "Portal download button and zip name" },
       { k: "do", text: "In the Claude app, choose <b>Cowork</b> in the message box. Then choose a folder and pick <b>lindgren-home</b> itself, not the folder above it.", cos: "Cowork mode and folder picker" },
       { k: "note", text: "Claude asks before it changes things. Read each request. Say yes for this folder only. This is the one safety habit to keep forever." },
       { k: "type", text: "This is your <b>start line</b>. Paste it as the first message of every new Cowork task in this folder:", prompt: "Before you do anything in this folder, read CLAUDE.md and follow it.", cos: "Whether Cowork reads CLAUDE.md on its own, or has a folder-instructions setting" },
