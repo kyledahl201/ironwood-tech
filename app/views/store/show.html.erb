@@ -1,0 +1,67 @@
+<% page_title @course.title %>
+<header class="page-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><ol><li><%= link_to "Store", store_path %></li><li aria-current="page"><%= @course.title %></li></ol></nav>
+  <% if @course.level.present? %><p class="eyebrow"><%= @course.level %></p><% end %>
+  <h1><%= @course.title %></h1>
+  <p class="lede"><%= @course.tagline %></p>
+</div></header>
+
+<section class="section"><div class="wrap course-layout">
+  <div>
+    <% unless @course.published? %><p class="callout" role="status"><strong>Not published.</strong> Only the owner can see this page. Publish the course in the owner area to put it in the store.</p><% end %>
+    <dl class="facts">
+      <% if @course.level.present? %><dt>Level</dt><dd><%= @course.level %></dd><% end %>
+      <% if @course.hours.present? %><dt>Time</dt><dd><%= @course.hours %></dd><% end %>
+      <dt>Taught by</dt><dd>AI lesson guides and tutors (not people), with video lessons recorded by a real instructor.</dd>
+    </dl>
+
+    <% if @course.outcome_list.any? %>
+      <h2>What you'll do</h2>
+      <ul class="prose"><% @course.outcome_list.each do |o| %><li><%= o %></li><% end %></ul>
+    <% end %>
+
+    <% if @course.description.present? %><div class="prose" style="margin-top:32px"><%= markdown @course.description %></div><% end %>
+  </div>
+
+  <aside class="buy-box" aria-label="Buy">
+    <% if @can_open %>
+      <p><strong><%= current_user.admin? && !current_user.enrolled_in?(@course) ? "You're the owner, so this course is open to you." : "You have this course." %></strong></p>
+      <% if @course.player %>
+        <%= link_to "Open the course", course_player_path(@course), class: "btn btn-copper", data: { turbo: false } %>
+        <% if @course.player.downloads? %>
+          <p style="margin-top:12px"><%= link_to "Download the practice files (.zip)", course_downloads_path(@course), class: "btn btn-outline", data: { turbo: false } %></p>
+        <% end %>
+      <% elsif @course.lessons.any? %>
+        <%= link_to "Open the course", learn_lesson_path(@course, 1), class: "btn btn-copper" %>
+      <% end %>
+    <% elsif !@course.on_sale? %>
+      <p class="price">Not on sale yet</p>
+      <p>This course can't be bought yet.</p>
+    <% else %>
+      <p class="price"><%= @course.price %></p>
+      <p class="small seller-line">Sold by KD Farm and Garden LLC, doing business as Digital Farm and Garden. Ironwood Tech is a learning brand of Digital Farm and Garden.</p>
+      <div class="disclosure-box">
+        <p>You're buying <strong><%= @course.title %></strong> for <strong><%= @course.price %></strong>, as one payment.</p>
+        <p><%= brand.disclosure %></p>
+        <p>One-time payment, no subscription. Self-paced, with access for at least 12 months. 14-day refund. Sales tax added at checkout if it applies.</p>
+        <p><%= link_to "Terms of Sale", terms_path %> · <%= link_to "Refund policy", refunds_path %> · <%= link_to "Privacy Policy", privacy_path %></p>
+      </div>
+      <% if @blocked %>
+        <button type="button" class="btn btn-copper" disabled aria-describedby="checkout-closed">Buy for <%= @course.price %></button>
+        <p class="small" id="checkout-closed" role="status" style="margin-top:12px"><strong>Checkout isn't open yet.</strong> Nothing can be bought or charged right now. To hear when it opens, email <%= mail_to brand.contact_email %>.</p>
+        <% if current_user&.admin? %><p class="small muted">Owner: checkout is <%= Payments.status_line %>.</p><% end %>
+      <% elsif current_user %>
+        <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>
+        <%= form_with url: store_checkout_path(@course), data: { turbo: false } do %>
+          <label class="checkbox small" style="margin-bottom:12px; align-items:flex-start"><input type="checkbox" name="accept_terms" value="1" required> <span>I'm 18 or older and I agree to the <%= link_to "Terms of Sale", terms_path, target: "_blank", rel: "noopener" %> and <%= link_to "Privacy Policy", privacy_path, target: "_blank", rel: "noopener" %>.</span></label>
+          <button type="submit" class="btn btn-copper">Buy for <%= @course.price %></button>
+        <% end %>
+        <p class="small muted" style="margin-top:12px">You'll pay on Stripe's secure page. <%= brand.name %> never sees your card number.</p>
+      <% else %>
+        <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>
+        <%= link_to "Buy for #{@course.price}", new_registration_path(course: @course.slug), class: "btn btn-copper" %>
+        <p class="small" style="margin-top:12px">You'll make an account first, then pay on Stripe's secure page. Already have an account? <%= link_to "Sign in", new_session_path(return_to: store_course_path(@course)) %></p>
+      <% end %>
+    <% end %>
+  </aside>
+</div></section>

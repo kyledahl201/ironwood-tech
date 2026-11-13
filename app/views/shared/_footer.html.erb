@@ -5,9 +5,12 @@
       <p><strong><%= brand.full_name %></strong><br><em><%= brand.motto %></em>: from the beginning</p>
     </div>
     <ul class="footer-nav">
+      <li><%= link_to "Courses for sale", store_path %></li>
+      <li><%= link_to "Terms", terms_path %></li>
+      <li><%= link_to "Refunds", refunds_path %></li>
       <li><%= link_to "Privacy", privacy_path %></li>
       <li><%= mail_to brand.contact_email, "Contact" %></li>
     </ul>
-    <p class="honest" id="disclosure"><%= brand.disclosure %></p>
+    <p class="honest" id="disclosure"><%= brand.disclosure %><% if brand.legal_name %> Courses are sold by <%= brand.legal_name %><%= ", #{brand.postal_address}" if brand.postal_address %>.<% end %></p>
   </div>
 </footer>

@@ -2,6 +2,7 @@ module Portal
   # A student's own name, email and password. Every change needs the current
   # password, so a browser left signed in can't be used to take the account over.
   class AccountsController < ApplicationController
+    allow_customer_accounts
     rate_limit to: 10, within: 10.minutes, only: :update, with: -> { redirect_to portal_account_path, alert: "Too many attempts. Try again in a few minutes." }
 
     def show

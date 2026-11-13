@@ -1,0 +1,22 @@
+<%# Legal's Terms of Sale (v1.1, Nov 13, 2026), word for word. The date is the go-live date, from POLICY_PUBLISH_DATE. %>
+<% page_title "Terms of Sale" %>
+<header class="page-head"><div class="wrap narrow"><p class="eyebrow">Policies</p><h1>Terms of Sale: PX1</h1></div></header>
+<section class="section"><div class="wrap narrow prose">
+  <% if brand.policy_date %><p><em>Last updated: <%= brand.policy_date %></em></p><% end %>
+  <p>These terms cover your purchase of "Life and Work, With Claude: AI 101" ("the course") from KD Farm and Garden LLC, a Texas company doing business as Digital Farm and Garden and Ironwood Tech ("we", "us"). Contact: <%= mail_to "hello@kdfarmandgarden.com" %>.</p>
+  <p><strong>1. What you get.</strong> Access to the course's lessons, videos, practice folder and course player through your Ironwood Tech account, for as long as we offer the course, and at least 12 months. It's self-paced. There are no live sessions and no personal tutoring. We may email you about your purchase, such as a receipt or an important change to the course.</p>
+  <p><strong>2. What it is not.</strong> We're not an accredited school, and the course grants no degree, credit, license or certification. The lesson guides are AI personas, not real professors; your video instructor is a real person. The course teaches you to use AI tools. It doesn't give financial, medical, diet, tax or legal advice, and it doesn't promise any result, including time saved.</p>
+  <p><strong>3. What you need.</strong> A Mac and your own Claude plan, plus any apps the lessons use. You pay for those. A paid Claude plan is needed for some lessons. Claude, Apple and Google set their own prices, features and terms and may change them. We update lessons when screens change, but we can't promise every screen will match.</p>
+  <p><strong>4. Your data stays yours.</strong> You use Claude under your own account and Anthropic's terms. We never see what you put into your own Claude, calendar, email or notes. Follow the course's "never put in" list, and don't connect work accounts or anyone else's data without permission.</p>
+  <p><strong>5. Price and payment.</strong> You pay the price shown at checkout, in U.S. dollars, once. There's no subscription or automatic renewal. Our payment processor, Stripe, handles your card, and we never see the full number. Prices don't include sales tax. If tax applies where you live, it's added at checkout.</p>
+  <p><strong>6. Refunds.</strong> See the <a href="#refund-policy">Refund Policy</a> below.</p>
+  <p><strong>7. Your license.</strong> You get a personal license to use the course materials for your own life and work. Please don't resell, republish or share your login. The practice folder and templates are yours to copy and adapt for your own use.</p>
+  <p><strong>8. Conduct and access.</strong> We may suspend access for account sharing, abuse or chargeback fraud. If we close the course for everyone, we'll give at least 30 days' notice and a way to download the practice folder.</p>
+  <p><strong>9. Limits.</strong> The course is provided "as is." You decide what you connect and what Claude does for you. As far as the law allows, our total liability is what you paid for the course, and we're not liable for indirect losses. This doesn't limit rights you have under consumer protection law.</p>
+  <p><strong>10. Law.</strong> Texas law applies. Please email us first; most problems get fixed quickly.</p>
+  <p><strong>11. Changes.</strong> The terms in effect when you buy apply to your purchase.</p>
+
+  <h2 id="refund-policy">Refund policy: PX1</h2>
+  <%= render "pages/refund_policy" %>
+  <p>See also the <%= link_to "privacy policy", privacy_path %>.</p>
+</div></section>

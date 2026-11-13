@@ -1,5 +1,5 @@
 class Enrollment < ApplicationRecord
-  SOURCES = %w[self admin].freeze
+  SOURCES = %w[self admin stripe].freeze
 
   belongs_to :user
   belongs_to :course
@@ -7,6 +7,20 @@ class Enrollment < ApplicationRecord
 
   validates :source, inclusion: { in: SOURCES }
   validates :course_id, uniqueness: { scope: :user_id }
+
+  scope :active, -> { where(revoked_at: nil) }
+
+  def active? = revoked_at.nil?
+  def paid? = source == "stripe"
+
+  # Refunds, disputes and the owner end access; the record stays for the books.
+  def revoke!(reason)
+    update!(revoked_at: Time.current, revoke_reason: reason) if active?
+  end
+
+  def reinstate!(**attrs)
+    update!(attrs.merge(revoked_at: nil, revoke_reason: nil))
+  end
 
   def completed?(lesson)
     lesson_completions.any? { |c| c.lesson_id == lesson.id }

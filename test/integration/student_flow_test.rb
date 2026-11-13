@@ -3,15 +3,39 @@ require "test_helper"
 class StudentFlowTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
-  test "public pages show the disclosure, sell nothing and are not indexed" do
-    %w[/ /privacy /session/new].each do |path|
+  test "public pages show the disclosure, claim no non-profit status and are not indexed" do
+    %w[/ /privacy /terms /refunds /store /session/new].each do |path|
       get path
       assert_response :success, path
       assert_includes response.body, "not an accredited school", path
+      assert_includes response.body, "AI personas", path
+      assert_no_match(/non-?profit|sells nothing|invitation only/i, response.body, path)
       assert_select "meta[name=robots][content='noindex, nofollow']"
     end
     get root_path
     assert_no_match(/\$\d|enroll now|buy/i, response.body)
+  end
+
+  test "the web fonts come from this app, never from Google" do
+    %w[/ /privacy /terms /refunds /store /session/new].each do |path|
+      get path
+      assert_no_match(/googleapis|gstatic|rel="preconnect"/, response.body, path)
+    end
+    sheets = Rails.root.glob("app/assets/stylesheets/*.css")
+    sheets.each { |sheet| assert_no_match(/googleapis|gstatic/, sheet.read, sheet.basename.to_s) }
+
+    faces = Rails.root.join("app/assets/stylesheets/fonts.css").read
+    files = faces.scan(/url\("([^"]+\.woff2)"\)/).flatten.uniq
+    assert_equal 15, files.size
+    files.each { |file| assert Rails.application.assets.load_path.find(file), "#{file} is not in the asset pipeline" }
+    assert_equal faces.scan("@font-face").size, faces.scan("font-display: swap").size
+    # Every family the stylesheets name is one we serve, with its licence beside it.
+    used = sheets.flat_map { |sheet| sheet.read.scan(/"(Graduate|Libre Caslon Display|Libre Caslon Text|Source Sans 3|IBM Plex Mono)"/) }.flatten.uniq
+    assert_equal [ "Graduate", "IBM Plex Mono", "Libre Caslon Display", "Libre Caslon Text", "Source Sans 3" ], used.sort
+    used.each do |family|
+      assert_includes faces, %(font-family: "#{family}")
+      assert_includes Rails.root.join("app/assets/fonts/OFL-#{family.tr(' ', '-')}.txt").read, "SIL OPEN FONT LICENSE Version 1.1"
+    end
   end
 
   test "everything else needs a sign-in" do

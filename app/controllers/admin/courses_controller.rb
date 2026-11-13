@@ -19,7 +19,10 @@ module Admin
 
     private
       def course_params
-        params.require(:course).permit(:title, :tagline, :description, :published, :level, :tutor_name, :tutor_bio)
+        permitted = %i[title tagline description published level tutor_name tutor_bio]
+        # Only a sold course has a price. Whether a course is sold is set in db/seeds.rb.
+        permitted << :price_cents if @course.paid?
+        params.require(:course).permit(*permitted)
       end
   end
 end

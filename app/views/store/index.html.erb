@@ -1,0 +1,25 @@
+<% page_title "Courses for sale" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Store</p><h1>Courses for sale</h1></div></header>
+<section class="section"><div class="wrap">
+  <% if @courses.any? %>
+    <ul class="card-grid three">
+      <% @courses.each do |course| %>
+        <li class="card course-card">
+          <% if course.level.present? %><p class="eyebrow"><%= course.level %></p><% end %>
+          <h3><%= link_to course.title, store_course_path(course) %></h3>
+          <p><%= course.tagline %></p>
+          <% if @owned.include?(course.id) %>
+            <p class="meta">You have this course.</p>
+            <p style="margin-top:auto"><%= link_to "Open the course", (course.player ? course_player_path(course) : store_course_path(course)), class: "btn btn-copper", data: { turbo: false } %></p>
+          <% else %>
+            <p class="price"><%= course.on_sale? ? course.price : "Not on sale yet" %></p>
+            <p><%= link_to "See the course", store_course_path(course), class: "btn btn-outline" %></p>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="muted">Nothing is for sale yet.</p>
+  <% end %>
+  <p class="callout" style="margin-top:32px"><%= brand.disclosure %></p>
+</div></section>

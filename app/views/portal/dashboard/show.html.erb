@@ -75,7 +75,7 @@
 <section class="section band">
   <div class="wrap">
     <div class="section-head"><h2>Courses</h2><%= link_to "Course catalog", courses_path %></div>
-    <% if @records.empty? && @enrollments.empty? %>
+    <% if @records.empty? && @enrollments.empty? && @player_enrollments.empty? %>
       <p class="muted">Nothing here yet. Your first lesson is one click away. <%= link_to "Browse courses", courses_path %></p>
     <% else %>
       <ul class="card-grid three">
@@ -89,6 +89,14 @@
               <p class="meta"><%= r.hours_logged.to_f %> of <%= r.hours_target %> hours · <%= r.lessons_done %> lessons</p>
             <% end %>
             <% if r.grade %><p class="meta">Grade: <strong><%= r.grade %></strong></p><% end %>
+          </li>
+        <% end %>
+        <% @player_enrollments.each do |e| %>
+          <li class="card course-card">
+            <p class="eyebrow">Your course</p>
+            <h3><%= link_to e.course.title, (e.course.paid? ? store_course_path(e.course) : course_path(e.course)) %></h3>
+            <p class="meta"><%= e.course.tagline %></p>
+            <p style="margin-top:auto"><%= link_to "Open the course", course_player_path(e.course), data: { turbo: false } %></p>
           </li>
         <% end %>
         <% @enrollments.each do |e| %>
