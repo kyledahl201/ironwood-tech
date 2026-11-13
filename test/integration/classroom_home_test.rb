@@ -37,8 +37,8 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_select ".welcome-first a.btn[href=?]", class_lesson_path(@tour), text: "Start this class"
     # The button is a real link to the Courses page, which the page's script turns into the list drawn over the page.
     assert_select ".welcome-first a[href=?][data-action='course-dialog#open'][aria-haspopup=dialog]", courses_path, text: "Show full course list"
-    assert_select "dialog.course-dialog[aria-labelledby=course-dialog-title] h2#course-dialog-title", text: "All courses"
-    assert_select "dialog .course-pick", 4 # the tour, CS 101 and the two reading courses
+    assert_select "dialog.course-dialog[aria-labelledby=course-dialog-title] h2#course-dialog-title", text: "Your courses"
+    assert_select "dialog .course-pick", 3 # the tour, CS 101 and the reading course they own (not Other Course)
     assert_select "dialog .program h3", text: "Start here"
     assert_select "dialog .course-pick h4", text: "Tours of the classroom"
     assert_select "dialog .course-pick a.btn[href=?]", class_lesson_path(@one), text: /Start\s*Intro to Programming in Ruby/
@@ -117,7 +117,11 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     bootcamp = Course.create!(title: "Agentic AI Bootcamp", slug: "agentic-ai-bootcamp", tagline: "Made-up tagline", level: "Intermediate", hours: "14 weeks", tutor_name: "Prof. Tomas Reyes", published: true, position: 3, outcomes: "Build an agent\nTest it")
     bootcamp.lessons.create!(position: 1, title: "Week 1 notes", body: "Read this.")
     py = ClassLesson.create!(ClassLessonMarkdown.parse(file_fixture("python_lesson.md").read))
+    courses(:ai360).update!(code: nil, published: false)
+    bootcamp.update!(code: "AI 360") # as Catalog.sync_courses! pairs them: one course to own
     users(:two).enrollments.destroy_all
+    %i[tour cs101 free].each { |c| users(:two).enrollments.create!(course: courses(c), source: "admin") }
+    users(:two).enrollments.create!(course: bootcamp, source: "gift")
     sign_in_as users(:two)
     get courses_path
     assert_response :success
@@ -135,12 +139,11 @@ class ClassroomHomeTest < ActionDispatch::IntegrationTest
     assert_select ".course-pick a.course-more-toggle[role=button][aria-expanded=false][aria-controls=course-cs-101-more][href=?]", course_path("cs-101"), text: /Details\s*of Intro to Programming in Ruby/
     assert_select "#course-cs-101-more[hidden] li", text: "Write methods, and tell puts from return"
 
-    # A reading-only course starts with its own button.
-    assert_select ".course-pick form[action=?] button", course_enrollment_path(courses(:free)), text: /Start\s*Free Course/
-    post course_enrollment_path(courses(:free))
-    get courses_path
+    # A reading-only course the student owns opens with its own button. One they don't own says how to get it.
     assert_select ".course-pick a.btn[href=?]", learn_lesson_path(courses(:free), 1), text: /Resume\s*Free Course/
-    assert_select "form[action=?]", course_enrollment_path(courses(:free)), 0
+    assert_select ".course-pick a.btn[href^='mailto:']", text: /Ask for access\s*to Other Course/
+    assert_select ".course-pick a[href=?]", learn_lesson_path(courses(:other), 1), 0
+    assert_select ".course-pick form", 0 # nothing here starts a course by itself
   end
 
   test "the course list is grouped by program, in catalogue order, with unplaced courses last" do

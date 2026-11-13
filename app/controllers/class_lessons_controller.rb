@@ -2,6 +2,9 @@
 # the server keeps the student's place, answers quiz questions and marks the
 # lesson finished. Professors still give the grades.
 class ClassLessonsController < ApplicationController
+  # Any account that owns a classroom course may use it, including one made by
+  # claiming a gift. Every lesson checks ownership first (set_lesson).
+  allow_customer_accounts
   before_action :set_lesson, except: :index
   before_action :require_finished_class, only: %i[homework hand_in]
   rate_limit to: 120, within: 1.minute, by: -> { current_user.id }, with: -> { head :too_many_requests }, only: %i[progress quiz hand_in sort_card restart_study]
@@ -15,10 +18,11 @@ class ClassLessonsController < ApplicationController
       flash.keep
       return redirect_to class_lesson_path(current)
     end
-    @entries = Catalog.new(current_user).entries
+    @entries = Catalog.new(current_user).owned
     @begun = current_user.class_progresses.any? { |p| p.completed? || p.step_index.positive? }
     @current = current
-    @recommended = current || ClassLesson.find_by(course_code: ClassLesson::TOUR, lesson_number: 1) || ClassLesson.next_for(current_user)
+    tour = ClassLesson.find_by(course_code: ClassLesson::TOUR, lesson_number: 1)
+    @recommended = current || (tour if tour&.owned_by?(current_user)) || ClassLesson.next_for(current_user)
     @recommended = nil if @recommended&.completed_by?(current_user)
   end
 
@@ -130,7 +134,7 @@ class ClassLessonsController < ApplicationController
     # The course list behind "Switch class", and the chat with the professor.
     def classroom_extras
       catalog = Catalog.new(current_user)
-      @entries = catalog.entries
+      @entries = catalog.owned
       @entry = catalog.for_code(@lesson.course_code)
       @messages = current_user.tutor_messages.where(class_lesson: @lesson, homework: @homework || false).chronological.last(40)
     end
@@ -147,6 +151,10 @@ class ClassLessonsController < ApplicationController
 
     def set_lesson
       @lesson = ClassLesson.find_by!(slug: params[:id])
+      unless @lesson.owned_by?(current_user)
+        entry = Catalog.new(current_user).for_code(@lesson.course_code)
+        return refuse_course_access(entry ? course_path(entry) : courses_path)
+      end
       return if @lesson.unlocked_for?(current_user)
       respond_to do |format|
         format.html { redirect_to (@lesson.lesson_number > 1 && Catalog.new(current_user).for_code(@lesson.course_code)&.then { |e| course_path(e) }) || class_lessons_path(pick: 1), alert: "That class opens when #{@lesson.course_code} lesson #{@lesson.lesson_number - 1} is finished." }

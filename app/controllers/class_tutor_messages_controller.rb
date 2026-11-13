@@ -1,6 +1,7 @@
 # A question to the professor from inside the classroom. The reply is written
 # off the request and streamed into the tutor panel, as on a reading lesson.
 class ClassTutorMessagesController < ApplicationController
+  allow_customer_accounts
   before_action :set_lesson
   rate_limit to: 20, within: 10.minutes, only: :create, by: -> { current_user.id },
              with: -> { refuse "Slow down a little. Try again in a few minutes." }
@@ -28,7 +29,7 @@ class ClassTutorMessagesController < ApplicationController
   private
     def set_lesson
       @lesson = ClassLesson.find_by!(slug: params[:class_lesson_id])
-      head :forbidden unless @lesson.unlocked_for?(current_user)
+      head :forbidden unless @lesson.unlocked_for?(current_user) # only for someone who owns the course
     end
 
     def refuse(message)

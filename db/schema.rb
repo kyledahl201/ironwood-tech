@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_13_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_13_200000) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -91,6 +91,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_090000) do
     t.text "outcomes"
     t.boolean "paid", default: false, null: false
     t.integer "price_cents"
+    t.string "code"
+    t.index ["code"], name: "index_courses_on_code", unique: true
     t.index ["slug"], name: "index_courses_on_slug", unique: true
   end
 
@@ -106,7 +108,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_090000) do
     t.datetime "revoked_at"
     t.string "revoke_reason"
     t.datetime "terms_accepted_at"
+    t.integer "gift_id"
     t.index ["course_id"], name: "index_enrollments_on_course_id"
+    t.index ["gift_id"], name: "index_enrollments_on_gift_id"
     t.index ["payment_intent_id"], name: "index_enrollments_on_payment_intent_id"
     t.index ["stripe_session_id"], name: "index_enrollments_on_stripe_session_id", unique: true
     t.index ["user_id", "course_id"], name: "index_enrollments_on_user_id_and_course_id", unique: true
@@ -130,6 +134,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_090000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_exercises_on_slug", unique: true
+  end
+
+  create_table "gifts", force: :cascade do |t|
+    t.integer "course_id", null: false
+    t.string "recipient_email", null: false
+    t.integer "purchaser_id"
+    t.integer "created_by_id"
+    t.string "token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "emailed_at"
+    t.datetime "redeemed_at"
+    t.integer "redeemed_by_id"
+    t.datetime "revoked_at"
+    t.string "revoke_reason"
+    t.integer "amount_cents"
+    t.string "stripe_session_id"
+    t.string "payment_intent_id"
+    t.datetime "terms_accepted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id"], name: "index_gifts_on_course_id"
+    t.index ["created_by_id"], name: "index_gifts_on_created_by_id"
+    t.index ["payment_intent_id"], name: "index_gifts_on_payment_intent_id"
+    t.index ["purchaser_id"], name: "index_gifts_on_purchaser_id"
+    t.index ["redeemed_by_id"], name: "index_gifts_on_redeemed_by_id"
+    t.index ["stripe_session_id"], name: "index_gifts_on_stripe_session_id", unique: true
+    t.index ["token_digest"], name: "index_gifts_on_token_digest", unique: true
   end
 
   create_table "homework_submissions", force: :cascade do |t|
@@ -281,7 +312,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_090000) do
   add_foreign_key "class_progresses", "users"
   add_foreign_key "course_records", "users"
   add_foreign_key "enrollments", "courses"
+  add_foreign_key "enrollments", "gifts"
   add_foreign_key "enrollments", "users"
+  add_foreign_key "gifts", "courses"
+  add_foreign_key "gifts", "users", column: "created_by_id"
+  add_foreign_key "gifts", "users", column: "purchaser_id"
+  add_foreign_key "gifts", "users", column: "redeemed_by_id"
   add_foreign_key "homework_submissions", "class_lessons"
   add_foreign_key "homework_submissions", "users"
   add_foreign_key "invites", "users", column: "created_by_id"

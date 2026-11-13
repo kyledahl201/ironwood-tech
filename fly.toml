@@ -28,7 +28,7 @@ swap_size_mb = 512
   # Fly ends HTTPS in front of the app (config/environments/production.rb).
   FORCE_SSL = "1"
   # The public address, used in links the app writes into email.
-  APP_HOST = "learn.ironwoodtech.org"
+  APP_HOST = "ironwoodtech.org"
   # Named on the privacy page as the host.
   BRAND_HOST_NAME = "Fly.io"
 

@@ -54,6 +54,10 @@ Dir[Rails.root.join("db/seeds/lessons/*.md")].sort.each do |path|
   ClassLesson.find_or_initialize_by(slug: attrs[:slug]).update!(attrs.except(:slug))
 end
 
+# Every classroom course gets a Course record carrying its code, so the owner
+# can give it to a student or send it as a gift. Nobody is given anything here.
+Catalog.sync_courses!
+
 # Owner account. In production set ADMIN_EMAIL, ADMIN_NAME and ADMIN_PASSWORD.
 # Made once: when an owner already exists it is left alone, so an owner who has
 # changed their email on the Account page doesn't get a second owner account

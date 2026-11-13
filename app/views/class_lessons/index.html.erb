@@ -23,11 +23,18 @@
           <%= link_to "Show full course list", courses_path, class: "btn btn-outline btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %>
         </p>
       </article>
+    <% elsif @entries.empty? %>
+      <article class="welcome-first">
+        <p class="eyebrow">No courses yet</p>
+        <h2>Your classroom opens with your first course</h2>
+        <p>Courses here open once you own them. Buy one in the store, or ask the owner for access. When a course is yours, its classes show up right here.</p>
+        <p class="actions"><%= link_to "See all courses", courses_path, class: "btn btn-copper btn-lg" %> <%= link_to "Visit the store", store_path, class: "btn btn-outline btn-lg" %></p>
+      </article>
     <% else %>
       <p class="actions"><%= link_to "Show full course list", courses_path, class: "btn btn-copper btn-lg", data: { action: "course-dialog#open" }, aria: { haspopup: "dialog" } %></p>
     <% end %>
     <% if @begun %>
-      <h2 class="welcome-list-head">All courses</h2>
+      <h2 class="welcome-list-head">Your courses</h2>
       <%= render "courses/list", entries: @entries, current_code: @current&.course_code, prefix: "page", heading: 3 %>
     <% end %>
     <p class="small muted" style="margin-top:24px">Checks in the classroom run in your browser, so they are self-checked practice. Your professors give the grades. Professors here are AI tutor personas, not people.</p>

@@ -1,12 +1,17 @@
-<%# The one button that takes a student into a course. locals: entry, size (extra button classes) %>
-<% if entry.classroom? %>
+<%# The one button that takes a student into a course they own, or says how to get one they don't. locals: entry, size (extra button classes) %>
+<% if !entry.owned? %>
+  <% if entry.access_course&.on_sale? %>
+    <%= link_to store_course_path(entry.access_course), class: "btn btn-outline #{size}" do %>See it in the store<span class="visually-hidden">: <%= entry.title %></span><% end %>
+  <% else %>
+    <%= mail_to brand.contact_email, subject: "Access to #{entry.title}", class: "btn btn-outline #{size}" do %>Ask for access<span class="visually-hidden"> to <%= entry.title %></span><% end %>
+  <% end %>
+<% elsif entry.classroom? %>
   <% lesson = entry.next_lesson %>
   <% word = { new: "Start", going: "Resume", finished: "Open again" }[entry.state] %>
   <%= link_to class_lesson_path(lesson), class: "btn btn-copper #{size}" do %><%= word %><span class="visually-hidden"> <%= entry.title %></span><% end %>
-<% elsif entry.enrollment %>
-  <%= link_to learn_lesson_path(entry.course, entry.enrollment.next_lesson || entry.course.lessons.first), class: "btn btn-copper #{size}" do %><%= entry.state == :finished ? "Open again" : "Resume" %><span class="visually-hidden"> <%= entry.title %></span><% end %>
-<% elsif entry.course.lessons.any? %>
-  <%= button_to course_enrollment_path(entry.course), class: "btn btn-copper #{size}" do %>Start<span class="visually-hidden"> <%= entry.title %></span><% end %>
+<% elsif entry.course&.lessons&.any? %>
+  <% word = entry.enrollment ? (entry.state == :finished ? "Open again" : "Resume") : "Start" %>
+  <%= link_to learn_lesson_path(entry.course, entry.enrollment&.next_lesson || entry.course.lessons.first), class: "btn btn-copper #{size}" do %><%= word %><span class="visually-hidden"> <%= entry.title %></span><% end %>
 <% else %>
   <span class="muted small">Being written</span>
 <% end %>

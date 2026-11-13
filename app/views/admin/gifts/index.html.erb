@@ -1,0 +1,51 @@
+<% page_title "Gifts" %>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Gifts</h1>
+  <p class="lede">Give any course to anyone by email. They get a link that works once, for <%= Gift::LIFETIME.inspect %>, and the course is theirs when they claim it. Courses bought as gifts in the store show here too.</p>
+</div></header>
+<section class="section"><div class="wrap">
+  <% if @claim_link %>
+    <div class="callout" role="status">
+      <p><strong>The link for <%= @claim_gift.recipient_email %>.</strong> It's shown only this once. Copy it and send it yourself:</p>
+      <input class="copy-field" type="text" readonly value="<%= @claim_link %>" aria-label="Gift link" onclick="this.select()">
+    </div>
+  <% end %>
+  <% unless EmailDelivery.enabled? %>
+    <p class="small" role="status"><strong>Email isn't set up yet.</strong> Gifts still work: each new link shows here once, for you to send. docs/DEPLOY-FLY.md, "Turn on email", has the steps.</p>
+  <% end %>
+
+  <h2>Gift a course</h2>
+  <%= form_with url: admin_gifts_path, class: "inline-form" do |f| %>
+    <%= f.label :course_id, "Course", class: "visually-hidden" %>
+    <%= f.select :course_id, @courses.map { |c| [ [ c.title, c.code ].compact.uniq.join(" · ") + (c.published? ? "" : " (not published)"), c.id ] } %>
+    <%= f.label :recipient_email, "Their email", class: "visually-hidden" %>
+    <%= f.email_field :recipient_email, placeholder: "Their email", required: true, maxlength: 254, autocomplete: "off" %>
+    <%= f.submit "Send gift", class: "btn btn-primary" %>
+  <% end %>
+
+  <h2 style="margin-top:32px">All gifts</h2>
+  <% if @gifts.any? %>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Course</th><th>To</th><th>From</th><th>Status</th><th></th></tr></thead>
+      <tbody><% @gifts.each do |g| %>
+        <tr>
+          <td><%= g.course.title %></td>
+          <td><%= g.recipient_email %><br><span class="small muted"><%= g.emailed_at ? "Emailed #{g.emailed_at.to_date.to_fs(:short)}" : "Not emailed" %></span></td>
+          <td><%= g.purchaser ? "Bought by #{g.purchaser.name}#{" (#{number_to_currency(g.amount_cents / 100.0)})" if g.amount_cents}" : "You" %></td>
+          <td>
+            <% if g.status == :claimed %>Claimed by <%= g.redeemed_by ? link_to(g.redeemed_by.name, admin_user_path(g.redeemed_by)) : "a deleted account" %> on <%= g.redeemed_at.to_date.to_fs(:short) %>
+            <% elsif g.status == :revoked %>Ended <%= g.revoked_at.to_date.to_fs(:short) %> (<%= g.revoke_reason %>)
+            <% elsif g.status == :expired %>Link ended <%= g.expires_at.to_date.to_fs(:short) %>
+            <% else %>Waiting, link open until <%= g.expires_at.to_date.to_fs(:short) %>
+            <% end %>
+          </td>
+          <td>
+            <% unless g.redeemed? || g.revoked? %><%= button_to "New link", reissue_admin_gift_path(g), class: "link-button small" %><% end %>
+            <% unless g.revoked? %><%= button_to "End gift", revoke_admin_gift_path(g), class: "link-button small", form: { data: { turbo_confirm: "End this gift#{' and the access it gave' if g.redeemed?}? This does not refund any payment." } } %><% end %>
+          </td>
+        </tr>
+      <% end %></tbody>
+    </table></div>
+  <% else %>
+    <p class="muted">No gifts yet.</p>
+  <% end %>
+</div></section>

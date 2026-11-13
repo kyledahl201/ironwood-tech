@@ -32,8 +32,8 @@ class SellingTest < ActionDispatch::IntegrationTest
     get courses_path
     assert_response :success
     assert_select "a[href=?]", course_path(@course), count: 0
-    post course_enrollment_path(@course)
-    assert_redirected_to store_course_path(@course)
+    post "/courses/#{@course.slug}/enrollment" # starting a course yourself is gone
+    assert_response :not_found
     assert_not users(:one).enrolled_in?(@course)
   end
 
@@ -274,7 +274,7 @@ class SellingTest < ActionDispatch::IntegrationTest
     end
     enrollment = @buyer.enrollments.find_by!(course: @course)
     assert enrollment.active?
-    assert_equal "stripe", enrollment.source
+    assert_equal "purchase", enrollment.source
     assert_equal 2900, enrollment.amount_cents
     assert_equal "cs_test_1", enrollment.stripe_session_id
     assert_equal "pi_test_1", enrollment.payment_intent_id
@@ -348,7 +348,7 @@ class SellingTest < ActionDispatch::IntegrationTest
   end
 
   test "the player and its practice files are served with an active enrollment" do
-    @buyer.enrollments.create!(course: @course, source: "stripe")
+    @buyer.enrollments.create!(course: @course, source: "purchase")
     sign_in_as @buyer
     get course_player_path(@course)
     assert_response :success
@@ -384,7 +384,7 @@ class SellingTest < ActionDispatch::IntegrationTest
   # --- The owner ----------------------------------------------------------------
 
   test "the owner sees enrollments, and ending one removes access" do
-    enrollment = @buyer.enrollments.create!(course: @course, source: "stripe", amount_cents: 2900)
+    enrollment = @buyer.enrollments.create!(course: @course, source: "purchase", amount_cents: 2900)
     sign_in_as users(:one)
     get admin_enrollments_path
     assert_redirected_to root_path
@@ -449,12 +449,19 @@ class SellingTest < ActionDispatch::IntegrationTest
 
   test "an account made by buying a course sees the store and its account, not the portal" do
     sign_in_as @buyer
-    %w[/portal /courses /classroom /lab /visualizers /portal/badges /portal/study-log /admin].each do |path|
+    %w[/portal /visualizers /portal/badges /portal/study-log /admin].each do |path|
       get path
       assert_redirected_to store_path, path
     end
-    post course_enrollment_path(courses(:free))
-    assert_redirected_to store_path
+    # Course pages open to any account, but only show what it owns.
+    get class_lessons_path
+    assert_response :success
+    assert_includes response.body, "Your classroom opens with your first course"
+    get courses_path
+    assert_response :success
+    assert_select ".course-pick a.btn[href^='/classroom/'], .course-pick a.btn[href^='/learn/']", 0
+    post "/courses/free-course/enrollment"
+    assert_response :not_found
     assert_not @buyer.enrolled_in?(courses(:free))
 
     [ store_path, portal_account_path, privacy_path, terms_path, refunds_path ].each do |path|
@@ -492,7 +499,7 @@ class SellingTest < ActionDispatch::IntegrationTest
   end
 
   test "a student who buys a course gets a card for it on Today" do
-    users(:two).enrollments.create!(course: @course, source: "stripe")
+    users(:two).enrollments.create!(course: @course, source: "purchase")
     sign_in_as users(:two)
     get portal_path
     assert_response :success

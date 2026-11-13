@@ -13,9 +13,14 @@ class Exercise < ApplicationRecord
 
   def to_param = slug
 
-  # Open after the lesson is taught: the transcript says enough lessons are done,
-  # or the owner opened it to everyone.
+  # Only for someone who owns the exercise's course (User#can_open_code?).
+  def owned_by?(user) = user.can_open_code?(course_code)
+
+  # Open, to someone who owns the course, after the lesson is taught: the
+  # transcript says enough lessons are done, or the owner opened it early to
+  # everyone who owns the course.
   def unlocked_for?(user)
+    return false unless owned_by?(user)
     return true if open_to_all?
     record = user.course_records.find { |r| r.code == course_code }
     return true if record.present? && record.lessons_done >= lesson_number

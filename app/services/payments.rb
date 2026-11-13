@@ -56,8 +56,11 @@ module Payments
   # Stripe Tax in the Stripe dashboard.
   def tax_enabled? = ENV["STRIPE_TAX"] == "1"
 
-  def create_session(course:, user:, success_url:, cancel_url:, terms_accepted_at:)
+  # gift_to: the recipient's email when the course is bought as a gift. The
+  # buyer then gets no access; the recipient gets a claim link (Gift).
+  def create_session(course:, user:, success_url:, cancel_url:, terms_accepted_at:, gift_to: nil)
     metadata = { user_id: user.id, course_id: course.id, terms_accepted_at: terms_accepted_at.iso8601 }
+    metadata[:gift_recipient] = gift_to if gift_to.present?
     client.v1.checkout.sessions.create(
       mode: "payment",
       customer_email: user.email_address,
@@ -72,7 +75,7 @@ module Payments
         price_data: {
           currency: "usd",
           unit_amount: course.price_cents,
-          product_data: { name: course.title, description: Rails.configuration.x.brand.checkout_description.call(course) }
+          product_data: { name: gift_to.present? ? "#{course.title} (gift)" : course.title, description: Rails.configuration.x.brand.checkout_description.call(course) }
         }
       } ],
       success_url: success_url,
@@ -82,7 +85,8 @@ module Payments
 
   def retrieve_session(session_id) = client.v1.checkout.sessions.retrieve(session_id)
 
-  # The success page: read the session back from Stripe, then enroll.
+  # The success page: read the session back from Stripe, then enroll (or, for
+  # a gift, make the Gift). Returns the Enrollment or the Gift.
   def fulfill(session_id, expected_user: nil)
     return nil if session_id.blank? || !enabled?
     grant(retrieve_session(session_id), expected_user: expected_user)
@@ -101,10 +105,11 @@ module Payments
     course = Course.find_by(id: metadata && metadata["course_id"])
     return nil unless user && course
     return nil if expected_user && expected_user != user
+    return grant_gift(session, user, course) if metadata["gift_recipient"].present?
 
-    paid = { source: "stripe", amount_cents: session.amount_total, stripe_session_id: session.id,
+    paid = { source: "purchase", amount_cents: session.amount_total, stripe_session_id: session.id,
              payment_intent_id: session.payment_intent.to_s.presence,
-             terms_accepted_at: metadata["terms_accepted_at"].presence }
+             terms_accepted_at: metadata["terms_accepted_at"].presence, gift: nil }
     enrollment = begin
       Enrollment.find_or_create_by!(user: user, course: course) { |e| e.assign_attributes(paid) }
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
@@ -120,7 +125,24 @@ module Payments
     enrollment
   end
 
-  # Full refunds and disputes end access to the course.
+  # A paid gift: the Gift is made once (the success page and the webhook both
+  # call this), and the recipient is emailed the claim link the first time.
+  # The buyer is not enrolled.
+  def grant_gift(session, buyer, course)
+    gift = Gift.find_by(stripe_session_id: session.id)
+    return gift if gift
+    gift = Gift.create!(course: course, purchaser: buyer, recipient_email: session.metadata["gift_recipient"].to_s,
+                        amount_cents: session.amount_total, stripe_session_id: session.id,
+                        payment_intent_id: session.payment_intent.to_s.presence,
+                        terms_accepted_at: session.metadata["terms_accepted_at"].presence)
+    gift.update!(emailed_at: Time.current) if EmailDelivery.deliver(GiftMailer.claim(gift, gift.token))
+    gift
+  rescue ActiveRecord::RecordNotUnique
+    Gift.find_by!(stripe_session_id: session.id) # the other caller made it
+  end
+
+  # Full refunds and disputes end access to the course, and end a gift (and
+  # the access it gave, if it was claimed).
   def handle_event(event)
     object = event.data.object
     case event.type
@@ -136,6 +158,7 @@ module Payments
   def revoke(payment_intent_id, reason)
     return if payment_intent_id.blank?
     Enrollment.where(payment_intent_id: payment_intent_id.to_s).find_each { |e| e.revoke!(reason) }
+    Gift.where(payment_intent_id: payment_intent_id.to_s).find_each { |g| g.revoke!(reason) }
   end
 
   # Raises InvalidSignature unless the payload was signed with our webhook

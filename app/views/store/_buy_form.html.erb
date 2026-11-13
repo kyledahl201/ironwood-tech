@@ -1,0 +1,18 @@
+<%# The buy form. locals: course, gift_only (the buyer already has the course, so it can only be a gift) %>
+<% gift_only = local_assigns[:gift_only] %>
+<%= form_with url: store_checkout_path(course), data: { turbo: false } do %>
+  <% if EmailDelivery.enabled? %>
+    <% if gift_only %>
+      <input type="hidden" name="gift" value="1">
+    <% else %>
+      <label class="checkbox small" style="margin-bottom:8px"><input type="checkbox" name="gift" value="1" id="gift-toggle"> <span>This is a gift</span></label>
+    <% end %>
+    <div class="field small" style="margin-bottom:12px">
+      <label for="gift-email"><%= gift_only ? "Their email" : "If it's a gift, their email" %></label>
+      <input type="email" name="gift_email" id="gift-email" autocomplete="off" maxlength="254" <%= "required" if gift_only %>>
+      <span class="hint">We email them a link to get the course. You won't get access yourself.</span>
+    </div>
+  <% end %>
+  <label class="checkbox small" style="margin-bottom:12px; align-items:flex-start"><input type="checkbox" name="accept_terms" value="1" required> <span>I'm 18 or older and I agree to the <%= link_to "Terms of Sale", terms_path, target: "_blank", rel: "noopener" %> and <%= link_to "Privacy Policy", privacy_path, target: "_blank", rel: "noopener" %>.</span></label>
+  <button type="submit" class="btn btn-copper"><%= gift_only ? "Buy as a gift for #{course.price}" : "Buy for #{course.price}" %></button>
+<% end %>

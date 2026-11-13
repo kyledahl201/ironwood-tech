@@ -1,17 +1,24 @@
 class Enrollment < ApplicationRecord
-  SOURCES = %w[self admin stripe].freeze
+  # How someone came to own a course: they bought it (Stripe confirmed the
+  # payment), the owner gave it, or they claimed a gift.
+  SOURCES = %w[purchase admin gift].freeze
+  # Free courses students started themselves, before every course was owned.
+  # Kept (revoked) for the records; never made any more.
+  LEGACY_SOURCES = %w[self].freeze
 
   belongs_to :user
   belongs_to :course
+  belongs_to :gift, optional: true
   has_many :lesson_completions, dependent: :destroy
 
-  validates :source, inclusion: { in: SOURCES }
+  validates :source, inclusion: { in: SOURCES }, on: :create
+  validates :source, inclusion: { in: SOURCES + LEGACY_SOURCES }
   validates :course_id, uniqueness: { scope: :user_id }
 
   scope :active, -> { where(revoked_at: nil) }
 
   def active? = revoked_at.nil?
-  def paid? = source == "stripe"
+  def paid? = source == "purchase"
 
   # Refunds, disputes and the owner end access; the record stays for the books.
   def revoke!(reason)
@@ -19,6 +26,7 @@ class Enrollment < ApplicationRecord
   end
 
   def reinstate!(**attrs)
+    attrs[:source] ||= "admin" if LEGACY_SOURCES.include?(source) # given back by the owner
     update!(attrs.merge(revoked_at: nil, revoke_reason: nil))
   end
 

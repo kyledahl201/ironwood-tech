@@ -61,17 +61,26 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  # APP_HOST is the public address, for example learn.example.org.
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "example.com") }
+  # APP_HOST is the public address, for example ironwoodtech.org.
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "example.com"), protocol: ENV["FORCE_SSL"] == "1" ? "https" : "http" }
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # Email goes out through Resend's SMTP server (docs/DEPLOY-FLY.md, "Turn on
+  # email"). The key comes only from the environment. With no key, nothing is
+  # sent and nothing breaks: the owner area shows gift links to send by hand
+  # (EmailDelivery.enabled?).
+  if ENV["RESEND_API_KEY"].to_s.strip.present?
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      address: "smtp.resend.com",
+      port: 587,
+      user_name: "resend",
+      password: ENV["RESEND_API_KEY"].to_s.strip,
+      authentication: :plain,
+      enable_starttls_auto: true
+    }
+  else
+    config.action_mailer.perform_deliveries = false
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

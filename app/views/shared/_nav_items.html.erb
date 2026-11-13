@@ -1,5 +1,9 @@
 <% if current_user && !current_user.portal_member? %>
-  <%= nav_link "Courses", store_path %>
+  <% if current_user.owned_codes.any? %><%# a course claimed as a gift, or given by the owner %>
+    <%= nav_link "Classroom", class_lessons_path %>
+    <%= nav_link "My courses", courses_path %>
+  <% end %>
+  <%= nav_link "Store", store_path %>
   <%= nav_link "Account", portal_account_path %>
   <li><%= button_to "Sign out", session_path, method: :delete, class: "link-button" %></li>
 <% elsif current_user %>

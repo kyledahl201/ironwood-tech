@@ -15,12 +15,12 @@
       <ul class="course-list">
         <% list.each do |entry| %>
           <% state = entry.state %>
-          <li class="course-pick is-<%= state %><%= " is-current" if current_code && entry.code == current_code %>">
+          <li class="course-pick is-<%= entry.owned? ? state : "locked" %><%= " is-current" if current_code && entry.code == current_code %>">
             <div class="course-pick-main">
               <p class="eyebrow"><%= [ (entry.code unless entry.tour? || entry.code.blank?), (entry.professor.to_s.match?(/tutor/i) ? "AI tutor" : (entry.professor.present? ? "#{entry.professor} (AI tutor)" : nil)) ].compact.join(" · ") %></p>
               <%= content_tag "h#{level + 1}", class: "course-name" do %><%= link_to entry.title, course_path(entry) %><% end %>
               <% if entry.tagline.present? %><p class="course-tagline"><%= entry.tagline %></p><% end %>
-              <p class="meta"><span class="course-state"><%= current_code && entry.code == current_code && state == :new ? entry.status_line.sub("Not started · ", "") : entry.status_line %></span><% if current_code && entry.code == current_code %> · <strong>You are in this class now</strong><% end %></p>
+              <p class="meta"><span class="course-state"><% if !entry.owned? %>Not yours yet<% else %><%= current_code && entry.code == current_code && state == :new ? entry.status_line.sub("Not started · ", "") : entry.status_line %><% end %></span><% if current_code && entry.code == current_code %> · <strong>You are in this class now</strong><% end %></p>
             </div>
             <div class="course-pick-act">
               <%= render "courses/launch", entry: entry, size: "" %>
@@ -37,7 +37,7 @@
                 <p class="course-more-head">What you'll be able to do</p>
                 <ul><% entry.outcomes.each do |outcome| %><li><%= outcome %></li><% end %></ul>
               <% end %>
-              <p class="small"><%= link_to "See every class in #{entry.title}", course_path(entry) %></p>
+              <% if entry.owned? %><p class="small"><%= link_to "See every class in #{entry.title}", course_path(entry) %></p><% end %>
             </div>
           </li>
         <% end %>

@@ -6,7 +6,7 @@
       <tr>
         <% if show_student %><td><%= link_to e.user.name, admin_user_path(e.user) %><br><span class="small muted"><%= e.user.email_address %></span></td><% end %>
         <td><%= e.course.title %></td>
-        <td><%= { "self" => "Started it (free)", "admin" => "Added by owner", "stripe" => "Bought (Stripe)" }[e.source] %></td>
+        <td><%= { "self" => "Started it (free, before every course was owned)", "admin" => "Given by owner", "purchase" => "Bought (Stripe)", "gift" => "Claimed a gift" }[e.source] %></td>
         <td><%= e.amount_cents ? number_to_currency(e.amount_cents / 100.0) : "—" %></td>
         <td><%= e.created_at.to_date.to_fs(:short) %></td>
         <td><%= e.active? ? "Active" : "Ended #{e.revoked_at.to_date.to_fs(:short)} (#{e.revoke_reason})" %></td>
