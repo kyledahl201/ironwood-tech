@@ -65,3 +65,5 @@ end
 
 gem "anthropic", "~> 2.6"
 gem "redcarpet", "~> 3.6"
+
+gem "stripe", "~> 20.1"
