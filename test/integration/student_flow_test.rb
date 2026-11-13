@@ -3,11 +3,13 @@ require "test_helper"
 class StudentFlowTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
-  test "public pages show the disclosure, sell nothing and are not indexed" do
-    %w[/ /privacy /session/new].each do |path|
+  test "public pages show the disclosure, claim no non-profit status and are not indexed" do
+    %w[/ /privacy /terms /refunds /store /session/new].each do |path|
       get path
       assert_response :success, path
       assert_includes response.body, "not an accredited school", path
+      assert_includes response.body, "AI personas", path
+      assert_no_match(/non-?profit|sells nothing|invitation only/i, response.body, path)
       assert_select "meta[name=robots][content='noindex, nofollow']"
     end
     get root_path
