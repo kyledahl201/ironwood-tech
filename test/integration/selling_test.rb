@@ -143,7 +143,7 @@ class SellingTest < ActionDispatch::IntegrationTest
   test "Legal's v1.1 answers are in: the only brackets left are the host and the PO box" do
     get terms_path
     [ "for as long as we offer the course, and at least 12 months.", "A paid Claude plan is needed for some lessons.",
-      "Prices don't include sales tax. If tax applies where you live, it's added at checkout.",
+      "We do not currently charge sales tax on courses. If we are later required to collect sales tax where you live, we will show it at checkout before you pay.",
       "We may email you about your purchase, such as a receipt or an important change to the course.",
       "within 5 to 10 business days." ].each { |line| assert_includes CGI.unescapeHTML(response.body), line }
     assert_not_includes response.body, "discount"
