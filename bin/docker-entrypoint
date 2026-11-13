@@ -9,7 +9,9 @@ fi
 # Prepare the database (and seed courses and exercises) when starting the server.
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
-  ./bin/rails db:seed
+  # Old tutor chats are also deleted here, because the 4 AM job (config/recurring.yml)
+  # can't run on a host that stops the server while nobody is using it (fly.toml).
+  ./bin/rails db:seed tutor:purge_expired
 fi
 
 exec "${@}"

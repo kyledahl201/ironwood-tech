@@ -1,0 +1,73 @@
+# Fly.io settings for the Ironwood portal. Nothing here is secret.
+# The owner's steps are in docs/DEPLOY-FLY.md.
+#
+# Every key below was checked against Fly's configuration reference
+# (https://fly.io/docs/reference/configuration/) on 2026-11-13.
+
+# Must be unique across all of Fly. If the name is taken, change it here and in the
+# commands in docs/DEPLOY-FLY.md.
+app = "ironwood-portal"
+
+# Dallas, Texas: the closest Fly region to Oklahoma and Texas.
+primary_region = "dfw"
+
+# Ask Puma to finish what it is doing, and give it 30 seconds, before the machine stops.
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+# Disk-backed spare memory, so a busy moment slows the site down instead of crashing it.
+swap_size_mb = 512
+
+[env]
+  # Thruster (the web front in the image) listens on 80 by default, as it does on the Mac.
+  # The image runs as a non-root user, and Fly's docs don't say whether such a user may
+  # open port 80 on a Fly machine, so on Fly it listens on 8080 instead.
+  HTTP_PORT = "8080"
+  # Background jobs (tutor replies, hourly cleanup) run inside the web server: one machine.
+  SOLID_QUEUE_IN_PUMA = "true"
+  # Fly ends HTTPS in front of the app (config/environments/production.rb).
+  FORCE_SSL = "1"
+  # The public address, used in links the app writes into email.
+  APP_HOST = "learn.ironwoodtech.org"
+  # Named on the privacy page as the host.
+  BRAND_HOST_NAME = "Fly.io"
+
+# No [deploy] release_command on purpose. Fly runs it on a temporary machine that has
+# no access to volumes, so it could not reach the SQLite files. bin/docker-entrypoint
+# already runs db:prepare (migrations) and db:seed on the real machine, with the volume
+# mounted, every time the server starts.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Cheapest honest setting: the machine stops after a few idle minutes and starts again
+  # on the next visit, which then waits while Rails boots. While stopped, only disk is billed.
+  # To keep it always on instead, set auto_stop_machines = "off" and deploy.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    # The first start prepares the database and loads every lesson before the server is up.
+    grace_period = "2m"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/up"
+
+    [http_service.checks.headers]
+      X-Forwarded-Proto = "https"
+
+# All four SQLite databases and uploaded files live in /rails/storage (config/database.yml).
+# One volume can be attached to one machine only, which is what keeps SQLite safe:
+# never run `fly scale count 2`.
+[[mounts]]
+  source = "ironwood_storage"
+  destination = "/rails/storage"
+  initial_size = "1gb"
+  # Fly snapshots the volume once a day. Keep two weeks of them (default 5 days, max 60).
+  snapshot_retention = 14
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

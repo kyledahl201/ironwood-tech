@@ -90,7 +90,13 @@ bin/rubocop
 bin/brakeman
 ```
 
+## Deploy (Fly.io)
+
+The chosen host. `fly.toml` holds the settings and [docs/DEPLOY-FLY.md](docs/DEPLOY-FLY.md) has the owner's steps, costs, backups and how to stop paying. On Fly the app also reads `FORCE_SSL=1` (HTTPS in front of the app) and `APP_HOST` (the public address); both are set in `fly.toml` and stay unset on the Mac.
+
 ## Deploy (Kamal)
+
+Not in use; kept as a template.
 
 1. Get a small Linux server (any VPS with Docker) and a domain, then point the domain at the server.
 2. In `config/deploy.yml`, set the server IP, `proxy.host` to your domain, the registry, `ADMIN_EMAIL` and `BRAND_CONTACT_EMAIL`.
