@@ -68,7 +68,7 @@ Settings (all from the environment, never committed; see `.env.example`):
 
 To try a test purchase on your Mac: start the portal with a test `STRIPE_SECRET_KEY` in its environment (nothing reads `.env` by itself, so use `STRIPE_SECRET_KEY=sk_test_... STRIPE_WEBHOOK_SECRET=whsec_... bin/dev`, or the settings file your Docker install passes in), run `stripe listen --forward-to localhost:3000/webhooks/stripe` and copy the `whsec_...` it prints into `STRIPE_WEBHOOK_SECRET`, set a price on PX1 and publish it in `/admin/courses`, then buy it with card `4242 4242 4242 4242`.
 
-The terms, refund policy and parts of the privacy notice are placeholders marked `[LEGAL TO CONFIRM]`. Replace them before taking real money.
+The terms, refund policy and privacy policy carry Legal's v1 text (Nov 13, 2026). Some facts in them are still open and show in `[square brackets]` (publish date, host, email tool, PO box, sales tax and others). Fill them before taking real money.
 
 ### If the owner is locked out (Docker install)
 
