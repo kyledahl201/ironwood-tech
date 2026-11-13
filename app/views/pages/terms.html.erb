@@ -1,0 +1,19 @@
+<% page_title "Terms" %>
+<header class="page-head"><div class="wrap narrow"><p class="eyebrow">Policies</p><h1>Terms of sale and use</h1></div></header>
+<section class="section"><div class="wrap narrow prose">
+  <p class="callout">[LEGAL TO CONFIRM] These terms are a placeholder. The full terms of sale and use will be published here before any course is sold for real money.</p>
+  <p><%= brand.disclosure %></p>
+  <p>AI tutors can make mistakes. Check important output yourself before you rely on it, and don't paste passwords, API keys or anyone's private data into a tutor.</p>
+  <h2>Who sells the courses</h2>
+  <p><strong>Seller:</strong> <%= brand.legal_name || "[LEGAL TO CONFIRM: seller's legal name]" %><br>
+     <strong>Address:</strong> <%= brand.postal_address || "[LEGAL TO CONFIRM: seller's postal address]" %><br>
+     <strong>Contact:</strong> <%= mail_to brand.contact_email %></p>
+  <h2>Still to be written</h2>
+  <ul>
+    <li>[LEGAL TO CONFIRM: what a purchase includes and how long access lasts]</li>
+    <li>[LEGAL TO CONFIRM: payment, prices and sales tax]</li>
+    <li>[LEGAL TO CONFIRM: acceptable use, and when an account or a course can be taken away]</li>
+    <li>[LEGAL TO CONFIRM: limits of liability and governing law]</li>
+  </ul>
+  <p>See also the <%= link_to "refund policy", refunds_path %> and the <%= link_to "privacy notice", privacy_path %>.</p>
+</div></section>

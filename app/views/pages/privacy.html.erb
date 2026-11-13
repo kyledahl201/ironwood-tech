@@ -1,13 +1,15 @@
 <% page_title "Privacy" %>
 <header class="page-head"><div class="wrap narrow"><p class="eyebrow">Privacy</p><h1>What this site keeps</h1></div></header>
 <section class="section"><div class="wrap narrow prose">
-  <p><%= brand.full_name %> is a personal, non-profit study site. Accounts are by invitation only. Here is exactly what it stores.</p>
+  <p><%= brand.full_name %> is a study site that also sells courses. Accounts come from an invite or from buying a course. Here is exactly what it stores.</p>
+  <p class="callout">[LEGAL TO CONFIRM] This notice was written when the site sold nothing. The purchase rows below describe what the site does today; the whole notice needs a legal review before any course is sold for real money.</p>
   <table>
     <thead><tr><th>Data</th><th>Who can see it</th><th>How long</th></tr></thead>
     <tbody>
       <tr><td>Your name, email and a hashed password</td><td>You and the site owner</td><td>Until you ask for your account to be deleted</td></tr>
       <tr><td>Courses, lessons done, code-lab attempts, badges and study time</td><td>You and the site owner</td><td>Until you ask for your account to be deleted</td></tr>
       <tr><td>Your transcript record (if one is synced)</td><td>Only you and the site owner. It's never public.</td><td>Until it's replaced by the next sync or deleted</td></tr>
+      <tr><td>Purchases: the course, the amount, the date, that you ticked the terms box, and Stripe's reference numbers for the payment</td><td>You and the site owner</td><td>[LEGAL TO CONFIRM: how long purchase records are kept]</td></tr>
       <tr><td>Tutor chats</td><td>You and the site owner</td><td><%= TutorMessage::RETENTION.in_days.to_i %> days, then deleted automatically</td></tr>
       <tr><td>Study hall card: name, current course, hours this week</td><td>Other students, only if you turn on the study hall</td><td>While it's turned on</td></tr>
     </tbody>
@@ -15,8 +17,9 @@
   <h2>Services that handle data</h2>
   <ul>
     <li><strong>Anthropic</strong> (the Claude API) writes tutor replies. Your question, your recent chat in that lesson and the lesson text are sent to it. In the classroom, your workbench for the step you are on (what you typed and what the checks said) goes with a question unless you untick the box beside it.</li>
+    <li><strong>Stripe</strong> takes payments. You type your card details on Stripe's page, not this site, so this site never sees or stores your card number. Stripe is given your email address and the course you're buying.</li>
     <li><strong><%= brand.host_name %></strong> hosts the site and its database.</li>
     <li>Your code in the code lab runs in your own browser and is saved with your attempts.</li>
   </ul>
-  <p>No ads, no trackers, nothing sold. To see or delete your data, email <%= mail_to brand.contact_email %>.</p>
+  <p>No ads and no trackers. Your data is not sold. To see or delete your data, email <%= mail_to brand.contact_email %>.</p>
 </div></section>

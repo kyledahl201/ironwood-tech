@@ -5,8 +5,8 @@
       <p class="eyebrow"><%= brand.name %></p>
       <h1 class="display"><%= brand.full_name %></h1>
       <p class="lede">A personal, self-directed course of study in computer science and data science.</p>
-      <p class="lede">One student, a faculty of AI tutors, and a plan that starts from the beginning.</p>
-      <p class="actions"><%= link_to "Sign in (invited students)", new_session_path, class: "btn btn-light" %></p>
+      <p class="lede">A faculty of AI tutors, and a plan that starts from the beginning.</p>
+      <p class="actions"><%= link_to "Sign in", new_session_path, class: "btn btn-light" %><% if @for_sale %> <%= link_to "See the courses", store_path, class: "btn btn-light" %><% end %></p>
       <p class="under-actions"><em><%= brand.motto %>.</em></p>
     </div>
   </div>
