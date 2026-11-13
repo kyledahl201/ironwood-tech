@@ -13,3 +13,21 @@ other:
   tagline: Another course
   published: true
   position: 2
+
+# A sold course. Its slug matches db/course_players/px1, so it has a player.
+px1:
+  title: Life and Work, With Claude
+  slug: px1
+  tagline: A made-up price for tests
+  published: true
+  paid: true
+  price_cents: 2900
+  position: 100
+
+# Sold, but the owner hasn't set a price yet.
+unpriced:
+  title: Unpriced Course
+  slug: unpriced-course
+  published: true
+  paid: true
+  position: 101

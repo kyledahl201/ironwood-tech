@@ -3,9 +3,23 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
   stale_when_importmap_changes
 
+  # After Authentication's own check: an account made by buying a course sees
+  # only the store, what it bought and its account page.
+  before_action :require_portal_member
+
   helper_method :current_user, :brand
 
+  # For the few pages a course buyer's account may open.
+  def self.allow_customer_accounts(**options)
+    skip_before_action :require_portal_member, **options
+  end
+
   private
+    def require_portal_member
+      user = current_user
+      redirect_to store_path if user && !user.portal_member?
+    end
+
     def current_user
       resume_session
       Current.user

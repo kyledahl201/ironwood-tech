@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lindgren Family Hub</title>
+<style>
+:root{--midnight:#14213D;--linen:#F5F3EF;--paper:#FBF9F4;--copper:#B87333;--copper-dk:#8C5727;--ink:#14213D;--muted:#4F5B73;--line:#DCD6CC;--sky:#5B8DB8;--leaf:#4F8A6B;--sun:#E8B84A;--berry:#9B2335;--note:#FFF6E6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--linen);color:var(--ink);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+header{background:var(--midnight);color:var(--linen);padding:22px 24px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font:700 28px/1.1 Georgia,"Times New Roman",serif}
+header p{margin:2px 0 0;color:#C9D1E0;font-size:15px}
+header svg{flex:none}
+.updated{margin-left:auto;font-size:14px;color:#AEB8CC;text-align:right}
+main{max-width:1180px;margin:0 auto;padding:24px 16px 48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px}
+.sheet{background:var(--paper);border-radius:6px;padding:22px 22px 18px;box-shadow:0 2px 0 rgba(20,33,61,.08),0 10px 24px rgba(20,33,61,.08);position:relative}
+.sheet:before{content:"";position:absolute;top:-10px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--copper);box-shadow:0 2px 3px rgba(0,0,0,.25)}
+.sheet:nth-child(2):before{background:var(--sun)}.sheet:nth-child(3):before{background:var(--sky)}.sheet:nth-child(4):before{background:var(--leaf)}
+.wide{grid-column:1/-1}
+h2{margin:0 0 12px;font:700 22px/1.2 Georgia,"Times New Roman",serif}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.day{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;min-height:150px}
+.day.busy{border:2px solid var(--copper)}
+.day h3{margin:0 0 6px;font-size:15px;display:flex;justify-content:space-between}
+.day h3 span{color:var(--muted);font-weight:400}
+.ev{font-size:14px;margin:6px 0;padding:6px 8px;border-radius:6px;background:var(--linen)}
+.ev b{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.who-Ava{border-left:4px solid var(--sky)}.who-Milo{border-left:4px solid var(--sun)}.who-Sam{border-left:4px solid var(--leaf)}.who-Jordan{border-left:4px solid var(--berry)}.who-Biscuit,.who-Home{border-left:4px solid var(--copper)}
+.dinner{font-size:13px;color:var(--copper-dk);margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+ul.meals{list-style:none;margin:0;padding:0}
+ul.meals li{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+ul.meals li b{width:40px;flex:none}
+ul.meals button{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-decoration-color:var(--copper);text-underline-offset:3px}
+ul.meals button:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.sub{font-size:13px;color:var(--muted)}
+.activity{margin-top:12px;background:var(--note);border:1px solid #E0A06A;border-radius:8px;padding:10px 12px;font-size:15px}
+.section{margin:12px 0 4px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--copper-dk)}
+label.item{display:flex;gap:10px;align-items:center;padding:5px 0;cursor:pointer}
+label.item input{width:20px;height:20px;accent-color:var(--leaf)}
+label.item.done span{text-decoration:line-through;color:#9AA3B5}
+label.item em{margin-left:auto;font-style:normal;color:var(--muted);font-size:14px}
+.total{display:flex;justify-content:space-between;border-top:2px solid var(--ink);margin-top:10px;padding-top:8px;font-weight:700}
+.row-b{margin:10px 0}
+.row-b div:first-child{display:flex;justify-content:space-between;font-size:15px}
+.bar{height:12px;background:#E9E4DA;border-radius:6px;overflow:hidden;position:relative;margin-top:4px}
+.bar span{display:block;height:100%;background:var(--leaf);border-radius:6px}
+.bar span.warn{background:var(--sun)}.bar span.over{background:var(--berry)}
+.bar i{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.biscuit{display:flex;gap:12px;align-items:center;background:var(--note);border-radius:10px;padding:12px;margin-bottom:12px;font-size:15px}
+dialog{border:none;border-radius:12px;max-width:520px;width:calc(100% - 32px);padding:24px;background:var(--paper);color:var(--ink)}
+dialog::backdrop{background:rgba(20,33,61,.5)}
+dialog h2{margin-bottom:4px}
+dialog button{margin-top:14px;background:var(--midnight);color:var(--linen);border:none;border-radius:8px;padding:10px 18px;font-size:16px;cursor:pointer}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:0 16px 32px}
+@media (max-width:860px){.days{grid-template-columns:1fr 1fr}.day{min-height:auto}}
+@media (max-width:480px){.days{grid-template-columns:1fr}header h1{font-size:23px}.updated{margin-left:0;text-align:left}}
+</style>
+</head>
+<body>
+<header>
+<svg width="56" height="56" viewBox="0 0 56 56" aria-label="Biscuit the dog"><circle cx="28" cy="28" r="28" fill="#1C2B4D"/><ellipse cx="28" cy="32" rx="15" ry="13" fill="#D9B48A"/><ellipse cx="14" cy="24" rx="6" ry="11" fill="#8C5727"/><ellipse cx="42" cy="24" rx="6" ry="11" fill="#8C5727"/><circle cx="23" cy="29" r="2.2" fill="#14213D"/><circle cx="33" cy="29" r="2.2" fill="#14213D"/><ellipse cx="28" cy="36" rx="3.5" ry="2.5" fill="#14213D"/></svg>
+<div><h1>The Lindgren Family Hub</h1><p id="weekof"></p></div>
+<div class="updated" id="updated"></div>
+</header>
+<main>
+<section class="sheet wide" aria-labelledby="h-week"><h2 id="h-week">This week</h2><div class="days" id="days"></div>
+<div class="legend"><span><i style="background:var(--sky)"></i>Ava</span><span><i style="background:var(--sun)"></i>Milo</span><span><i style="background:var(--leaf)"></i>Sam</span><span><i style="background:var(--berry)"></i>Jordan</span><span><i style="background:var(--copper)"></i>Biscuit and home</span><span><i style="background:#fff;border:2px solid var(--copper)"></i>Busy night</span></div></section>
+<section class="sheet" aria-labelledby="h-din"><h2 id="h-din">Dinners</h2><ul class="meals" id="meals"></ul><div class="activity" id="activity"></div></section>
+<section class="sheet" aria-labelledby="h-shop"><h2 id="h-shop">Shopping list</h2><p class="sub">Tap to check off. Check-offs stay on this device only.</p><div id="shop"></div><div class="total"><span>Estimate</span><span id="shoptotal"></span></div><p class="sub" id="pantry"></p></section>
+<section class="sheet" aria-labelledby="h-bud"><h2 id="h-bud">Budget at a glance</h2><div class="biscuit" id="cfo"></div><div id="budget"></div><p class="sub">The black line marks where we'd be if spending were even across the month.</p></section>
+</main>
+<footer>Made-up family for practice · Ironwood Tech, a Digital Farm and Garden company · Claude refreshes this hub every Sunday; the app holds no calendar link.</footer>
+<dialog id="recipe" aria-labelledby="r-title"><h2 id="r-title"></h2><p class="sub" id="r-meta"></p><ul id="r-ing"></ul><p id="r-how"></p><button type="button" id="r-close">Close</button></dialog>
+<script src="schedule.js"></script>
+<script src="meals.js"></script>
+<script src="budget.js"></script>
+<script>
+(function(){
+var W=window.HUB_WEEK,M=window.HUB_MEALS,B=window.HUB_BUDGET;
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.textContent=h;return e}
+function money(n){return "$"+Math.round(n).toLocaleString()}
+document.getElementById('weekof').textContent="Week of "+W.weekOf;
+document.getElementById('updated').textContent="Refreshed "+W.updated;
+var dinnerByDay={};M.dinners.forEach(function(d){dinnerByDay[d.day]=d});
+var days=document.getElementById('days');
+W.days.forEach(function(d){
+  var box=el('div','day'+(W.busyNights.indexOf(d.day)>-1?' busy':''));
+  var h=el('h3');h.appendChild(document.createTextNode(d.day));h.appendChild(el('span',null,d.date));box.appendChild(h);
+  if(!d.items.length)box.appendChild(el('p','sub','Nothing planned'));
+  d.items.forEach(function(it){var e=el('div','ev who-'+it[1]);e.appendChild(el('b',null,it[0]+' · '+it[1]));e.appendChild(document.createTextNode(it[2]));box.appendChild(e)});
+  var dn=dinnerByDay[d.day];if(dn)box.appendChild(el('div','dinner','Dinner: '+dn.title));
+  days.appendChild(box);
+});
+var ul=document.getElementById('meals'),dlg=document.getElementById('recipe');
+M.dinners.forEach(function(d){
+  var li=el('li');li.appendChild(el('b',null,d.day));var w=el('div');
+  if(d.recipe){var b=el('button',null,d.title);b.type='button';b.addEventListener('click',function(){openRecipe(d.recipe)});w.appendChild(b);w.appendChild(el('div','sub',M.recipes[d.recipe].minutes+' min'+(d.note?' · '+d.note:'')))}
+  else{w.appendChild(document.createTextNode(d.title));if(d.note)w.appendChild(el('div','sub',d.note))}
+  li.appendChild(w);ul.appendChild(li);
+});
+document.getElementById('activity').textContent="Family activity: "+M.activity;
+function openRecipe(k){var r=M.recipes[k];document.getElementById('r-title').textContent=r.title;document.getElementById('r-meta').textContent=r.minutes+' minutes · serves 4';var ri=document.getElementById('r-ing');ri.innerHTML='';r.ingredients.forEach(function(i){ri.appendChild(el('li',null,i))});document.getElementById('r-how').textContent=r.how;if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','')}
+document.getElementById('r-close').addEventListener('click',function(){dlg.close?dlg.close():dlg.removeAttribute('open')});
+var KEY='lindgren-hub-checked-'+W.weekOf,checked={};
+try{checked=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){checked={}}
+var shop=document.getElementById('shop'),sec=null;
+M.shopping.forEach(function(s,i){
+  if(s.section!==sec){sec=s.section;shop.appendChild(el('div','section',sec))}
+  var lab=el('label','item'+(checked[s.item]?' done':''));var cb=el('input');cb.type='checkbox';cb.checked=!!checked[s.item];
+  cb.addEventListener('change',function(){checked[s.item]=cb.checked;lab.className='item'+(cb.checked?' done':'');try{localStorage.setItem(KEY,JSON.stringify(checked))}catch(e){}});
+  lab.appendChild(cb);lab.appendChild(el('span',null,s.item));lab.appendChild(el('em',null,'$'+s.est.toFixed(2)));shop.appendChild(lab);
+});
+document.getElementById('pantry').textContent=M.pantryNote||'';document.getElementById('shoptotal').textContent=money(M.groceryEstimate)+" (estimate)";
+var pace=B.dayOfMonth/B.daysInMonth,bud=document.getElementById('budget'),totB=0,totS=0;
+B.categories.forEach(function(c){
+  totB+=c.budget;totS+=c.spent;var share=c.spent/c.budget;
+  var r=el('div','row-b'),top=el('div');top.appendChild(el('span',null,c.category));top.appendChild(el('span',null,money(c.spent)+' of '+money(c.budget)));r.appendChild(top);
+  var bar=el('div','bar');bar.setAttribute('role','img');bar.setAttribute('aria-label',c.category+': '+money(c.spent)+' spent of '+money(c.budget));
+  var fill=el('span',share>1?'over':(share>pace+0.1?'warn':''));fill.style.width=Math.min(100,share*100)+'%';bar.appendChild(fill);
+  var tick=el('i');tick.style.left=(pace*100)+'%';bar.appendChild(tick);r.appendChild(bar);bud.appendChild(r);
+});
+var g=B.categories.filter(function(c){return c.category==='Groceries'})[0],left=g.budget-g.spent;
+document.getElementById('cfo').textContent="CFO, as of "+B.asOf+": "+money(totS)+" spent of "+money(totB)+" this month. Groceries have "+money(left)+" left, and this week's list is about "+money(M.groceryEstimate)+".";
+})();
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@ class StudyHall
     User.in_study_hall.where.not(id: @viewer.id).order(:name).map do |u|
       stats = ProgressStats.new(u)
       course = u.course_records.find(&:in_progress?)&.then { |r| "#{r.code} #{r.title}" } ||
-               u.enrollments.order(updated_at: :desc).first&.course&.title
+               u.enrollments.active.order(updated_at: :desc).first&.course&.title
       Member.new(user: u, course: course, hours_this_week: stats.hours_this_week, studying_now: studying_now?(u))
     end
   end

@@ -1,22 +1,50 @@
+<%# Legal's privacy policy (v1.1, Nov 13, 2026), word for word. Two brackets stay
+    visible on purpose until the facts exist: [host] and the PO box. Never put a
+    street or home address here. The date is the go-live date, from
+    POLICY_PUBLISH_DATE. Add the marketing-email lines back only when email
+    sending and opt-in exist. %>
 <% page_title "Privacy" %>
-<header class="page-head"><div class="wrap narrow"><p class="eyebrow">Privacy</p><h1>What this site keeps</h1></div></header>
+<header class="page-head"><div class="wrap narrow"><p class="eyebrow">Privacy</p><h1>Privacy policy: Ironwood Tech (covers PX1)</h1></div></header>
 <section class="section"><div class="wrap narrow prose">
-  <p><%= brand.full_name %> is a personal, non-profit study site. Accounts are by invitation only. Here is exactly what it stores.</p>
+  <% if brand.policy_date %><p><em>Last updated: <%= brand.policy_date %></em></p><% end %>
+  <p><strong>Who we are.</strong> KD Farm and Garden LLC, doing business as Digital Farm and Garden and Ironwood Tech. Contact: <%= mail_to "hello@kdfarmandgarden.com" %> · [PO Box, Edmond, OK ZIP].</p>
+
+  <p><strong>What we collect.</strong></p>
   <table>
-    <thead><tr><th>Data</th><th>Who can see it</th><th>How long</th></tr></thead>
+    <thead><tr><th>What</th><th>Why</th><th>Where</th></tr></thead>
     <tbody>
-      <tr><td>Your name, email and a hashed password</td><td>You and the site owner</td><td>Until you ask for your account to be deleted</td></tr>
-      <tr><td>Courses, lessons done, code-lab attempts, badges and study time</td><td>You and the site owner</td><td>Until you ask for your account to be deleted</td></tr>
-      <tr><td>Your transcript record (if one is synced)</td><td>Only you and the site owner. It's never public.</td><td>Until it's replaced by the next sync or deleted</td></tr>
-      <tr><td>Tutor chats</td><td>You and the site owner</td><td><%= TutorMessage::RETENTION.in_days.to_i %> days, then deleted automatically</td></tr>
-      <tr><td>Study hall card: name, current course, hours this week</td><td>Other students, only if you turn on the study hall</td><td>While it's turned on</td></tr>
+      <tr><td>Name, email and a hashed password</td><td>Your account and signing in</td><td>Our site's database [host]</td></tr>
+      <tr><td>Purchase records: course, amount, date, Stripe payment and session IDs, when you accepted the terms and confirmed you're 18+, and any refund or access-removal reason</td><td>Proof of purchase, refunds, taxes</td><td>Our database</td></tr>
+      <tr><td>Payment details and your email</td><td>Taking payment and sending your receipt. We never see your full card number.</td><td>Stripe (under Stripe's privacy policy)</td></tr>
+      <tr><td>PX1 progress (lessons finished, quiz answers)</td><td>Showing your progress</td><td><strong>Only in your own browser</strong> on your device. It never reaches us, and clearing your browser data deletes it.</td></tr>
+      <tr><td>For other Ironwood courses, if you take them: code attempts, study time, badges, transcript scores, and an optional study-hall name card</td><td>Your progress record. The name card is shown to other students only if you turn it on.</td><td>Our database</td></tr>
+      <%# Legal's note on the next row, not for the page: "VERIFY Anthropic doesn't train on API data." %>
+      <tr><td>Questions to an AI tutor (only in courses that include one; PX1 doesn't)</td><td>Answering you</td><td>Anthropic (Claude API).</td></tr>
     </tbody>
   </table>
-  <h2>Services that handle data</h2>
+
+  <p><strong>What we never get.</strong> Anything you put into your own Claude account, calendar, Gmail, Notes or files while doing the lessons. That stays between you and those services, under their privacy terms.</p>
+
+  <p><strong>What we don't do.</strong> We don't sell or rent your information, and we don't use it for ads. No tracking pixels.</p>
+
+  <p><strong>Who we share with.</strong> Only the services that run the site and course (our host and Stripe), and Anthropic when you use an AI tutor in courses that have one, and anyone the law requires. Our site loads no ads, trackers or third-party fonts.</p>
+
+  <p><strong>How long we keep it.</strong></p>
   <ul>
-    <li><strong>Anthropic</strong> (the Claude API) writes tutor replies. Your question, your recent chat in that lesson and the lesson text are sent to it. In the classroom, your workbench for the step you are on (what you typed and what the checks said) goes with a question unless you untick the box beside it.</li>
-    <li><strong><%= brand.host_name %></strong> hosts the site and its database.</li>
-    <li>Your code in the code lab runs in your own browser and is saved with your attempts.</li>
+    <li>Your account and course records: while your account is open. If you ask us to delete your account, we do it within 30 days, except for records we must keep.</li>
+    <li>Purchase and tax records: 7 years.</li>
+    <li>PX1 progress lives in your browser, so you control it.</li>
   </ul>
-  <p>No ads, no trackers, nothing sold. To see or delete your data, email <%= mail_to brand.contact_email %>.</p>
+
+  <p><strong>Your choices.</strong></p>
+  <ul>
+    <li>Delete your account by emailing <%= mail_to "hello@kdfarmandgarden.com" %>. We confirm when it's done.</li>
+    <li>Ask to see or correct your information the same way. We answer within 30 days.</li>
+  </ul>
+
+  <p><strong>Age.</strong> For adults 18 and older. We don't knowingly collect information from children.</p>
+
+  <p><strong>Security.</strong> We use reputable providers and limit access. No system is perfect. If a breach affects you, we'll tell you as the law requires.</p>
+
+  <p><strong>Changes.</strong> We'll post updates on this page with a new date.</p>
 </div></section>

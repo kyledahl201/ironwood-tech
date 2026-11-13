@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_12_182137) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_13_090000) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -89,6 +89,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_182137) do
     t.string "hours"
     t.text "rubric"
     t.text "outcomes"
+    t.boolean "paid", default: false, null: false
+    t.integer "price_cents"
     t.index ["slug"], name: "index_courses_on_slug", unique: true
   end
 
@@ -98,7 +100,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_182137) do
     t.string "source", default: "self", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "amount_cents"
+    t.string "stripe_session_id"
+    t.string "payment_intent_id"
+    t.datetime "revoked_at"
+    t.string "revoke_reason"
+    t.datetime "terms_accepted_at"
     t.index ["course_id"], name: "index_enrollments_on_course_id"
+    t.index ["payment_intent_id"], name: "index_enrollments_on_payment_intent_id"
+    t.index ["stripe_session_id"], name: "index_enrollments_on_stripe_session_id", unique: true
     t.index ["user_id", "course_id"], name: "index_enrollments_on_user_id_and_course_id", unique: true
     t.index ["user_id"], name: "index_enrollments_on_user_id"
   end
@@ -261,6 +271,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_12_182137) do
     t.integer "role", default: 0, null: false
     t.boolean "share_in_study_hall", default: false, null: false
     t.datetime "last_pulse_at"
+    t.boolean "customer_only", default: false, null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 

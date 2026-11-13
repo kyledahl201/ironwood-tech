@@ -17,3 +17,11 @@ owner:
   email_address: owner@example.com
   password_digest: <%= password_digest %>
   role: 1
+
+# An account made by buying a course: store and purchases only.
+customer:
+  name: Casey Customer
+  email_address: customer@example.com
+  password_digest: <%= password_digest %>
+  role: 0
+  customer_only: true

@@ -22,9 +22,20 @@ class User < ApplicationRecord
   validates :name, presence: true, length: { maximum: 100 }
   validates :password, length: { minimum: 10 }, allow_nil: true
 
+  # Revoked (refunded) enrollments don't count.
   def enrolled_in?(course)
-    enrollments.exists?(course: course)
+    enrollments.active.exists?(course: course)
   end
+
+  # Who may open a course's lessons or player: the owner, or a student with an
+  # enrollment that hasn't been revoked.
+  def can_open?(course)
+    admin? || enrolled_in?(course)
+  end
+
+  # Accounts made by buying a course see the store, what they bought and their
+  # account. Invited students and the owner see the whole portal.
+  def portal_member? = admin? || !customer_only?
 
   scope :in_study_hall, -> { where(share_in_study_hall: true) }
 

@@ -35,7 +35,19 @@ module Authentication
     end
 
     def after_authentication_url
-      session.delete(:return_to_after_authenticating) || portal_url
+      session.delete(:return_to_after_authenticating) || home_url_for(Current.user)
+    end
+
+    # Invited students and the owner land on Today; course buyers on the store.
+    def home_url_for(user)
+      user&.portal_member? ? portal_url : store_url
+    end
+
+    # A sign-in or sign-up link may say where to go afterwards (the course
+    # someone was about to buy). Only paths on this site are kept.
+    def remember_return_to(path)
+      path = path.to_s
+      session[:return_to_after_authenticating] = path if path.match?(%r{\A/[^/\\]}) && !path.match?(/[\r\n]/)
     end
 
     def start_new_session_for(user)
