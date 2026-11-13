@@ -54,7 +54,7 @@
       <% elsif current_user %>
         <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>
         <%= form_with url: store_checkout_path(@course), data: { turbo: false } do %>
-          <label class="checkbox small" style="margin-bottom:12px"><input type="checkbox" name="accept_terms" value="1" required> I'm 18 or older and I agree to the <%= link_to "Terms of Sale", terms_path, target: "_blank", rel: "noopener" %> and <%= link_to "Privacy Policy", privacy_path, target: "_blank", rel: "noopener" %>.</label>
+          <label class="checkbox small" style="margin-bottom:12px; align-items:flex-start"><input type="checkbox" name="accept_terms" value="1" required> <span>I'm 18 or older and I agree to the <%= link_to "Terms of Sale", terms_path, target: "_blank", rel: "noopener" %> and <%= link_to "Privacy Policy", privacy_path, target: "_blank", rel: "noopener" %>.</span></label>
           <button type="submit" class="btn btn-copper">Buy for <%= @course.price %></button>
         <% end %>
         <p class="small muted" style="margin-top:12px">You'll pay on Stripe's secure page. <%= brand.name %> never sees your card number.</p>
