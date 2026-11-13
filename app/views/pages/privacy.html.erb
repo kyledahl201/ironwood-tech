@@ -1,23 +1,25 @@
-<%# Legal's privacy policy (v1, Nov 13, 2026), word for word. Square brackets are
-    Legal's open items. Engineering filled only what the code proves: where
-    progress is kept, the tutor's provider, tracking pixels and account deletion.
-    Host, email tool, PO box, publish date and the tax-record period are still open. %>
+<%# Legal's privacy policy (v1.1, Nov 13, 2026), word for word. Two brackets stay
+    visible on purpose until the facts exist: [host] and the PO box. Never put a
+    street or home address here. The date is the go-live date, from
+    POLICY_PUBLISH_DATE. Add the marketing-email lines back only when email
+    sending and opt-in exist. %>
 <% page_title "Privacy" %>
 <header class="page-head"><div class="wrap narrow"><p class="eyebrow">Privacy</p><h1>Privacy policy: Ironwood Tech (covers PX1)</h1></div></header>
 <section class="section"><div class="wrap narrow prose">
-  <p><em>Last updated: [publish date]</em></p>
+  <% if brand.policy_date %><p><em>Last updated: <%= brand.policy_date %></em></p><% end %>
   <p><strong>Who we are.</strong> KD Farm and Garden LLC, doing business as Digital Farm and Garden and Ironwood Tech. Contact: <%= mail_to "hello@kdfarmandgarden.com" %> · [PO Box, Edmond, OK ZIP].</p>
 
   <p><strong>What we collect.</strong></p>
   <table>
     <thead><tr><th>What</th><th>Why</th><th>Where</th></tr></thead>
     <tbody>
-      <tr><td>Name and email</td><td>Your account, receipts, course updates</td><td>Our site's database [host]</td></tr>
-      <tr><td>Password</td><td>Signing in. Stored only as a secure hash.</td><td>Our site's database</td></tr>
-      <tr><td>Payment</td><td>Taking payment. We never see your full card number.</td><td>Stripe</td></tr>
-      <tr><td>Course progress (lessons finished, quiz answers)</td><td>Showing your progress</td><td>PX1: your browser only. Other Ironwood Tech courses: our database.</td></tr>
-      <tr><td>Messages to an AI tutor, if the course has one</td><td>Answering your questions</td><td>Anthropic (the Claude API). PX1 has no AI tutor.</td></tr>
-      <tr><td>Marketing email, only if you opt in</td><td>News about courses</td><td>[Email tool]</td></tr>
+      <tr><td>Name, email and a hashed password</td><td>Your account and signing in</td><td>Our site's database [host]</td></tr>
+      <tr><td>Purchase records: course, amount, date, Stripe payment and session IDs, when you accepted the terms and confirmed you're 18+, and any refund or access-removal reason</td><td>Proof of purchase, refunds, taxes</td><td>Our database</td></tr>
+      <tr><td>Payment details and your email</td><td>Taking payment and sending your receipt. We never see your full card number.</td><td>Stripe (under Stripe's privacy policy)</td></tr>
+      <tr><td>PX1 progress (lessons finished, quiz answers)</td><td>Showing your progress</td><td><strong>Only in your own browser</strong> on your device. It never reaches us, and clearing your browser data deletes it.</td></tr>
+      <tr><td>For other Ironwood courses, if you take them: code attempts, study time, badges, transcript scores, and an optional study-hall name card</td><td>Your progress record. The name card is shown to other students only if you turn it on.</td><td>Our database</td></tr>
+      <%# Legal's note on the next row, not for the page: "VERIFY Anthropic doesn't train on API data." %>
+      <tr><td>Questions to an AI tutor (only in courses that include one; PX1 doesn't)</td><td>Answering you</td><td>Anthropic (Claude API).</td></tr>
     </tbody>
   </table>
 
@@ -25,25 +27,24 @@
 
   <p><strong>What we don't do.</strong> We don't sell or rent your information, and we don't use it for ads. No tracking pixels.</p>
 
-  <p><strong>Who we share with.</strong> Only the services that run the course (hosting, Stripe, email, AI provider), for that purpose, and anyone the law requires.</p>
+  <p><strong>Who we share with.</strong> Only the services that run the site and course (our host and Stripe), and Anthropic when you use an AI tutor in courses that have one, and anyone the law requires. Our site loads no ads, trackers or third-party fonts.</p>
 
   <p><strong>How long we keep it.</strong></p>
   <ul>
-    <li>Account and progress: while your account is open, plus 90 days.</li>
-    <li>Payment and tax records: as long as tax law requires [about 7 years, VERIFY].</li>
-    <li>Marketing list: until you unsubscribe.</li>
+    <li>Your account and course records: while your account is open. If you ask us to delete your account, we do it within 30 days, except for records we must keep.</li>
+    <li>Purchase and tax records: 7 years.</li>
+    <li>PX1 progress lives in your browser, so you control it.</li>
   </ul>
 
   <p><strong>Your choices.</strong></p>
   <ul>
-    <li>Unsubscribe from marketing email anytime.</li>
-    <li>Delete your account by emailing us.</li>
-    <li>Ask to see, correct or delete your information at <%= mail_to "hello@kdfarmandgarden.com" %>. We answer within 30 days.</li>
+    <li>Delete your account by emailing <%= mail_to "hello@kdfarmandgarden.com" %>. We confirm when it's done.</li>
+    <li>Ask to see or correct your information the same way. We answer within 30 days.</li>
   </ul>
 
   <p><strong>Age.</strong> For adults 18 and older. We don't knowingly collect information from children.</p>
 
   <p><strong>Security.</strong> We use reputable providers and limit access. No system is perfect. If a breach affects you, we'll tell you as the law requires.</p>
 
-  <p><strong>Changes.</strong> We'll post updates here and email account holders about major changes.</p>
+  <p><strong>Changes.</strong> We'll post updates on this page with a new date.</p>
 </div></section>

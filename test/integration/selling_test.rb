@@ -20,7 +20,7 @@ class SellingTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "$29"
     assert_includes response.body, "not an accredited school"
     assert_includes response.body, "AI personas, not people"
-    assert_includes response.body, "No course promises a job"
+    assert_includes response.body, "Video lessons are recorded by a real instructor."
     assert_select "meta[name=robots][content='noindex, nofollow']"
   end
 
@@ -130,12 +130,58 @@ class SellingTest < ActionDispatch::IntegrationTest
   test "the policy pages carry Legal's text, with no placeholder banners" do
     { terms_path => [ "Terms of Sale: PX1", "Texas law applies.", "14-day refund, no questions asked." ],
       refunds_path => [ "Refund policy: PX1", "14-day refund, no questions asked." ],
-      privacy_path => [ "Privacy policy: Ironwood Tech (covers PX1)", "No tracking pixels.", "PX1: your browser only.", "Delete your account by emailing us." ] }.each do |path, lines|
+      privacy_path => [ "Privacy policy: Ironwood Tech (covers PX1)", "No tracking pixels.", "<strong>Only in your own browser</strong> on your device.",
+                        "Purchase and tax records: 7 years.", "We confirm when it's done.", "Our site loads no ads, trackers or third-party fonts.",
+                        "We'll post updates on this page with a new date." ] }.each do |path, lines|
       get path
       assert_response :success, path
       lines.each { |line| assert_includes response.body, line, path }
       assert_not_includes response.body, "LEGAL TO CONFIRM", path
     end
+  end
+
+  test "Legal's v1.1 answers are in: the only brackets left are the host and the PO box" do
+    get terms_path
+    [ "for as long as we offer the course, and at least 12 months.", "A paid Claude plan is needed for some lessons.",
+      "Prices don't include sales tax. If tax applies where you live, it's added at checkout.",
+      "We may email you about your purchase, such as a receipt or an important change to the course.",
+      "within 5 to 10 business days." ].each { |line| assert_includes CGI.unescapeHTML(response.body), line }
+    assert_not_includes response.body, "discount"
+
+    get privacy_path
+    assert_no_match(/marketing|unsubscribe|course updates|Email tool|90 days|VERIFY/i, response.body)
+
+    visible = ->(body) { Nokogiri::HTML5(body).at_css("main").text.scan(/\[[^\]]*\]/) }
+    { terms_path => [], refunds_path => [], privacy_path => [ "[PO Box, Edmond, OK ZIP]", "[host]" ] }.each do |path, brackets|
+      get path
+      assert_equal brackets, visible.call(response.body), path
+      assert_not_includes response.body, "Last updated", "#{path}: no date until go-live"
+    end
+  end
+
+  test "the policies show the go-live date once POLICY_PUBLISH_DATE is set" do
+    brand = Rails.configuration.x.brand
+    was = brand.policy_date
+    brand.policy_date = "November 24, 2026"
+    [ terms_path, refunds_path, privacy_path ].each do |path|
+      get path
+      assert_includes response.body, "Last updated: November 24, 2026", path
+    end
+  ensure
+    brand.policy_date = was
+  end
+
+  test "the footer, the buy box and the Stripe line say the same thing about AI personas" do
+    brand = Rails.configuration.x.brand
+    footer = "Ironwood Tech's lesson guides and tutors are AI personas, not people. Video lessons are recorded by a real instructor. " \
+             "Ironwood Tech is not an accredited school and grants no degrees or credit."
+    get store_course_path(@course)
+    assert_select "footer #disclosure", text: /\A#{Regexp.escape(footer)}/
+    assert_select ".buy-box p", text: "Lesson guides are AI personas. Video lessons are recorded by a real instructor."
+    assert_equal "Life and Work, With Claude: AI 101. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas.",
+                 brand.checkout_description.call(@course)
+    assert_equal "Free Course. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas.",
+                 brand.checkout_description.call(courses(:free))
   end
 
   test "an existing account signs in from the sales page and comes back to it" do

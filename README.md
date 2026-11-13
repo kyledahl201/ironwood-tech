@@ -2,7 +2,7 @@
 
 The learning portal for **Ironwood Tech**. It began as one student's personal university and still is that: the owner studies here, and friends join free by invitation. It also sells courses, starting with PX1, through Stripe Checkout.
 
-Ironwood is not an accredited school and grants no degrees or credit. The faculty are AI personas, and no course promises a job or income. The site says so on every page.
+Ironwood Tech is not an accredited school and grants no degrees or credit. Its lesson guides and tutors are AI personas, not people; video lessons are recorded by a real instructor. The site says so on every page.
 
 ## What's in the app
 
@@ -68,7 +68,9 @@ Settings (all from the environment, never committed; see `.env.example`):
 
 To try a test purchase on your Mac: start the portal with a test `STRIPE_SECRET_KEY` in its environment (nothing reads `.env` by itself, so use `STRIPE_SECRET_KEY=sk_test_... STRIPE_WEBHOOK_SECRET=whsec_... bin/dev`, or the settings file your Docker install passes in), run `stripe listen --forward-to localhost:3000/webhooks/stripe` and copy the `whsec_...` it prints into `STRIPE_WEBHOOK_SECRET`, set a price on PX1 and publish it in `/admin/courses`, then buy it with card `4242 4242 4242 4242`.
 
-The terms, refund policy and privacy policy carry Legal's v1 text (Nov 13, 2026). Some facts in them are still open and show in `[square brackets]` (publish date, host, email tool, PO box, sales tax and others). Fill them before taking real money.
+The terms, refund policy and privacy policy carry Legal's v1.1 text (Nov 13, 2026). Two facts are still open and show in `[square brackets]` on the privacy page: the host and the PO box (never a street or home address). Fill them before taking real money, and set `POLICY_PUBLISH_DATE` (for example `November 24, 2026`) on go-live day: the 'Last updated' line on all three pages stays hidden until it is set.
+
+The web fonts are served by the app itself (`app/assets/fonts/`, with each family's SIL Open Font License beside it), so the site makes no request to a font service.
 
 ### If the owner is locked out (Docker install)
 

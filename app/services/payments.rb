@@ -72,7 +72,7 @@ module Payments
         price_data: {
           currency: "usd",
           unit_amount: course.price_cents,
-          product_data: { name: course.title, description: Rails.configuration.x.brand.disclosure_short }
+          product_data: { name: course.title, description: Rails.configuration.x.brand.checkout_description.call(course) }
         }
       } ],
       success_url: success_url,

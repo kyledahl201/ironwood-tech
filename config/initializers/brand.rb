@@ -9,12 +9,25 @@ Rails.application.config.x.brand = ActiveSupport::OrderedOptions.new.tap do |b|
   # with real money stays off until all three are set (see Payments).
   b.legal_name = ENV["BRAND_LEGAL_NAME"].presence
   b.postal_address = ENV["BRAND_POSTAL_ADDRESS"].presence
-  # The honest disclosure, in the footer of every page.
-  b.disclosure = "Ironwood is not an accredited school, and it grants no degrees or credit. " \
-                 "The faculty and tutors are AI personas, not people. " \
-                 "No course promises a job, a raise or any income."
-  # The same thing in one line, for the Stripe checkout page.
-  b.disclosure_short = "Taught by AI tutors. Not accredited; no degree, credit, job or income promise."
+  # The day the terms, refund policy and privacy policy went live, as it should
+  # read on the page ("November 24, 2026"). The "Last updated" line shows once set.
+  b.policy_date = ENV["POLICY_PUBLISH_DATE"].presence
+  # The honest disclosure, in the footer of every page. Legal's wording (v1.1),
+  # word for word; the buy box and the Stripe line below say the same thing.
+  b.disclosure = "Ironwood Tech's lesson guides and tutors are AI personas, not people. " \
+                 "Video lessons are recorded by a real instructor. " \
+                 "Ironwood Tech is not an accredited school and grants no degrees or credit."
+  # The buy box's own line.
+  b.disclosure_buy_box = "Lesson guides are AI personas. Video lessons are recorded by a real instructor."
+  # The product description on the Stripe checkout page. PX1's is Legal's line,
+  # word for word; any other course gets the same sentence with its own title.
+  b.checkout_descriptions = {
+    "px1" => "Life and Work, With Claude: AI 101. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas."
+  }.freeze
+  b.checkout_description = ->(course) {
+    b.checkout_descriptions[course.slug] ||
+      "#{course.title}. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas."
+  }
   # Keep the site out of search engines unless the owner opts in.
   b.indexable = ENV["ALLOW_INDEXING"] == "1"
   # ruby.wasm for the code lab: a local copy (bin/build-lab-assets) or the CDN.
