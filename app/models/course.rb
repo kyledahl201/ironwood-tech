@@ -17,6 +17,8 @@ class Course < ApplicationRecord
   # Every course must be owned to be opened (User#can_open?). Sold courses can
   # be bought in the store; the rest are given by the owner, as a gift.
   scope :sold, -> { where(paid: true) }
+  # Published, sold and priced: what can be bought right now.
+  scope :on_sale, -> { published.sold.where.not(price_cents: nil) }
   scope :free_to_members, -> { where(paid: false) } # not sold; still owned only by a gift or grant
 
   def to_param = slug

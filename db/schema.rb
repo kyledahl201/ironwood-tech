@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_13_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_13_210000) do
   create_table "attempts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "exercise_id", null: false
@@ -64,7 +64,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_200000) do
     t.string "professor"
     t.string "status"
     t.integer "lessons_done", default: 0, null: false
-    t.decimal "hours_logged", precision: 7, scale: 1, default: "0.0", null: false
+    t.decimal "hours_logged", precision: 8, scale: 2, default: "0.0", null: false
     t.integer "hours_target"
     t.string "grade"
     t.string "next_lesson"
@@ -256,7 +256,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_200000) do
     t.date "day_one"
     t.integer "current_day"
     t.string "phase"
-    t.decimal "hours_logged", precision: 7, scale: 1, default: "0.0", null: false
+    t.decimal "hours_logged", precision: 8, scale: 2, default: "0.0", null: false
     t.integer "stage_hours_target"
     t.string "next_gate_name"
     t.integer "next_gate_day"

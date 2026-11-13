@@ -2,7 +2,7 @@
 <section class="today-band">
   <div class="wrap today-grid">
     <div class="today-main">
-      <p class="eyebrow"><%= Time.zone.today.to_fs(:long) %><%= " · Day #{@snapshot.current_day}" if @snapshot&.current_day %></p>
+      <p class="eyebrow"><%= Time.zone.today.to_fs(:long) %><%= " · Day #{@snapshot.day_today}" if @snapshot&.day_today %></p>
       <h1 class="today-greeting"><%= @today.greeting %></h1>
 
       <article class="today-card" aria-labelledby="today-title">
@@ -35,7 +35,7 @@
             <p><strong><%= gate[:name] %>, Day <%= gate[:gate_day] %>:</strong> <%= gate[:goal] %></p>
             <% if gate[:target].to_i.positive? %>
               <div class="progress" aria-label="Stage hours"><span style="width: <%= [(gate[:hours] * 100 / gate[:target]).round, 100].min %>%"></span></div>
-              <p class="small muted"><%= gate[:hours] %> of <%= gate[:target] %> stage hours</p>
+              <p class="small muted"><%= hours_text(gate[:hours]) %> of <%= gate[:target] %> stage hours</p>
             <% end %>
           </div>
         </div>
@@ -55,7 +55,7 @@
     <div class="panel">
       <div class="section-head"><h2>Study heatmap</h2><span class="streak" title="One missed day a week is forgiven"><strong><%= @stats.streak %></strong> day streak</span></div>
       <%= render "portal/dashboard/heatmap", stats: @stats %>
-      <p class="small muted"><%= @stats.hours_this_week %> hours this week · <%= @stats.total_hours %> total</p>
+      <p class="small muted"><%= @stats.hours_this_week %> hours this week · <%= hours_text(@stats.total_hours) %> total</p>
     </div>
 
     <div class="panel">
@@ -86,7 +86,7 @@
             <p class="meta"><%= r.professor %> · <%= r.status %></p>
             <% if r.hours_target %>
               <div class="progress"><span style="width: <%= r.hours_percent %>%"></span></div>
-              <p class="meta"><%= r.hours_logged.to_f %> of <%= r.hours_target %> hours · <%= r.lessons_done %> lessons</p>
+              <p class="meta"><%= hours_text(r.hours_logged) %> of <%= r.hours_target %> hours · <%= r.lessons_done %> lessons</p>
             <% end %>
             <% if r.grade %><p class="meta">Grade: <strong><%= r.grade %></strong></p><% end %>
           </li>
