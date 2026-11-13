@@ -1,0 +1,477 @@
+<title>Life and Work, With Claude</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a trail of nine stops. Sticky lesson rail on wide screens, a top strip on phones; one reading column. Ironwood brand book tokens. */
+:root{
+  --midnight:#14213D; --linen:#F5F3EF; --copper:#B87333; --copper-deep:#8C5727; --night:#0B1222; --ruby:#9B2335;
+  --bg:#F5F3EF; --surface:#FFFFFF; --ink:#14213D; --muted:#4F5B73; --line:#DCD6CC; --soft:#ECE7DE;
+  --accent:#8C5727; --accent-big:#B87333; --band:#14213D; --band-ink:#F5F3EF; --ok:#2F6B4F; --ok-bg:#E3F0E8; --bad:#9B2335; --bad-bg:#F6E3E6;
+  --code-bg:#14213D; --code-ink:#F5F3EF;
+  --serif:"Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --sans:"Source Sans 3", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1222; --surface:#131D33; --ink:#EDEAE3; --muted:#A9B1C3; --line:#26324D; --soft:#1A2540;
+  --accent:#D69457; --accent-big:#D69457; --band:#14213D; --band-ink:#F5F3EF; --ok:#7FC39E; --ok-bg:#163326; --bad:#E58A98; --bad-bg:#3A1A22;
+  --code-bg:#060B16; --code-ink:#F5F3EF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1222; --surface:#131D33; --ink:#EDEAE3; --muted:#A9B1C3; --line:#26324D; --soft:#1A2540;
+  --accent:#D69457; --accent-big:#D69457; --band:#14213D; --band-ink:#F5F3EF; --ok:#7FC39E; --ok-bg:#163326; --bad:#E58A98; --bad-bg:#3A1A22;
+  --code-bg:#060B16; --code-ink:#F5F3EF; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--band)}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--copper);outline-offset:2px;border-radius:4px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{font-family:var(--serif);font-weight:700;text-wrap:balance;margin:0;line-height:1.15}
+.eyebrow{font-weight:700;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+button{font:inherit;cursor:pointer}
+
+/* Top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--band);color:var(--band-ink)}
+.top .wrap{display:flex;align-items:center;gap:14px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:0}
+.brand img{width:34px;height:34px;flex:none}
+.brand b{font-family:var(--serif);font-size:17px;white-space:nowrap}
+.brand span{font-size:12px;opacity:.75;display:block;letter-spacing:.04em}
+.topnav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.topnav a{color:var(--band-ink);text-decoration:none;font-weight:600;font-size:14.5px;padding:6px 10px;border-radius:6px}
+.topnav a[aria-current="page"],.topnav a:hover{background:rgba(245,243,239,.12)}
+.prog{height:4px;background:rgba(245,243,239,.15)}
+.prog i{display:block;height:100%;background:var(--copper);width:0;transition:width .4s}
+
+/* Home */
+.hero{background:var(--band);color:var(--band-ink);overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:40px;align-items:center;padding-block:44px 52px}
+.hero h1{font-size:clamp(34px,5.2vw,58px);letter-spacing:-.01em}
+.hero h1 em{font-style:italic;color:#E0A06A}
+.hero p.lede{font-size:19px;max-width:54ch;opacity:.92;margin:16px 0 22px}
+.hero .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:14.5px;opacity:.85;margin-bottom:24px}
+.hero .meta b{font-family:var(--mono);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:8px;padding:12px 18px;font-weight:700;text-decoration:none;font-size:16px}
+.btn.primary{background:var(--copper);color:#14213D}
+.btn.primary:hover{background:#C9834A}
+.btn.ghost{background:transparent;color:inherit;border:2px solid currentColor}
+.btn.line{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.hero-art{min-width:0}
+.section{padding-block:44px}
+.section h2{font-size:clamp(26px,3.4vw,34px)}
+.section .sub{color:var(--muted);max-width:62ch;margin:8px 0 26px}
+.trail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.stop{display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--ink);transition:border-color .15s,transform .15s}
+.stop:hover{border-color:var(--accent);transform:translateY(-2px)}
+.stop .num{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:20px;background:var(--soft);color:var(--ink);border:2px solid var(--line)}
+.stop.done .num{background:var(--copper);border-color:var(--copper);color:#14213D}
+.stop h3{font-size:17.5px}
+.stop p{margin:4px 0 0;color:var(--muted);font-size:14.5px;line-height:1.4}
+.stop .mins{font-family:var(--mono);font-size:12.5px;color:var(--accent)}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.three > div{min-width:0}
+.three h3{font-size:19px;margin:12px 0 4px}
+.three p{margin:0;color:var(--muted)}
+.three svg{width:100%;height:auto;display:block;border-radius:10px}
+.fine{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-block:22px 40px}
+.fine p{margin:0 0 6px;max-width:80ch}
+
+/* Lesson layout */
+.lesson-grid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;padding-block:28px 60px}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px);align-self:start;display:flex;flex-direction:column;gap:2px}
+.rail a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;padding:7px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:15px;line-height:1.25}
+.rail a .d{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--soft);border:1.5px solid var(--line)}
+.rail a.done .d{background:var(--copper);border-color:var(--copper);color:#14213D}
+.rail a[aria-current="page"]{background:var(--surface);box-shadow:inset 3px 0 0 var(--copper)}
+.rail .railhead{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0 8px 8px}
+.lesson{min-width:0;max-width:760px}
+.lhead .eyebrow{display:flex;gap:12px;flex-wrap:wrap}
+.lhead h1{font-size:clamp(30px,4.4vw,44px);margin:8px 0 10px}
+.leave{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-size:16px}
+.leave b{white-space:nowrap;color:var(--accent)}
+.walt{margin:22px 0;padding:4px 0 4px 18px;border-left:3px solid var(--copper);font-family:var(--serif);font-style:italic;font-size:19px;line-height:1.45}
+.walt small{display:block;font-family:var(--sans);font-style:normal;font-size:13px;color:var(--muted);margin-top:6px}
+.idea{background:var(--band);color:var(--band-ink);border-radius:14px;overflow:hidden;margin:26px 0}
+.idea .pic{background:#0F1A31;padding:14px;overflow-x:auto}
+.idea .pic svg{display:block;width:100%;height:auto}
+.swipe{display:none;font-size:12.5px;color:#A9B1C3;padding:6px 14px 0}
+.idea .txt{padding:18px 20px 20px}
+.idea h2{font-size:23px;margin-bottom:6px}
+.idea p{margin:0;opacity:.92;max-width:62ch}
+.video{display:flex;gap:12px;align-items:center;border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:15px;margin:0 0 26px}
+.video .play{width:38px;height:38px;border-radius:50%;background:var(--soft);display:grid;place-items:center;flex:none}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;counter-reset:s}
+.step{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:start}
+.step .sn{width:32px;height:32px;border-radius:50%;background:var(--midnight);color:var(--linen);display:grid;place-items:center;font-weight:700;font-size:14px;margin-top:2px}
+:root[data-theme="dark"] .step .sn{background:var(--copper);color:#14213D}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .step .sn{background:var(--copper);color:#14213D}}
+.step.note .sn{background:transparent;border:2px solid var(--copper);color:var(--accent)}
+.step .body{min-width:0}
+.step .body > p{margin:4px 0 8px}
+.prompt{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:14px 16px 14px 16px;font-family:var(--mono);font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.prompt .lab{display:block;padding-right:84px;font-family:var(--sans);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:#E0A06A;font-weight:700;margin-bottom:6px}
+.copy{position:absolute;top:8px;right:8px;background:#E0A06A;color:#14213D;border:0;border-radius:6px;padding:5px 11px;font-weight:700;font-size:13px}
+.copy.ok{background:#7FC39E}
+.cos{display:inline-block;margin-top:6px;font-size:13px;color:var(--muted);background:var(--soft);border-radius:999px;padding:2px 10px}
+.tip{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.tip img{width:44px;height:44px}
+.tip p{margin:0}
+.yourturn{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px}
+.yourturn .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.yourturn input{font:inherit;width:110px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.fb{font-weight:600;font-size:15px}
+.fb.ok{color:var(--ok)} .fb.no{color:var(--bad)}
+.box{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:18px 20px;margin-top:26px}
+.box h2{font-size:21px;margin-bottom:8px}
+.checkline{display:flex;gap:12px;align-items:flex-start}
+.checkline input{width:22px;height:22px;margin-top:3px;accent-color:#B87333;flex:none}
+details.breaks{border:1.5px solid var(--line);border-radius:12px;background:var(--surface);margin-top:14px}
+details.breaks summary{padding:14px 18px;font-weight:700;cursor:pointer}
+details.breaks dl{margin:0;padding:0 18px 14px}
+details.breaks dt{font-weight:700;margin-top:10px}
+details.breaks dd{margin:2px 0 0;color:var(--muted)}
+.edge{margin-top:26px;border-radius:14px;padding:22px;background:linear-gradient(0deg,var(--soft),var(--soft));border:1.5px solid var(--line);position:relative}
+.edge .eyebrow{display:flex;align-items:center;gap:8px}
+.edge h2{font-size:24px;margin:6px 0 8px}
+.edge p{margin:0 0 12px;max-width:64ch}
+.edge .try{background:var(--surface);border-radius:10px;padding:12px 14px;border:1.5px dashed var(--copper)}
+.edge .try b{color:var(--accent)}
+.quiz{margin-top:26px}
+.q{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:16px 18px;margin-top:12px}
+.q p.qq{margin:0 0 10px;font-weight:700}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{text-align:left;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;font-size:16px}
+.opt:hover{border-color:var(--accent)}
+.opt.right{background:var(--ok-bg);border-color:var(--ok)}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.why{margin:10px 0 0;font-size:15px;color:var(--muted)}
+.finish{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:30px;padding-top:20px;border-top:1px solid var(--line)}
+.score{font-family:var(--mono);font-size:14px;color:var(--muted)}
+
+/* Tools */
+.builder{display:grid;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:16px}
+.builder label{font-weight:700;font-size:14.5px;display:block;margin-bottom:4px}
+.builder label span{font-weight:400;color:var(--muted)}
+.builder textarea{width:100%;font:inherit;font-size:15.5px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical;min-height:44px}
+.meter{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--muted)}
+.meter i{width:26px;height:8px;border-radius:4px;background:var(--line)}
+.meter i.on{background:var(--copper)}
+table.data{border-collapse:collapse;font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums;width:100%}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.data th{font-family:var(--sans);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.scroll{overflow-x:auto}
+
+/* Otters mini scoreboard (uses the Otters' own style card, on purpose) */
+.ob{--river:#0F4C5C;--bolt:#FFC914;--foam:#F2F7F5;--night:#0B2027;border-radius:14px;overflow:hidden;border:2px solid var(--river);background:var(--foam);color:var(--night);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif}
+.ob header{background:var(--river);color:var(--foam);padding:14px}
+.ob .t{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ob .t img{width:54px;height:54px}
+.ob .t h4{margin:0;font:800 20px/1 "Avenir Next",-apple-system,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.ob .t small{display:block;opacity:.8;margin-top:3px}
+.ob .wk{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.ob .wk button{border:2px solid var(--foam);background:transparent;color:var(--foam);border-radius:999px;padding:4px 10px;font-size:13px}
+.ob .wk button[aria-pressed="true"]{background:var(--bolt);border-color:var(--bolt);color:var(--night);font-weight:700}
+.ob .big{font:800 34px/1 "Avenir Next",-apple-system,sans-serif;color:var(--bolt);margin-top:12px}
+.ob .bar{height:9px;background:rgba(242,247,245,.22);border-radius:9px;overflow:hidden;margin-top:8px}
+.ob .bar i{display:block;height:100%;background:var(--bolt)}
+.ob .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:12px}
+.ob .c{background:#fff;border:2px solid var(--river);border-radius:12px;padding:10px;font-size:13px}
+.ob .c.hit{border-color:var(--night);box-shadow:4px 4px 0 var(--bolt)}
+.ob .c b{display:block;font:800 14px/1.1 "Avenir Next",-apple-system,sans-serif;text-transform:uppercase}
+.ob .c .p{font:800 26px/1 "Avenir Next",-apple-system,sans-serif;margin:6px 0 4px}
+.ob .tag{display:inline-block;margin-top:6px;border-radius:999px;padding:2px 8px;font-weight:700;font-size:11.5px;background:var(--bolt)}
+.ob .tag.w{background:#dfe9e6}
+.ladder{display:flex;flex-direction:column-reverse;gap:8px}
+.rung{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:center;padding:12px 14px;border-radius:10px;background:var(--surface);border:1.5px solid var(--line)}
+.rung .k{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-weight:700;background:var(--soft)}
+.rung.here{border-color:var(--copper);box-shadow:inset 4px 0 0 var(--copper)}
+.rung.here .k{background:var(--copper);color:#14213D}
+.rung b{display:block}
+.rung span{color:var(--muted);font-size:15px}
+.libgroup{margin-top:26px}
+.libgroup h3{font-size:19px;margin-bottom:10px}
+.libgroup .prompt{margin-top:10px}
+.celebrate{display:flex;gap:16px;align-items:center;background:var(--band);color:var(--band-ink);border-radius:14px;padding:18px;margin-top:20px}
+.celebrate img{width:84px;height:84px;flex:none}
+.celebrate p{margin:4px 0 0;opacity:.9}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr;gap:24px;padding-block:30px 36px}
+  .trail,.three{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lesson-grid{grid-template-columns:1fr;gap:12px;padding-block:14px 50px}
+  .rail{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px}
+  .rail .railhead{display:none}
+  .rail a{grid-template-columns:26px;padding:4px}
+  .rail a .lbl{display:none}
+}
+@media (max-width:560px){
+  .trail,.three{grid-template-columns:1fr}
+  .brand span{display:none}
+  .topnav a{padding:6px 7px;font-size:14px}
+  .idea .pic svg{min-width:600px}
+  .swipe{display:block}
+}
+.mh{background:#FBF9F4;color:#14213D;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
+.mh header{display:flex;gap:10px;align-items:center;margin-bottom:10px;position:static;background:none;border:0;padding:0}.mh header img{width:40px;height:40px}.mh h4{margin:0;font:700 17px/1.2 'Libre Caslon Text',Georgia,serif;color:#14213D}.mh small{color:#4F5B73}
+.mdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.mday{background:#fff;border:1px solid #DCD6CC;border-radius:7px;padding:5px;display:flex;flex-direction:column;gap:3px;min-height:110px}.mday.busy{border:2px solid #B87333}
+.mday b{font-size:12px}.mday b span{color:#4F5B73;font-weight:400}.mday i{font-style:normal;font-size:11px;line-height:1.25;background:#F5F3EF;border-radius:4px;padding:2px 4px;border-left:3px solid #B87333}.mday i.none{border:none;background:none;color:#8D97AD}
+.w-Ava{border-left-color:#5B8DB8!important}.w-Milo{border-left-color:#E8B84A!important}.w-Sam{border-left-color:#4F8A6B!important}.w-Jordan{border-left-color:#9B2335!important}
+.mdin{all:unset;cursor:pointer;margin-top:auto;font-size:11px;color:#8C5727;text-decoration:underline;text-underline-offset:2px;line-height:1.25}.mdin:focus-visible{outline:2px solid #B87333}
+.mrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.mlist,.mbud{background:#fff;border:1px solid #DCD6CC;border-radius:8px;padding:8px 10px}.mlist label{display:block;font-size:12.5px;margin:2px 0}.mlist small{display:block;margin-top:4px}
+.mbud p{margin:4px 0;font-size:12.5px;color:#14213D}.mbud .bar{height:10px;background:#E9E4DA;border-radius:5px;overflow:hidden}.mbud .bar i{display:block;height:100%;background:#4F8A6B}.mrec{color:#4F5B73!important;font-size:12px!important}
+@media (max-width:700px){.mdays{grid-template-columns:repeat(2,minmax(0,1fr))}.mrow{grid-template-columns:1fr}}
+</style>
+
+<header class="top">
+  <div class="wrap gut">
+    <a class="brand" href="#home"><img id="crest" alt=""><div><b>Ironwood Tech</b><span>a Digital Farm and Garden company</span></div></a>
+    <nav class="topnav" aria-label="Course">
+      <a href="#home" data-nav="home">Course</a>
+      <a href="#prompts" data-nav="prompts">Prompts</a>
+      <a href="#help" data-nav="help">When it breaks</a>
+    </nav>
+  </div>
+  <div class="prog" aria-hidden="true"><i id="progbar"></i></div>
+</header>
+<main id="app"></main>
+
+<script>/*ASSETS*/</script>
+<script>/*CONTENT*/</script>
+<script>
+(function(){
+var C=window.COURSE, A=window.ASSETS, L=C.lessons;
+var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+$("#crest").src=A.crest;
+
+/* ---------- per-viewer progress (convenience only) ---------- */
+var KEY="iw-px1-v1", state={done:{},quiz:{},checks:{},draft:{}};
+try{var raw=localStorage.getItem(KEY); if(raw) state=Object.assign(state,JSON.parse(raw));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function doneCount(){return L.filter(function(l){return state.done[l.id]}).length}
+function updProg(){$("#progbar").style.width=Math.round(doneCount()/L.length*100)+"%"}
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+/* ---------- diagrams (drawn in code, brand colors) ---------- */
+var M="#14213D",N="#0F1A31",Li="#F5F3EF",Cu="#B87333",Cl="#E0A06A",Mu="#8D97AD",Ln="#2A3A5E";
+function txt(x,y,s,o){o=o||{};o.s=Math.max(o.s||15,13.5);return '<text x="'+x+'" y="'+y+'" fill="'+(o.c||Li)+'" font-family="'+(o.f||"Source Sans 3, sans-serif")+'" font-size="'+(o.s||15)+'" font-weight="'+(o.w||400)+'" text-anchor="'+(o.a||"middle")+'"'+(o.st?' font-style="'+o.st+'"':'')+'>'+s+'</text>'}
+function box(x,y,w,h,o){o=o||{};return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+(o.r==null?10:o.r)+'" fill="'+(o.f||M)+'" stroke="'+(o.s||Ln)+'" stroke-width="'+(o.sw||2)+'"'+(o.d?' stroke-dasharray="'+o.d+'"':'')+'/>'}
+function arrow(x1,y1,x2,y2,c){c=c||Cu;var a=Math.atan2(y2-y1,x2-x1),h=10;return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-width="3" stroke-linecap="round"/><path d="M'+x2+' '+y2+' L'+(x2-h*Math.cos(a-0.45))+' '+(y2-h*Math.sin(a-0.45))+' L'+(x2-h*Math.cos(a+0.45))+' '+(y2-h*Math.sin(a+0.45))+' Z" fill="'+c+'"/>'}
+function fileIcon(x,y,lab,c){c=c||Li;return '<path d="M'+x+' '+y+' h26 l10 10 v34 h-36 Z" fill="'+N+'" stroke="'+c+'" stroke-width="2"/><path d="M'+(x+26)+' '+y+' v10 h10" fill="none" stroke="'+c+'" stroke-width="2"/>'+txt(x+18,y+62,lab,{s:12,c:Mu})}
+function folderIcon(x,y,w,h,lab){return '<path d="M'+x+' '+(y+10)+' h'+(w*0.3)+' l8 -10 h'+(w*0.25)+' l8 10 h'+(w*0.45-16)+' v'+(h-10)+' h-'+w+' Z" fill="'+N+'" stroke="'+Cu+'" stroke-width="2.5"/>'+(lab?txt(x+w/2,y+h+20,lab,{s:13,c:Cl,f:"IBM Plex Mono, monospace"}):'')}
+function face(x,y,r,lab,sub,c){c=c||Cu;return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+N+'" stroke="'+c+'" stroke-width="2.5"/><circle cx="'+(x-r*0.32)+'" cy="'+(y-r*0.12)+'" r="'+(r*0.09)+'" fill="'+Li+'"/><circle cx="'+(x+r*0.32)+'" cy="'+(y-r*0.12)+'" r="'+(r*0.09)+'" fill="'+Li+'"/><path d="M'+(x-r*0.35)+' '+(y+r*0.25)+' Q'+x+' '+(y+r*0.5)+' '+(x+r*0.35)+' '+(y+r*0.25)+'" stroke="'+Li+'" stroke-width="2.5" fill="none" stroke-linecap="round"/>'+txt(x,y+r+22,lab,{s:15,w:700})+(sub?txt(x,y+r+40,sub,{s:12.5,c:Mu}):'')}
+var SVG={
+ weekend:function(){var s='<svg viewBox="0 0 640 200" role="img" aria-label="Four outcomes: Claude set up, a family team, a planned week, a family hub app">';
+  var items=[["Claude, set up","on your Mac"],["A family team","five helpers"],["A planned week","meals, list, money"],["Your hub app","built in Code"]];
+  items.forEach(function(it,i){var x=16+i*156;s+=box(x,30,140,120,{f:N,s:i==3?Cu:Ln,sw:i==3?3:2,r:14});
+   if(i==0){s+=box(x+40,52,60,40,{f:M,s:Li,r:6})+'<rect x="'+(x+60)+'" y="94" width="20" height="6" fill="'+Mu+'"/>'}
+   if(i==1){[0,1,2].forEach(function(j){s+='<circle cx="'+(x+42+j*28)+'" cy="74" r="'+(j==1?15:12)+'" fill="'+M+'" stroke="'+(j==1?Cu:Li)+'" stroke-width="2.5"/>'})}
+   if(i==2){[0,1,2].forEach(function(j){s+='<rect x="'+(x+44)+'" y="'+(56+j*14)+'" width="10" height="10" rx="2" fill="'+(j==1?Cu:"none")+'" stroke="'+Li+'" stroke-width="2"/><rect x="'+(x+60)+'" y="'+(59+j*14)+'" width="36" height="5" rx="2" fill="'+Mu+'"/>'})}
+   if(i==3){s+=box(x+30,50,80,52,{f:"#FBF9F4",s:Cu,r:6})+'<circle cx="'+(x+70)+'" cy="50" r="6" fill="'+Cu+'"/>';[0,1,2,3].forEach(function(j){s+='<rect x="'+(x+38+j*18)+'" y="62" width="14" height="30" rx="3" fill="'+["#5B8DB8","#E8B84A","#4F8A6B","#9B2335"][j]+'"/>'})}
+   s+=txt(x+70,128,it[0],{s:15,w:700})+txt(x+70,145,it[1],{s:12.5,c:Mu});});
+  s+=txt(320,186,"Built twice: first for the made-up Lindgrens, then for your own home",{s:13,c:Cl});return s+'</svg>'},
+ context:function(){var s='<svg viewBox="0 0 640 230" role="img" aria-label="A vague prompt gets a vague answer; a prompt with context gets a useful one">';
+  s+=txt(160,26,"Without context",{s:14,c:Mu,w:700})+txt(480,26,"With context",{s:14,c:Cl,w:700});
+  s+=box(30,40,260,54,{f:N})+txt(160,72,"“What can you do for a family?”",{s:13.5});
+  s+=box(350,40,260,54,{f:N,s:Cu})+txt(480,62,"“Two kids, 30 minutes Tuesdays,",{s:13.5})+txt(480,80,"no mushrooms. Three ideas.”",{s:13.5});
+  s+=arrow(160,100,160,124,Mu)+arrow(480,100,480,124);
+  s+=box(30,130,260,64,{f:M,d:"5 5"})+txt(160,158,"Generic tips",{s:15,w:700,c:Mu})+txt(160,178,"could be for anyone",{s:12.5,c:Mu});
+  s+=box(350,130,260,64,{f:M,s:Cu,sw:3})+txt(480,158,"Slow cooker Tuesday, tacos…",{s:15,w:700})+txt(480,178,"fits your actual week",{s:12.5,c:Cl});
+  s+=txt(320,220,"Who you are + what you want + your limits",{s:13,c:Cl});return s+'</svg>'},
+ project:function(){var s='<svg viewBox="0 0 640 230" role="img" aria-label="A Project holds instructions that every chat inside it already knows">';
+  s+=box(20,30,170,150,{f:N,s:Ln,r:14})+txt(105,56,"A plain chat",{s:14,w:700,c:Mu});s+=face(105,110,26,"Stranger","starts from zero",Mu);
+  s+=box(220,20,400,190,{f:N,s:Cu,sw:3,r:16})+txt(420,46,"Home HQ (a Project)",{s:14,w:700,c:Cl});
+  s+=box(240,62,150,58,{f:M})+txt(315,86,"Instructions",{s:14,w:700})+txt(315,105,"who we are, our rules",{s:12,c:Mu});
+  s+=arrow(398,92,452,92);
+  [0,1,2].forEach(function(i){s+=box(462,58+i*44,140,34,{f:M,r:8})+txt(532,80+i*44,"Chat "+(i+1)+": already knows",{s:12.5})});
+  s+=txt(315,160,"quick questions,",{s:13,c:Mu})+txt(315,178,"phone or laptop",{s:13,c:Mu});return s+'</svg>'},
+ folder:function(){var s='<svg viewBox="0 0 640 240" role="img" aria-label="Claude working inside one folder on your Mac, reading CLAUDE.md first">';
+  s+=box(14,14,612,212,{f:N,s:Ln,r:16})+txt(36,40,"Your Mac",{s:13,c:Mu,a:"start",w:700});
+  s+='<g opacity=".5">'+folderIcon(48,64,74,46,"")+folderIcon(48,138,74,46,"")+'</g>'+txt(85,208,"other folders stay closed",{s:12,c:Mu});
+  s+=box(170,52,440,160,{f:M,s:Cu,sw:3,r:14})+txt(190,78,"lindgren-home/",{s:14,c:Cl,a:"start",f:"IBM Plex Mono, monospace"});
+  s+=box(190,92,120,96,{f:"#F5F3EF",s:Cu,r:8})+txt(250,116,"CLAUDE.md",{s:13,c:M,w:700,f:"IBM Plex Mono, monospace"});
+  ["who we are","never put in","house rules"].forEach(function(t,i){s+='<line x1="204" y1="'+(132+i*16)+'" x2="216" y2="'+(132+i*16)+'" stroke="'+Cu+'" stroke-width="3"/>'+txt(262,137+i*16,t,{s:12,c:M})});
+  s+=txt(250,204,"read first, every time",{s:12,c:Cl});
+  s+=fileIcon(350,100,"calendar")+fileIcon(410,100,"meals")+fileIcon(470,100,"money")+fileIcon(530,100,"helpers");
+  s+=arrow(318,140,342,128);
+  s+=txt(470,198,"Claude can read, make and change these",{s:13.5,c:Li});return s+'</svg>'},
+ team:function(){var s='<svg viewBox="0 0 640 240" role="img" aria-label="The Family CEO in the middle with the CFO, Coach and Home around it, and the Critic checking before you see anything">';
+  s+=face(250,120,34,"CEO","runs the review",Cu);
+  s+=face(90,50,24,"CFO","budget math",Li)+face(90,190,24,"Coach","meals, activity",Li)+face(410,50,24,"Home","list, errands",Li);
+  s+=arrow(122,62,214,104,Mu)+arrow(122,180,214,138,Mu)+arrow(380,62,286,104,Mu);
+  s+=arrow(292,128,454,128);s+=face(500,128,30,"Critic","checks it",Cl);
+  s+=box(560,108,66,40,{f:"#FBF9F4",s:Cu,r:6})+txt(593,133,"You",{s:14,c:M,w:700});
+  s+=txt(320,232,"Each helper is a one-page job file with its limits inside",{s:13,c:Cl});return s+'</svg>'},
+ week:function(){var s='<svg viewBox="0 0 640 220" role="img" aria-label="The Sunday review: calendar, dinners, list, money, critic, plan">';
+  var st=[["CEO","calendar"],["Coach","dinners"],["Home","list"],["CFO","money"],["Critic","checks"]];
+  st.forEach(function(p,i){var x=24+i*124;s+=box(x,60,100,80,{f:N,s:i==4?Cl:Ln,r:12})+txt(x+50,96,p[0],{s:16,w:700})+txt(x+50,118,p[1],{s:12.5,c:Mu});if(i<4)s+=arrow(x+104,100,x+120,100)});
+  s+=txt(320,34,"“Run the Sunday review”",{s:16,c:Cl,st:"italic",f:"Libre Caslon Text, Georgia, serif"});
+  s+=arrow(320,160,320,178)+box(220,180,200,32,{f:"#FBF9F4",s:Cu,r:6})+txt(320,201,"plans/week-of-…md",{s:13,c:M,f:"IBM Plex Mono, monospace"});return s+'</svg>'},
+ money:function(){var s='<svg viewBox="0 0 640 220" role="img" aria-label="For each category: the plan, what is spent, and what is left">';
+  [["Groceries",900,400],["Gifts",120,45],["Fun",150,35]].forEach(function(r,i){var y=40+i*56,w=380;s+=txt(30,y+20,r[0],{s:15,a:"start",w:700});s+=box(150,y,w,26,{f:N,r:13});s+='<rect x="150" y="'+y+'" width="'+(w*r[2]/r[1])+'" height="26" rx="13" fill="'+(i==0?Cu:"#4F8A6B")+'"/>';s+='<line x1="'+(150+w*14/30)+'" y1="'+(y-5)+'" x2="'+(150+w*14/30)+'" y2="'+(y+31)+'" stroke="'+Li+'" stroke-width="2"/>';s+=txt(545,y+19,"$"+(r[1]-r[2])+" left",{s:14,a:"start",c:Cl})});
+  s+=txt(320,210,"Plan, spent, left. The white line is where even spending would be today.",{s:13,c:Mu});return s+'</svg>'},
+ calendar:function(){var s='<svg viewBox="0 0 640 210" role="img" aria-label="Calendar to Claude to a small schedule file to the hub, with no link in the hub">';
+  s+=box(16,50,130,100,{f:N,r:10})+'<rect x="16" y="50" width="130" height="24" rx="10" fill="#9B2335"/>';for(var r=0;r<3;r++)for(var c=0;c<4;c++)s+='<rect x="'+(28+c*28)+'" y="'+(84+r*20)+'" width="20" height="13" rx="3" fill="'+((r+c)%3?"#2A3A5E":Cu)+'"/>';
+  s+=txt(81,172,"Family calendar",{s:13.5,w:700});
+  s+=arrow(154,100,192,100)+face(236,100,34,"Claude","reads on your Mac",Cu);
+  s+=arrow(280,100,318,100)+fileIcon(330,72,"")+txt(348,172,"schedule.js",{s:13,f:"IBM Plex Mono, monospace",c:Cl});
+  s+=arrow(380,100,418,100)+box(428,46,196,108,{f:"#FBF9F4",s:Cu,r:8})+txt(526,92,"Family hub",{s:16,c:M,w:700})+txt(526,116,"first name, activity, time",{s:12.5,c:"#4F5B73"});
+  s+=txt(526,176,"no calendar link inside",{s:13,c:Cl});return s+'</svg>'},
+ code:function(){var s='<svg viewBox="0 0 640 220" role="img" aria-label="You describe in plain words, Claude writes files, the page opens in your browser">';
+  s+=box(20,50,170,110,{f:N,r:12})+txt(105,90,"You describe",{s:15,w:700})+txt(105,114,"“a fridge-door hub,",{s:12.5,c:Mu})+txt(105,132,"big friendly letters”",{s:12.5,c:Mu});
+  s+=arrow(198,105,236,105)+box(246,40,160,130,{f:M,s:Cu,sw:3,r:12})+txt(326,68,"Code tab",{s:15,w:700,c:Cl});
+  ["index.html","schedule.js","meals.js"].forEach(function(f,i){s+=txt(326,96+i*22,f,{s:13,f:"IBM Plex Mono, monospace"})});
+  s+=arrow(414,105,452,105)+box(462,40,160,130,{f:"#FBF9F4",s:Ln,r:10})+'<rect x="462" y="40" width="160" height="22" rx="10" fill="#DCD6CC"/>'+txt(542,110,"Your page",{s:15,c:M,w:700})+txt(542,132,"opens on your Mac",{s:12.5,c:"#4F5B73"});
+  s+=txt(320,204,"You read each request and say yes or no",{s:13,c:Cl});return s+'</svg>'},
+ hub:function(){var s='<svg viewBox="0 0 640 220" role="img" aria-label="Three data files feed one hub page">';
+  [["schedule.js","from the calendar"],["meals.js","from the plan"],["budget.js","from the CFO"]].forEach(function(f,i){var y=24+i*62;s+=fileIcon(30,y,"")+txt(84,y+22,f[0],{s:13.5,a:"start",f:"IBM Plex Mono, monospace",c:Cl})+txt(84,y+40,f[1],{s:12.5,a:"start",c:Mu})+arrow(240,y+22,330,96)});
+  s+=box(340,30,270,150,{f:"#FBF9F4",s:Cu,sw:3,r:8});['#B87333','#E8B84A','#5B8DB8'].forEach(function(c,i){s+='<circle cx="'+(400+i*76)+'" cy="30" r="8" fill="'+c+'"/>'});
+  for(var d=0;d<7;d++)s+='<rect x="'+(354+d*36)+'" y="52" width="30" height="64" rx="4" fill="#fff" stroke="'+(d==2||d==4?Cu:"#DCD6CC")+'" stroke-width="2"/>';
+  s+='<rect x="354" y="128" width="116" height="40" rx="4" fill="#fff" stroke="#DCD6CC"/><rect x="478" y="128" width="118" height="40" rx="4" fill="#fff" stroke="#DCD6CC"/>';
+  s+=txt(475,204,"index.html: one page, refreshed every Sunday",{s:13,c:Cl});return s+'</svg>'},
+ loop:function(){var s='<svg viewBox="0 0 640 230" role="img" aria-label="Maker and checker loop: Claude builds, the Critic scores, fixes go back">';
+  s+=face(110,92,40,"Builder","makes it");s+=face(530,92,40,"Critic","checks it",Cl);
+  s+='<path d="M160 72 C 250 30, 390 30, 480 72" fill="none" stroke="'+Cu+'" stroke-width="3"/>'+arrow(470,65,482,73);
+  s+=txt(320,22,"the hub",{s:13,c:Cl});
+  s+='<path d="M470 112 C 400 150, 240 150, 170 112" fill="none" stroke="'+Mu+'" stroke-width="3" stroke-dasharray="6 6"/>'+arrow(182,119,170,112,Mu);
+  s+=txt(320,164,"score + list of fixes",{s:13,c:Mu});
+  s+=box(268,62,104,44,{f:N,s:Cu,r:22})+txt(320,90,"7 → 9",{s:18,w:700,f:"IBM Plex Mono, monospace"});
+  s+=txt(320,214,"The maker never grades its own work",{s:13,c:Cl});return s+'</svg>'},
+ yours:function(){var s='<svg viewBox="0 0 640 220" role="img" aria-label="The team and the hub page copy into my-home; Lindgren data stays behind">';
+  s+=folderIcon(30,50,170,110,"lindgren-home/");s+=txt(115,96,"helpers, hub page,",{s:13})+txt(115,116,"CLAUDE.md",{s:13});
+  s+=txt(115,200,"meals, money, plans stay here",{s:12.5,c:Mu});
+  s+=arrow(214,104,300,104)+txt(257,92,"copy",{s:13,c:Cl});
+  s+=folderIcon(312,50,170,110,"my-home/");s+=txt(397,96,"your house file,",{s:13})+txt(397,116,"your calendar",{s:13});
+  s+=arrow(496,104,540,104)+box(548,60,76,90,{f:"#FBF9F4",s:Cu,r:6})+txt(586,110,"your hub",{s:12.5,c:M,w:700});return s+'</svg>'},
+ sunday:function(){var s='<svg viewBox="0 0 640 250" role="img" aria-label="The Sunday loop: start line, run the review, check the Critic score, open the hub">';
+  s+='<circle cx="320" cy="128" r="78" fill="none" stroke="'+Ln+'" stroke-width="3" stroke-dasharray="4 8"/>';
+  var pts=[[320,46,"1. Start line","read CLAUDE.md"],[430,128,"2. Run the review",""],[320,212,"3. Critic's score",""],[210,128,"4. Open the hub",""]];
+  pts.forEach(function(p,i){s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="18" fill="'+(i==1?Cu:M)+'" stroke="'+Cu+'" stroke-width="2.5"/>'+txt(p[0],p[1]+5,String(i+1),{s:14,w:700});var a=i==1?"start":(i==3?"end":"middle"),dx=i==1?28:(i==3?-28:0),dy=i==0?-24:(i==2?38:5);s+=txt(p[0]+dx,p[1]+dy,p[2].slice(3),{s:14,a:a,w:700})});
+  s+=txt(320,124,"every",{s:14,c:Mu})+txt(320,146,"Sunday",{s:18,w:700,f:"Libre Caslon Text, Georgia, serif"});return s+'</svg>'},
+ ladder:function(){var s='<svg viewBox="0 0 640 230" role="img" aria-label="A ladder of next steps, with you on the first rung">';
+  s+='<line x1="80" y1="20" x2="80" y2="214" stroke="'+Mu+'" stroke-width="4"/><line x1="160" y1="20" x2="160" y2="214" stroke="'+Mu+'" stroke-width="4"/>';
+  var labs=C.ladder.map(function(r){return r[0]});
+  labs.forEach(function(l,i){var y=196-i*48;s+='<line x1="80" y1="'+y+'" x2="160" y2="'+y+'" stroke="'+(i==0?Cu:Mu)+'" stroke-width="'+(i==0?6:4)+'"/>'+txt(180,y+5,l,{s:15,a:"start",w:i==0?700:400,c:i==0?Cl:Li})});
+  s+='<image href="'+A.biscuit+'" x="474" y="40" width="140" height="140"/>';
+  return s+'</svg>'}
+};
+
+/* ---------- mini Lindgren hub (demo) ---------- */
+function miniHub(el){var W=window.HUB_WEEK,M=window.HUB_MEALS,B=window.HUB_BUDGET;if(!W){el.innerHTML='';return}
+ var dn={};M.dinners.forEach(function(d){dn[d.day]=d});var checked={};try{checked=JSON.parse(localStorage.getItem("iw-px1-demo-list")||"{}")}catch(e){}
+ var g=B.categories.filter(function(c){return c.category==="Groceries"})[0];
+ el.innerHTML='<div class="mh"><header><img alt="" src="'+A.biscuit+'"><div><h4>The Lindgren Family Hub</h4><small>Week of '+esc(W.weekOf)+' · made-up family</small></div></header>'+
+ '<div class="mdays">'+W.days.map(function(d){return '<div class="mday'+(W.busyNights.indexOf(d.day)>-1?' busy':'')+'"><b>'+d.day+' <span>'+d.date.replace("Nov ","")+'</span></b>'+(d.items.length?d.items.map(function(it){return '<i class="w-'+it[1]+'">'+esc(it[0].replace(":00",""))+' '+esc(it[1])+': '+esc(it[2])+'</i>'}).join(""):'<i class="none">Nothing planned</i>')+(dn[d.day]?'<button type="button" class="mdin" data-r="'+(dn[d.day].recipe||"")+'">'+esc(dn[d.day].title)+'</button>':'')+'</div>'}).join("")+'</div>'+
+ '<div class="mrow"><div class="mlist"><b>Shopping list</b>'+M.shopping.slice(0,6).map(function(x){return '<label><input type="checkbox" data-i="'+esc(x.item)+'"'+(checked[x.item]?' checked':'')+'> '+esc(x.item)+'</label>'}).join("")+'<small>…and '+(M.shopping.length-6)+' more · about $'+Math.round(M.groceryEstimate)+'</small></div>'+
+ '<div class="mbud"><b>Budget</b><p>Groceries: $'+g.spent+' of $'+g.budget+'</p><div class="bar"><i style="width:'+Math.round(g.spent/g.budget*100)+'%"></i></div><p class="mrec" aria-live="polite">Tap a dinner to see its recipe.</p></div></div></div>';
+ $$("input[data-i]",el).forEach(function(c){c.onchange=function(){checked[c.dataset.i]=c.checked;try{localStorage.setItem("iw-px1-demo-list",JSON.stringify(checked))}catch(e){}}});
+ $$(".mdin",el).forEach(function(b){b.onclick=function(){var r=M.recipes[b.dataset.r],out=$(".mrec",el);out.textContent=r?(r.title+" ("+r.minutes+" min): "+r.ingredients.join(", ")+". "+r.how):"Leftovers from Tuesday's chili. No cooking tonight."}});}
+
+/* ---------- prompt blocks ---------- */
+function promptBlock(p,label){return '<div class="prompt"><span class="lab">'+(label||"Type this")+'</span><button class="copy" type="button">Copy</button><span class="ptxt">'+esc(p)+'</span></div>'}
+function wireCopy(root){$$(".copy",root).forEach(function(b){b.onclick=function(){var t=b.parentNode.querySelector(".ptxt").textContent;
+  var ok=function(){b.textContent="Copied";b.classList.add("ok");setTimeout(function(){b.textContent="Copy";b.classList.remove("ok")},1600)};
+  var fall=function(){var r=document.createRange();r.selectNodeContents(b.parentNode.querySelector(".ptxt"));var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Selected: press Command C"};
+  try{navigator.clipboard.writeText(t).then(ok,fall)}catch(e){fall()}}})}
+
+/* ---------- prompt builder ---------- */
+function builderHTML(){var d=state.draft||{};return '<div class="builder"><div><label for="pb-who">Who you are <span>(your role and team)</span></label><textarea id="pb-who" rows="2" placeholder="I lead a team of six who answer customer calls for a bike shop.">'+esc(d.who||"")+'</textarea></div>'+
+ '<div><label for="pb-what">What you want</label><textarea id="pb-what" rows="2" placeholder="Ideas for a five-minute team huddle on Monday.">'+esc(d.what||"")+'</textarea></div>'+
+ '<div><label for="pb-how">How you want it <span>(length, tone, format)</span></label><textarea id="pb-how" rows="2" placeholder="Three bullets, upbeat, no jargon.">'+esc(d.how||"")+'</textarea></div>'+
+ '<div><label for="pb-judge">How you will judge it <span>(optional)</span></label><textarea id="pb-judge" rows="2" placeholder="Something I could actually run tomorrow with no prep.">'+esc(d.judge||"")+'</textarea></div>'+
+ '<div class="meter" id="pb-meter"></div><div id="pb-out"></div></div>'}
+function wireBuilder(root){var ids=["who","what","how","judge"];function upd(){var v={};ids.forEach(function(k){v[k]=$("#pb-"+k,root).value.trim()});state.draft=v;save();
+  var n=ids.filter(function(k){return v[k]}).length;$("#pb-meter",root).innerHTML='Context: '+ids.map(function(k){return '<i class="'+(v[k]?"on":"")+'"></i>'}).join("")+' <span>'+["Claude will guess everything","Claude will guess most of it","Getting there","Strong","Excellent: nothing left to guess"][n]+'</span>';
+  var parts=[];if(v.who)parts.push(v.who.replace(/\.?$/,"."));if(v.what)parts.push("I want "+v.what.charAt(0).toLowerCase()+v.what.slice(1).replace(/\.?$/,"."));if(v.how)parts.push("Format: "+v.how.replace(/\.?$/,"."));if(v.judge)parts.push("A good answer is "+v.judge.charAt(0).toLowerCase()+v.judge.slice(1).replace(/\.?$/,"."));
+  $("#pb-out",root).innerHTML=parts.length?promptBlock(parts.join(" "),"Your prompt"):'';wireCopy($("#pb-out",root));}
+ ids.forEach(function(k){$("#pb-"+k,root).addEventListener("input",upd)});upd();}
+
+/* ---------- views ---------- */
+function tile(k){var s='<svg viewBox="0 0 300 150" aria-hidden="true"><rect width="300" height="150" rx="12" fill="'+N+'"/>';
+ if(k=="team"){[[80,"#A9B1C3"],[150,Cu],[220,"#A9B1C3"]].forEach(function(p,i){s+='<circle cx="'+p[0]+'" cy="70" r="'+(i==1?30:24)+'" fill="'+M+'" stroke="'+p[1]+'" stroke-width="4"/><circle cx="'+(p[0]-8)+'" cy="64" r="3.5" fill="'+Li+'"/><circle cx="'+(p[0]+8)+'" cy="64" r="3.5" fill="'+Li+'"/><path d="M'+(p[0]-10)+' 78 Q'+p[0]+' 86 '+(p[0]+10)+' 78" stroke="'+Li+'" stroke-width="3" fill="none" stroke-linecap="round"/>'});s+='<text x="150" y="128" fill="'+Cl+'" font-family="Source Sans 3, sans-serif" font-size="15" text-anchor="middle">CEO · CFO · Coach · Home · Critic</text>';}
+ if(k=="week"){["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(d,i){s+='<rect x="'+(24+i*37)+'" y="34" width="31" height="70" rx="5" fill="'+M+'" stroke="'+(i==2||i==4?Cu:"#2A3A5E")+'" stroke-width="2.5"/><text x="'+(39.5+i*37)+'" y="52" fill="'+Li+'" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle">'+d+'</text><rect x="'+(29+i*37)+'" y="62" width="21" height="8" rx="2" fill="'+["#5B8DB8","#E8B84A","#4F8A6B"][i%3]+'"/>'});s+='<rect x="24" y="114" width="252" height="14" rx="4" fill="#2A3A5E"/><rect x="24" y="114" width="112" height="14" rx="4" fill="#4F8A6B"/>';}
+ if(k=="hub"){s+='<rect x="70" y="22" width="160" height="110" rx="6" fill="#FBF9F4"/><circle cx="110" cy="22" r="7" fill="'+Cu+'"/><circle cx="190" cy="22" r="7" fill="#E8B84A"/>';for(var d=0;d<7;d++)s+='<rect x="'+(80+d*20.5)+'" y="38" width="16" height="44" rx="3" fill="#fff" stroke="'+(d==2||d==4?Cu:"#DCD6CC")+'" stroke-width="1.5"/>';s+='<rect x="80" y="90" width="66" height="34" rx="3" fill="#fff" stroke="#DCD6CC"/><rect x="154" y="90" width="66" height="34" rx="3" fill="#fff" stroke="#DCD6CC"/>';}
+ return s+'</svg>'}
+function home(){var n=doneCount(),next=L.find(function(l){return !state.done[l.id]})||L[L.length-1],core=L.filter(function(l){return !l.bonus}),bon=L.filter(function(l){return l.bonus});
+ function stops(list){return list.map(function(l){return '<a class="stop'+(state.done[l.id]?' done':'')+'" href="#lesson-'+l.n+'"><span class="num">'+(state.done[l.id]?'✓':(l.bonus?'+':l.n))+'</span><span><span class="mins">'+l.mins+' min</span><h3>'+esc((function(t){return t.charAt(0).toUpperCase()+t.slice(1)})(l.title.replace("Bonus: ","")))+'</h3><p>'+esc(l.edge.title)+'</p></span></a>'}).join("")}
+ var h='<section class="hero"><div class="wrap gut"><div><div class="eyebrow" style="color:#E0A06A">Life and Work, With Claude: AI 101 · PX1 draft for testing</div><h1>Run your week with a <em>family team</em> of AI helpers.</h1><p class="lede">'+esc(C.promise)+'</p>'+
+  '<div class="meta"><span><b>13</b> short lessons</span><span>about <b>7</b> hours</span><span><b>0</b> coding experience</span><span>Mac + paid Claude plan</span></div>'+
+  '<div class="btns"><a class="btn primary" href="#lesson-'+next.n+'">'+(n?"Continue: lesson "+next.n:"Start lesson 0")+' →</a><a class="btn ghost" href="#prompts">See every prompt</a></div></div>'+
+  '<div class="hero-art" id="herohub"></div></div></section>'+
+  '<section class="section"><div class="wrap gut"><div class="eyebrow">What you leave with</div><h2>Three real things, built by you</h2><p class="sub">You won’t watch someone else use AI. You type every prompt yourself, on a made-up family first, then on your own home.</p>'+
+  '<div class="three">'+[["A family team","A Family CEO, CFO, Health and Fitness Coach, Home helper and a Critic, each a one-page job file with its limits inside.","team"],["A planned week","Dinners around busy nights, recipes, a shopping list by store section, and a budget check, every Sunday.","week"],["Your family hub app","One page on your Mac, built in Claude Code: schedule, dinners, a check-off list and the budget at a glance.","hub"]].map(function(t){return '<div>'+tile(t[2])+'<h3>'+t[0]+'</h3><p>'+t[1]+'</p></div>'}).join("")+'</div></div></section>'+
+  '<section class="section" style="padding-top:0"><div class="wrap gut"><div class="eyebrow">The trail</div><h2>Thirteen stops, in order</h2><p class="sub">Every lesson ends with a quick check, a short quiz and a <b>Life Edge</b>: one idea that makes you smarter about running a life, with or without AI. '+(n?'You have finished '+n+' of '+L.length+'.':'Your progress saves in this browser.')+'</p><div class="trail">'+stops(core)+'</div>'+
+  '<div class="box" style="margin-top:26px"><h3 style="margin:0 0 6px">Reviewer notes</h3><p class="sub" style="margin:0 0 10px">'+(function(){var c=L.filter(function(l){return (state.notes||{})[l.id]}).length;return c?'You have notes on '+c+' lesson'+(c==1?'':'s')+'. Copy them all and paste them into the course thread.':'Each lesson has a notes box at the bottom. Your notes will gather here.'})()+'</p><button class="btn line" type="button" id="copynotes">Copy all my notes</button> <span class="sub" id="copied" aria-live="polite"></span></div>'+
+  '<h3 style="margin:34px 0 4px">Optional bonus lessons</h3><p class="sub">Do these any time after lesson 11.</p><div class="trail">'+stops(bon)+'</div></div></section>'+
+  fine();
+ $("#app").innerHTML=h;miniHub($("#herohub"));
+ $("#copynotes").onclick=function(){var t="PX1 reviewer notes\n\n"+L.filter(function(l){return (state.notes||{})[l.id]}).map(function(l){return (l.bonus?"Bonus "+l.n:"Lesson "+l.n)+": "+l.title+"\n"+state.notes[l.id].trim()}).join("\n\n");
+  var done=function(){$("#copied").textContent="Copied"};var fb=function(){var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");done()}catch(e){$("#copied").textContent="Select and copy manually"}ta.remove()};try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}};}
+function fine(){return '<footer class="fine"><div class="wrap gut"><p>Ironwood Tech is a learning brand of Digital Farm and Garden. It is not an accredited school and grants no degrees or credentials. Lessons are written by Tomas Reyes, with cold opens by Walt Pruitt; both are AI personas, not real teachers. Your video instructor, [INSTRUCTOR NAME], is a real person. The family team gives no financial, medical, diet or tax advice.</p><p>The Lindgrens, Cedar Hollow, and every schedule, meal, price and budget in this course are made up. Claude is a trademark of Anthropic. Apple, Mac, iPhone and Apple Calendar are trademarks of Apple Inc. Google, Gmail and Google Calendar are trademarks of Google LLC. This course is not made or endorsed by Anthropic, Apple or Google. Sold by KD Farm and Garden LLC, doing business as Digital Farm and Garden. Screens and prices change often; confirm prices on the day you buy.</p></div></footer>'}
+
+function lesson(n){var l=L[n];if(!l)return home();var si=0;
+ var steps=l.steps.map(function(s){var body='',num=s.k=="note"?"!":(s.k=="start"?"":String(++si));
+  if(s.k=="start"){num=String(++si);body='<p><b>Start here.</b> In the Claude app, choose Cowork in the message box, pick the <b>'+(s.folder||C.folder)+'</b> folder, and paste your start line:</p>'+promptBlock("Before you do anything in this folder, read CLAUDE.md and follow it.","Start line")}
+  else if(s.k=="note"){body='<div class="tip"><img alt="" src="'+A.sentryWatch+'"><p>'+s.text+'</p></div>'}
+  else{body='<p>'+s.text+'</p>';if(s.prompt)body+=promptBlock(s.prompt);
+   if(s.k=="quiz1")body+='<div class="yourturn"><div class="row"><label for="yt-'+l.n+'-'+si+'" class="sr">Your answer</label><input id="yt-'+l.n+'-'+si+'" inputmode="numeric" placeholder="'+(s.unit==null?"%":(s.unit||"#"))+'" data-unit="'+(s.unit==null?"%":s.unit)+'" data-ans="'+s.answer+'"><button class="btn line" type="button" data-yt>Check</button><span class="fb" aria-live="polite"></span></div><div class="why" hidden>'+s.hint+'</div></div>';
+   if(s.tool=="builder")body+=builderHTML();
+   if(s.demo=="hub")body+='<div data-hub></div>';
+   if(s.data=="week3")body+='<div class="scroll"><table class="data"><thead><tr><th>Rep</th><th>Otter Name</th><th>Territory</th><th>Tastings</th><th>New Cafes</th><th>Cases Sold</th><th>Cases Goal</th></tr></thead><tbody>'+C.week3.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>'}).join("")+'</tr>'}).join("")+'</tbody></table></div>'+promptBlock("Rep,Otter Name,Territory,Tastings,New Cafes,Cases Sold,Cases Goal\n"+C.week3.map(function(r){return r.join(",")}).join("\n"),"Copy into cell A1, then use Data, Split text to columns");
+   if(s.cos)body+='<span class="cos">Dry run: confirm on screen · '+esc(s.cos)+'</span>';}
+  return '<li class="step '+s.k+'"><span class="sn">'+num+'</span><div class="body">'+body+'</div></li>'}).join("");
+ if(l.id=="next")steps+='<li class="step"><span class="sn">↑</span><div class="body"><div class="ladder">'+C.ladder.map(function(r,i){return '<div class="rung'+(i==0?' here':'')+'"><span class="k">'+(i==0?'★':i)+'</span><div><b>'+r[0]+'</b><span>'+r[1]+'</span></div></div>'}).join("")+'</div></div></li>';
+ var qs=state.quiz[l.id]||{};
+ function order(q,qi){var len=q.o.length,p=(l.n*2+qi)%len,rest=[];for(var i=0;i<len;i++)if(i!=q.a)rest.push(i);rest.splice(p,0,q.a);return rest}
+ var quiz=l.quiz.map(function(q,qi){var picked=qs[qi];return '<div class="q" data-q="'+qi+'"><p class="qq">'+(qi+1)+'. '+esc(q.q)+'</p><div class="opts">'+order(q,qi).map(function(oi){var o=q.o[oi];var cls=picked==null?'':(oi==q.a?' right':(oi==picked?' wrong':''));return '<button type="button" class="opt'+cls+'" data-o="'+oi+'">'+esc(o)+'</button>'}).join("")+'</div><p class="why"'+(picked==null?' hidden':'')+'>'+(picked==q.a?'Right. ':'Not quite. ')+esc(q.why)+'</p></div>'}).join("");
+ var prev=L[n-1],next=L[n+1],done=!!state.done[l.id];
+ var h='<div class="wrap gut"><div class="lesson-grid"><nav class="rail" aria-label="Lessons"><div class="railhead">The trail</div>'+L.map(function(x){return '<a href="#lesson-'+x.n+'" class="'+(state.done[x.id]?'done':'')+'"'+(x.n==n?' aria-current="page"':'')+' title="'+esc(x.title)+'"><span class="d">'+(state.done[x.id]?'✓':x.n)+'</span><span class="lbl">'+esc(x.title)+'</span></a>'}).join("")+'</nav>'+
+  '<article class="lesson"><div class="lhead"><div class="eyebrow"><span>'+(l.bonus?'Bonus lesson':(l.n?'Lesson '+l.n+' of 12':'Welcome'))+'</span><span>'+l.mins+' minutes</span></div><h1>'+esc(l.title)+'</h1><div class="leave"><b>You leave with</b><span>'+esc(l.leave)+'</span></div></div>'+
+  '<blockquote class="walt">“'+esc(l.walt)+'”<small>Cold open by Walt Pruitt, an AI persona</small></blockquote>'+
+  '<section class="idea"><div class="pic">'+SVG[l.idea.svg]()+'</div><div class="swipe">Swipe sideways to see the whole picture</div><div class="txt"><div class="eyebrow" style="color:#E0A06A">The big idea</div><h2>'+esc(l.idea.title)+'</h2><p>'+esc(l.idea.text)+'</p></div></section>'+
+  '<div class="video"><span class="play" aria-hidden="true">▶</span><span><b>Video segment slot · '+(l.bonus?'bonus '+l.n:'lesson '+l.n)+'.</b> A short scripted segment, directed by the Office of Communications, is recorded here after the dry run, so every screen matches the real app.</span></div>'+
+  '<h2 style="font-size:24px;margin-bottom:14px">Do it</h2><ol class="steps">'+steps+'</ol>'+
+  '<div class="box"><h2>Check: did it work?</h2><label class="checkline"><input type="checkbox" id="chk-'+l.id+'"'+(state.checks[l.id]?' checked':'')+'><span>'+esc(l.check)+'</span></label></div>'+
+  (l.breaks.length?'<details class="breaks"><summary>If it breaks</summary><dl>'+l.breaks.map(function(b){return '<dt>'+esc(b[0])+'</dt><dd>'+esc(b[1])+'</dd>'}).join("")+'</dl></details>':'')+
+  '<section class="edge"><div class="eyebrow">Life Edge · makes you smarter</div><h2>'+esc(l.edge.title)+'</h2><p>'+esc(l.edge.body)+'</p><div class="try"><b>Try this:</b> '+esc(l.edge.try)+'</div></section>'+
+  '<section class="quiz"><h2 style="font-size:24px">Quick quiz</h2>'+quiz+'</section>'+
+  '<section class="box notes"><h2>Reviewer notes</h2><p class="sub" style="margin:0 0 8px">For the first run-through: what confused you, what broke, what to cut or add. Saved in this browser. Copy them all from the course home page.</p><label for="note-'+l.id+'" class="sr">Notes for this lesson</label><textarea id="note-'+l.id+'" rows="4" style="width:100%;font:inherit;padding:10px;border:1px solid var(--line,#DCD6CC);border-radius:8px" placeholder="Lesson '+l.n+' notes…">'+esc((state.notes||{})[l.id]||'')+'</textarea><p class="sub" id="note-saved" aria-live="polite" style="margin:6px 0 0"></p></section>'+
+  '<div id="celebrate"></div>'+
+  '<div class="finish"><div class="btns">'+(prev?'<a class="btn line" href="#lesson-'+prev.n+'">← Lesson '+prev.n+'</a>':'<a class="btn line" href="#home">← Course home</a>')+'</div><span class="score" id="qscore"></span><div class="btns"><button type="button" class="btn primary" id="markdone">'+(done?'Done ✓':'Mark lesson done')+'</button>'+(next?'<a class="btn line" href="#lesson-'+next.n+'">Lesson '+next.n+' →</a>':'')+'</div></div>'+
+  '</article></div></div>'+fine();
+ $("#app").innerHTML=h;var root=$("#app");wireCopy(root);
+ $$("[data-hub]",root).forEach(function(el){miniHub(el)});
+ if(l.steps.some(function(s){return s.tool=="builder"}))wireBuilder(root);
+ $$("[data-yt]",root).forEach(function(b){b.onclick=function(){var w=b.closest(".yourturn"),inp=$("input",w),fb=$(".fb",w),v=parseFloat(String(inp.value).replace(/[$,%\s]/g,""));var ans=+inp.dataset.ans;
+   if(v===ans){var u=inp.dataset.unit;fb.textContent="Right: "+(u=="$"?"$"+ans:ans+u)+".";fb.className="fb ok";$(".why",w).hidden=false}else{fb.textContent=isNaN(v)?"Type a number first.":"Not yet. Try again, or open the hint.";fb.className="fb no";$(".why",w).hidden=false}}});
+ $("#chk-"+l.id).onchange=function(e){state.checks[l.id]=e.target.checked;save()};
+ var nt=$("#note-"+l.id),ntT;nt.addEventListener("input",function(){state.notes=state.notes||{};state.notes[l.id]=nt.value;save();clearTimeout(ntT);$("#note-saved").textContent="Saved";ntT=setTimeout(function(){$("#note-saved").textContent=""},1200)});
+ function qscore(){var q=state.quiz[l.id]||{},a=0,r=0;l.quiz.forEach(function(x,i){if(q[i]!=null){a++;if(q[i]==x.a)r++}});$("#qscore").textContent=a?("Quiz: "+r+" of "+l.quiz.length+" right on first try"):"";}
+ $$(".q",root).forEach(function(qe){var qi=+qe.dataset.q,q=l.quiz[qi];$$(".opt",qe).forEach(function(b){b.onclick=function(){state.quiz[l.id]=state.quiz[l.id]||{};if(state.quiz[l.id][qi]==null){state.quiz[l.id][qi]=+b.dataset.o;save()}
+   var p=state.quiz[l.id][qi];$$(".opt",qe).forEach(function(o){var oi=+o.dataset.o;o.classList.toggle("right",oi==q.a);o.classList.toggle("wrong",oi==p&&p!=q.a)});var w=$(".why",qe);w.hidden=false;w.textContent=(p==q.a?"Right. ":"Not quite. ")+q.why;qscore();}})});
+ qscore();
+ $("#markdone").onclick=function(){state.done[l.id]=!state.done[l.id];save();updProg();this.textContent=state.done[l.id]?'Done ✓':'Mark lesson done';
+   $$(".rail a")[n].classList.toggle("done",!!state.done[l.id]);$$(".rail a .d")[n].textContent=state.done[l.id]?'✓':n;
+   $("#celebrate").innerHTML=state.done[l.id]?'<div class="celebrate"><img alt="" src="'+A.biscuit+'"><div><h3>'+(doneCount()==L.length?'Course complete. You built a family team and a family hub.':'Lesson '+n+' done.')+'</h3><p>'+(next?'Next up: '+esc(next.title)+'.':'You came in with a chat window. You are leaving with a family team and a hub on your fridge door.')+'</p></div></div>':'';};
+}
+function prompts(){var h='<div class="wrap gut" style="max-width:860px"><section class="section"><div class="eyebrow">Workbook</div><h2>Every prompt in the course</h2><p class="sub">The same prompts as the lessons, in order, each with a copy button. Swap in your own team’s details when you get to lesson 6.</p>';
+ L.forEach(function(l){var ps=l.steps.filter(function(s){return s.prompt});if(!ps.length)return;h+='<div class="libgroup"><h3><a href="#lesson-'+l.n+'">Lesson '+l.n+': '+esc(l.title)+'</a></h3>'+ps.map(function(s){return promptBlock(s.prompt,s.text.replace(/<[^>]+>/g,"").replace(/:$/,""))}).join("")+'</div>'});
+ h+='<div class="libgroup"><h3>The Lindgren practice week (Sunday, Nov 15 to Saturday, Nov 21, 2026)</h3><div class="scroll"><table class="data"><thead><tr><th>Day</th><th>Events (first name, activity, time)</th><th>Dinner</th></tr></thead><tbody>'+window.HUB_WEEK.days.map(function(d,k){return '<tr><td>'+d.day+' '+d.date+'</td><td>'+(d.items.map(function(it){return esc(it[0]+' '+it[1]+': '+it[2])}).join('<br>')||'Nothing planned')+'</td><td>'+esc(window.HUB_MEALS.dinners[k].title)+'</td></tr>'}).join("")+'</tbody></table></div></div></section></div>'+fine();
+ $("#app").innerHTML=h;wireCopy($("#app"));}
+function help(){var rows=[["Claude answers about the wrong week or the wrong family","Tell it which folder and which week, by name. Then add a line to CLAUDE.md so it doesn't happen again."],["Claude says it can't find a file or folder","You're in the wrong folder. Choose the folder again and pick lindgren-home (or my-home) itself, not the folder above it."],["Claude seems to ignore your house file","Start the task with: “Before you do anything in this folder, read CLAUDE.md and follow it.”"],["Claude blends the helpers together","Name one helper and its file: “Work as the CFO from helpers/cfo.md.”"],["I don't see the Code tab","It is still rolling out to some Pro accounts. Fallback: install Claude Code with the one-line command on Anthropic\u2019s Claude Code setup page (copy it from that page on the day; confirm on screen). Then open Terminal, type claude, press Return, sign in, and type the same prompts. Your Mac may ask to install command line tools first; say Install."],["The hub page is blank or looks broken","Tell Claude exactly that: “hub/index.html is blank when I open it. Find out why and fix it.”"],["Repeating events are missing","Say: “Expand repeating events for that week.”"],["Claude can't read Apple Calendar","Open System Settings, Privacy and Security, and allow it under Calendars and Automation. Or export a file from Calendar (File, Export) and put it in the calendar folder."],["Claude stops and says you hit a usage limit","Paid plans have a limit that resets every few hours, shared between chat and Code. Your files are saved. Take a break, then say “continue”."],["Claude asks permission for something you don't understand","Say no, then ask: “Explain what you wanted to do and why, in plain words.” Say yes only inside your family folder."]];
+ $("#app").innerHTML='<div class="wrap gut" style="max-width:860px"><section class="section"><div class="eyebrow">One page</div><h2>When it breaks</h2><p class="sub">Most problems are one of these eight. Find what you see, do what it says.</p>'+
+ rows.map(function(r){return '<details class="breaks" open><summary>'+esc(r[0])+'</summary><dl><dd style="color:var(--ink);margin-top:0">'+esc(r[1])+'</dd></dl></details>'}).join("")+
+ '<div class="edge" style="margin-top:26px"><div class="eyebrow">Three habits that prevent most of it</div><p style="margin-top:10px">1. Check the first plan yourself against the calendar. After that, have the Critic do it.</p><p>2. When you correct Claude, also put the correction in your house file. A correction in a chat is forgotten. A line in the file is not.</p><p style="margin:0">3. Ask for one change at a time.</p></div></section></div>'+fine();}
+
+function route(){var h=(location.hash||"#home").slice(1),m=h.match(/^lesson-(\d+)$/);
+ $$(".topnav a").forEach(function(a){a.removeAttribute("aria-current")});
+ if(m)lesson(+m[1]);else if(h=="prompts"){prompts();$('[data-nav="prompts"]').setAttribute("aria-current","page")}else if(h=="help"){help();$('[data-nav="help"]').setAttribute("aria-current","page")}else{home();$('[data-nav="home"]').setAttribute("aria-current","page")}
+ window.scrollTo(0,0);updProg();}
+window.addEventListener("hashchange",route);route();
+})();
+</script>
