@@ -4,6 +4,8 @@ Rails.application.config.x.brand = ActiveSupport::OrderedOptions.new.tap do |b|
   b.full_name = ENV.fetch("BRAND_FULL_NAME", "Ironwood Tech")
   b.motto = "Ab initio"
   b.contact_email = ENV.fetch("BRAND_CONTACT_EMAIL", "hello@example.com")
+  # Legal's seller line (PX1 v1, section A): which company stands behind the brand.
+  b.parent_line = "Ironwood Tech is a learning brand of Digital Farm and Garden."
   b.host_name = ENV.fetch("BRAND_HOST_NAME", "our hosting provider")
   # Seller identity, shown in the footer and on the terms page. Paid checkout
   # with real money stays off until all three are set (see Payments).

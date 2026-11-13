@@ -31,6 +31,10 @@ swap_size_mb = 512
   APP_HOST = "ironwoodtech.org"
   # Named on the privacy page as the host.
   BRAND_HOST_NAME = "Fly.io"
+  # Seller identity in the footer and terms (Legal's seller line). The postal address
+  # (BRAND_POSTAL_ADDRESS) waits on the PO box.
+  BRAND_LEGAL_NAME = "KD Farm and Garden LLC, doing business as Digital Farm and Garden"
+  BRAND_CONTACT_EMAIL = "hello@kdfarmandgarden.com"
 
 # No [deploy] release_command on purpose. Fly runs it on a temporary machine that has
 # no access to volumes, so it could not reach the SQLite files. bin/docker-entrypoint

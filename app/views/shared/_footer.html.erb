@@ -3,6 +3,7 @@
     <div class="footer-mark">
       <%= image_tag "brand/crest-v5-badge.svg", alt: "", width: 56, height: 66 %>
       <p><strong><%= brand.full_name %></strong><br><em><%= brand.motto %></em>: from the beginning</p>
+      <p class="footer-parent"><%= brand.parent_line %></p>
     </div>
     <ul class="footer-nav">
       <% if Course.on_sale.exists? %><li><%= link_to "Courses for sale", store_path %></li><% end %>
