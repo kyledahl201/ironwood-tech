@@ -1,0 +1,5 @@
+<p>Hello,</p>
+<p><%= @from ? "#{@from} bought you" : "#{Rails.configuration.x.brand.name} is giving you" %> a course: <strong><%= @course.title %></strong>.</p>
+<p><%= link_to "Get your course", @url %></p>
+<p>You'll sign in, or make an account in a minute. The link works once and ends on <%= @gift.expires_at.to_date.to_fs(:long) %>. If you weren't expecting this, you can ignore it.</p>
+<p><%= Rails.configuration.x.brand.name %>, an AI school</p>

@@ -21,7 +21,7 @@
       <ul class="prose"><% @entry.outcomes.each do |o| %><li><%= o %></li><% end %></ul>
     <% end %>
 
-    <% if @entry.classroom? %>
+    <% if @entry.owned? && @entry.classroom? %>
       <h2 style="margin-top:40px"><%= @entry.tour? ? "The tours" : "Classes in the classroom" %></h2>
       <ol class="ex-list">
         <% @entry.lessons.each do |lesson| %>
@@ -69,32 +69,40 @@
 
     <% if @course&.description.present? %><div class="prose" style="margin-top:40px"><%= markdown @course.description %></div><% end %>
 
-    <% if @lessons.any? %>
+    <% if @entry.owned? && @lessons.any? %>
       <h2 style="margin-top:40px"><%= @entry.classroom? ? "Reading for each week" : (@lessons.size > 10 ? "The #{@lessons.size} weeks" : "Lessons") %></h2>
       <% if @entry.classroom? %>
-        <p class="muted"><%= @enrollment ? "The written notes for each week, with the tutor beside them." : "The written notes for each week. Open the reading to see them." %></p>
+        <p class="muted">The written notes for each week, with the tutor beside them.</p>
       <% end %>
       <ol class="syllabus">
         <% @lessons.each do |lesson| %>
           <li>
             <span class="pos"><%= lesson.position %></span>
-            <% if @enrollment %><%= link_to lesson.title, learn_lesson_path(@course, lesson) %><% else %><span><%= lesson.title %></span><% end %>
+            <%= link_to lesson.title, learn_lesson_path(@course, lesson) %>
             <% if @enrollment&.completed?(lesson) %><span class="done">Done</span><% end %>
           </li>
         <% end %>
       </ol>
-      <% if @entry.classroom? && !@enrollment %><div style="margin-top:12px"><%= button_to "Open the reading", course_enrollment_path(@course), class: "btn btn-outline" %></div><% end %>
       <p style="margin-top:16px"><%= link_to "Read the rubric your work is reviewed against", rubric_course_path(@course) %></p>
     <% end %>
   </div>
 
   <aside class="buy-box" aria-label="Start">
-    <p><strong><%= @entry.status_line %></strong></p>
-    <% if @entry.classroom? %>
+    <% if !@entry.owned? %>
+      <p><strong>You don't have this course yet.</strong></p>
+      <% if @entry.access_course&.on_sale? %>
+        <p>It's in the store. Once it's yours, it opens right here.</p>
+      <% else %>
+        <p>Courses here open once you own them. The owner gives this one, so ask for access.</p>
+      <% end %>
+    <% elsif @entry.classroom? %>
+      <p><strong><%= @entry.status_line %></strong></p>
       <p><%= @entry.tour? ? "#{@entry.next_lesson.title}." : "Lesson #{@entry.next_lesson.lesson_number}: #{@entry.next_lesson.title}." %> It opens in the classroom.</p>
     <% elsif @lessons.any? %>
-      <p>Free, self-paced, with an AI tutor.</p>
+      <p><strong><%= @entry.status_line %></strong></p>
+      <p>Self-paced, with an AI tutor.</p>
     <% else %>
+      <p><strong><%= @entry.status_line %></strong></p>
       <p>Lessons are still being written.</p>
     <% end %>
     <%= render "courses/launch", entry: @entry, size: "" %>

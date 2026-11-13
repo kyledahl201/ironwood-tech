@@ -9,7 +9,7 @@
     <div class="stat"><strong><%= @counts[:sessions] %></strong><span>Study sessions</span></div>
     <div class="stat"><strong><%= @counts[:enrollments] %></strong><span>Course enrollments</span></div>
   </div>
-  <p class="small muted">AI tutor: <%= Tutor.enabled? ? "on (#{Tutor.model}, up to #{Tutor.daily_cap} questions per course a day)" : "off (set ANTHROPIC_API_KEY)" %> · Checkout: <%= Payments.status_line %> · Search indexing: <%= brand.indexable ? "on" : "off" %> · Transcript: <%= @snapshot ? "synced #{time_ago_in_words(@snapshot.updated_at)} ago" : "not synced yet" %></p>
+  <p class="small muted">AI tutor: <%= Tutor.enabled? ? "on (#{Tutor.model}, up to #{Tutor.daily_cap} questions per course a day)" : "off (set ANTHROPIC_API_KEY)" %> · Checkout: <%= Payments.status_line %> · Email: <%= EmailDelivery.enabled? ? "on" : "off (set RESEND_API_KEY)" %> · Search indexing: <%= brand.indexable ? "on" : "off" %> · Transcript: <%= @snapshot ? "synced #{time_ago_in_words(@snapshot.updated_at)} ago" : "not synced yet" %></p>
   <% if Tutor.ignored_model %><p class="small" role="status"><strong>Check your settings:</strong> TUTOR_MODEL "<%= Tutor.ignored_model %>" isn't on the list (<%= Tutor::MODELS.join(", ") %>), so the tutor uses <%= Tutor::DEFAULT_MODEL %>.</p><% end %>
   <ul class="card-grid three" style="margin-top:24px">
     <li class="card"><h3><%= link_to "Sync transcript", admin_transcript_path %></h3><p>Paste TRANSCRIPT.md after class. Only the numbers are kept.</p></li>
@@ -17,6 +17,7 @@
     <li class="card"><h3><%= link_to "Lab exercises", admin_exercises_path %></h3><p>Exercises open with their lesson. You can open one early.</p></li>
     <li class="card"><h3><%= link_to "Students", admin_users_path %></h3><p>Everyone with an account.</p></li>
     <li class="card"><h3><%= link_to "Courses", admin_courses_path %></h3><p>Edit online course text and tutor personas, and set the price of a sold course.</p></li>
-    <li class="card"><h3><%= link_to "Enrollments", admin_enrollments_path %></h3><p>Who has which course, what they paid, and ending access.</p></li>
+    <li class="card"><h3><%= link_to "Enrollments", admin_enrollments_path %></h3><p>Who owns which course, what they paid, and ending access.</p></li>
+    <li class="card"><h3><%= link_to "Gift a course", admin_gifts_path %></h3><p>Send any course to anyone by email, with a link that works once.</p></li>
   </ul>
 </div></section>

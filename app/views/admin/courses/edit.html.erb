@@ -17,7 +17,7 @@
       </div>
       <p class="small" role="status">This is a sold course. It is <strong><%= @course.on_sale? ? "on sale for #{@course.price}" : "not on sale" %></strong><%= " (it needs #{[ ("a price" unless @course.price_cents), ("to be published" unless @course.published?) ].compact.to_sentence})" unless @course.on_sale? %>. Checkout is <%= Payments.status_line %>. <%= link_to "See its store page", store_course_path(@course) %></p>
     <% else %>
-      <p class="small muted">This course is free to every student in the portal. It has no price.</p>
+      <p class="small muted">This course isn't sold in the store. Students get it only when you give it to them (on their page in Students, or by email in Gifts).</p>
     <% end %>
     <label class="checkbox"><%= f.check_box :published %> Published</label>
     <div><%= f.submit "Save", class: "btn btn-primary" %></div>

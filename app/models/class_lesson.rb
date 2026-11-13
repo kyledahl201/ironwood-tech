@@ -38,9 +38,14 @@ class ClassLesson < ApplicationRecord
 
   def quiz_count = steps.count { |s| s["kind"] == "quiz" }
 
-  # Open when it's the first lesson of its course, the lesson before it is
-  # finished here, or the transcript says the lesson before it was taught.
+  # Only for the owner of the site and students who own the course (User#can_open_code?).
+  def owned_by?(user) = user.can_open_code?(course_code)
+
+  # Open to someone who owns the course, when it's the first lesson of its
+  # course, the lesson before it is finished here, or the transcript says the
+  # lesson before it was taught.
   def unlocked_for?(user)
+    return false unless owned_by?(user)
     return true if lesson_number <= 1 || tour? || user.admin_preview?
     return true if user.course_records.any? { |r| r.code == course_code && r.lessons_done >= lesson_number - 1 }
     previous = ClassLesson.find_by(course_code: course_code, lesson_number: lesson_number - 1)
@@ -51,7 +56,8 @@ class ClassLesson < ApplicationRecord
   # finished, in transcript order (courses in progress first).
   def self.next_for(user)
     done = user.class_progresses.where.not(completed_at: nil).pluck(:class_lesson_id).to_set
-    started = user.class_progresses.where(completed_at: nil).where("step_index > 0").order(updated_at: :desc).first&.class_lesson
+    started = user.class_progresses.where(completed_at: nil).where("step_index > 0").order(updated_at: :desc).includes(:class_lesson)
+      .map(&:class_lesson).find { |l| l.owned_by?(user) }
     return started if started
     records = user.course_records.to_a
     codes = records.select(&:in_progress?).map(&:code)
@@ -72,7 +78,7 @@ class ClassLesson < ApplicationRecord
   #   in progress at all.
   # nil for a student who hasn't begun, or has nothing left open.
   def self.current_for(user)
-    progresses = user.class_progresses.includes(:class_lesson).order(updated_at: :desc).to_a
+    progresses = user.class_progresses.includes(:class_lesson).order(updated_at: :desc).select { |p| p.class_lesson.owned_by?(user) }
     tours, real = progresses.partition { |p| p.class_lesson.tour? }
     done = progresses.select(&:completed?).map(&:class_lesson_id).to_set
     upcoming = lambda do |code|
@@ -95,7 +101,7 @@ class ClassLesson < ApplicationRecord
   def self.homework_due_for(user)
     handed_in = user.homework_submissions.group(:class_lesson_id).count
     joins(:class_progresses).where(class_progresses: { user_id: user.id }).where.not(class_progresses: { completed_at: nil })
-      .order("class_progresses.completed_at").select { |l| l.homework.any? && handed_in[l.id].to_i < l.homework.size }
+      .order("class_progresses.completed_at").select { |l| l.homework.any? && handed_in[l.id].to_i < l.homework.size && l.owned_by?(user) }
   end
 
   TOUR = "TOUR".freeze

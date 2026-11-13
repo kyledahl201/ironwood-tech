@@ -75,12 +75,14 @@ class StudentFlowTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test "start a course, finish every lesson, get a certificate" do
+  test "a course the owner gave: finish every lesson, get a certificate" do
     sign_in_as users(:one)
     course = courses(:free)
-    post course_enrollment_path(course)
-    assert_redirected_to learn_lesson_path(course, 1)
-    assert_equal "self", users(:one).enrollments.find_by!(course: course).source
+    get learn_lesson_path(course, 1)
+    assert_redirected_to course_path(course) # not owned yet
+    users(:one).enrollments.create!(course: course, source: "admin")
+    get learn_lesson_path(course, 1)
+    assert_response :success
 
     get portal_certificate_path(course)
     assert_redirected_to portal_path

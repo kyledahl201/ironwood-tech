@@ -31,3 +31,15 @@ unpriced:
   published: true
   paid: true
   position: 101
+
+# Classroom courses: each code's Course, so the course can be owned
+# (Catalog.sync_courses! makes these from db/seeds in the real app).
+<% { "tour" => ["start-here", "TOUR"], "cs090" => ["cs-090", "CS 090"], "cs101" => ["cs-101", "CS 101"], "ai360" => ["ai-360", "AI 360"],
+     "gt110" => ["gt-110", "GT 110"], "js210" => ["js-210", "JS 210"], "cs330" => ["cs-330", "CS 330"], "wd110" => ["wd-110", "WD 110"] }.each_with_index do |(key, (slug, code)), i| %>
+<%= key %>:
+  title: <%= code %> course
+  slug: <%= slug %>
+  code: <%= code %>
+  published: true
+  position: <%= 50 + i %>
+<% end %>

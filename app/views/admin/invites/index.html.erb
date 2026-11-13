@@ -1,5 +1,5 @@
 <% page_title "Invites" %>
-<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Invites</h1><p class="lede">An invite gives a friend the whole portal, free. Each link works once and expires after 14 days.</p></div></header>
+<header class="page-head"><div class="wrap"><p class="eyebrow">Owner</p><h1>Invites</h1><p class="lede">An invite gives a friend an account with the whole portal. Courses still open only once they own them: give them courses on their page in Students, or send a gift. Each link works once and expires after 14 days.</p></div></header>
 <section class="section"><div class="wrap">
   <%= form_with model: @invite, url: admin_invites_path, class: "inline-form" do |f| %>
     <%= f.label :note, "Who is it for?", class: "visually-hidden" %>

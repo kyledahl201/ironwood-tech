@@ -8,9 +8,9 @@ module Admin
       user = User.find(params[:user_id])
       course = Course.find(params[:course_id])
       enrollment = user.enrollments.find_or_create_by!(course: course) { |e| e.source = "admin" }
-      enrollment.reinstate! unless enrollment.active?
+      enrollment.reinstate!(source: "admin", gift: nil) unless enrollment.active?
 
-      redirect_to admin_user_path(user), notice: "Enrolled #{user.name} in #{course.title}."
+      redirect_to admin_user_path(user), notice: "#{user.name} now has #{course.title}."
     end
 
     # Ends access. It does not move money: refund in the Stripe dashboard.

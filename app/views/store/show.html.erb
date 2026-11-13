@@ -34,6 +34,12 @@
       <% elsif @course.lessons.any? %>
         <%= link_to "Open the course", learn_lesson_path(@course, 1), class: "btn btn-copper" %>
       <% end %>
+      <% if @course.on_sale? && !@blocked && EmailDelivery.enabled? && current_user.enrolled_in?(@course) %>
+        <details style="margin-top:20px">
+          <summary class="small">Give it to someone else (<%= @course.price %>)</summary>
+          <div style="margin-top:12px"><%= render "store/buy_form", course: @course, gift_only: true %></div>
+        </details>
+      <% end %>
     <% elsif !@course.on_sale? %>
       <p class="price">Not on sale yet</p>
       <p>This course can't be bought yet.</p>
@@ -52,10 +58,7 @@
         <% if current_user&.admin? %><p class="small muted">Owner: checkout is <%= Payments.status_line %>.</p><% end %>
       <% elsif current_user %>
         <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>
-        <%= form_with url: store_checkout_path(@course), data: { turbo: false } do %>
-          <label class="checkbox small" style="margin-bottom:12px; align-items:flex-start"><input type="checkbox" name="accept_terms" value="1" required> <span>I'm 18 or older and I agree to the <%= link_to "Terms of Sale", terms_path, target: "_blank", rel: "noopener" %> and <%= link_to "Privacy Policy", privacy_path, target: "_blank", rel: "noopener" %>.</span></label>
-          <button type="submit" class="btn btn-copper">Buy for <%= @course.price %></button>
-        <% end %>
+        <%= render "store/buy_form", course: @course %>
         <p class="small muted" style="margin-top:12px">You'll pay on Stripe's secure page. <%= brand.name %> never sees your card number.</p>
       <% else %>
         <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>

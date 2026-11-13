@@ -1,8 +1,11 @@
-# Two ways to get an account:
-#   * an invite link from the owner (/join?invite=...): the whole portal, free
+# Three ways to get an account:
+#   * an invite link from the owner (/join?invite=...): the whole portal. Its
+#     courses still open only once they're owned.
 #   * buying a course (/join?course=...): only while that course can be bought.
-#     The account sees the store, what it buys and its own account page.
-# With neither, sign-up is closed.
+#     The account sees the store, what it owns and its own account page.
+#   * claiming a gift (/join?gift=...): only while the gift can be claimed.
+#     The same kind of account as a buyer's.
+# With none of them, sign-up is closed.
 class RegistrationsController < ApplicationController
   allow_unauthenticated_access
   allow_customer_accounts
@@ -22,6 +25,8 @@ class RegistrationsController < ApplicationController
     start_new_session_for @user
     if @invite
       redirect_to portal_path, notice: "Welcome to #{brand.name}, #{@user.first_name}."
+    elsif @gift
+      redirect_to gift_claim_path(params[:gift]), notice: "Your account is ready, #{@user.first_name}. One step left: press Get my course."
     else
       redirect_to store_course_path(@course), notice: "Your account is ready, #{@user.first_name}. One step left: check the details below and pay."
     end
@@ -33,6 +38,9 @@ class RegistrationsController < ApplicationController
     def set_way_in
       @invite = Invite.find_usable(params[:invite])
       return if @invite
+      @gift = Gift.find_by_token(params[:gift])
+      return if @gift&.claimable?
+      @gift = nil
       @course = Course.published.sold.find_by(slug: params[:course].to_s)
       render :invite_only, status: :forbidden unless @course&.on_sale? && Payments.enabled?
     end

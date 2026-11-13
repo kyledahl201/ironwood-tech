@@ -2,7 +2,7 @@
 
 The owner's steps, in order. Each step is one command or one click: paste them **one at a time** and read what comes back before the next. Nothing here has been run yet, and no account exists.
 
-- **Address:** `https://learn.ironwoodtech.org`
+- **Address:** `https://ironwoodtech.org` (the site moved from `learn.ironwoodtech.org` to the root domain; `APP_HOST` in `fly.toml` says so, and email links use it). The certificate steps in Part 4 still name the old subdomain: for the root domain, run them with `ironwoodtech.org` and follow what `fly certs setup` prints (a root domain uses A and AAAA records, not a CNAME).
 - **Where:** one small machine in Dallas (`dfw`) with a 1 GB disk for the database.
 - **Settings:** `fly.toml` in this repository. Nothing in it is secret.
 - **Never paste a password or key into this file, a chat or a commit.** The steps below put them straight into Fly from your Terminal.
@@ -200,6 +200,46 @@ fly certs check learn.ironwoodtech.org
 ```
 
 Then open <https://learn.ironwoodtech.org>.
+
+## Turn on email (Resend)
+
+The site emails gift links and password resets. Until this is done nothing is sent and nothing breaks: the owner area shows each gift link once, for you to send yourself, and password reset emails don't go out.
+
+Resend's free plan, from resend.com/pricing on 2026-11-13: 3,000 emails a month, at most 100 a day, 3 domains, 30 days of logs, ticket support only. Check the page again before you rely on it.
+
+**1. Make a Resend account** at <https://resend.com> (sign up with your business email).
+
+**2. Add the domain.** In Resend, open **Domains**, press **Add Domain**, type `ironwoodtech.org`. Resend shows a short list of DNS records (an MX and TXT records for sending, and a DKIM TXT record). Leave that page open.
+
+**3. Add those records at Porkbun.** Sign in to Porkbun, open **Domain Management**, find `ironwoodtech.org`, press **DNS**. For each record Resend lists, add one with the same **Type**, **Host** and **Answer/Value**. Porkbun adds `.ironwoodtech.org` to the host by itself, so type only the part before it (for example `send`, or `resend._domainkey`). Copy the values exactly. Don't touch the records Fly needs for the site.
+
+**4. Verify.** Back in Resend, press **Verify DNS Records**. It can take from a few minutes to a few hours. Wait until the domain says **Verified**.
+
+**5. Make an API key.** In Resend, open **API Keys**, press **Create API Key**, name it `ironwood-portal`, permission **Sending access**, domain `ironwoodtech.org`. Copy it. Resend shows it only once.
+
+**6. Put the key into Fly without it ever showing on screen or in your shell history.** Three commands. The first one waits, hidden, for you to paste the key and press Return:
+
+```sh
+read -s "IRONWOOD_SECRET?Resend API key, then Return: "
+```
+
+This hands the key to Fly on its input, not on the command line (`printf` is built into the shell, so the key never appears in the list of running programs). Fly restarts the site with it:
+
+```sh
+printf 'RESEND_API_KEY=%s\n' "$IRONWOOD_SECRET" | fly secrets import
+```
+
+```sh
+unset IRONWOOD_SECRET
+```
+
+**7. Optional: the sender's name and address.** Without it, mail comes from `Ironwood Tech <hello@ironwoodtech.org>`. The address must be on the domain you verified. Not secret, so it can be set directly:
+
+```sh
+fly secrets set MAIL_FROM="Ironwood Tech <hello@ironwoodtech.org>"
+```
+
+**8. Check.** The owner area's first page should now say **Email: on**. Send yourself a gift from **Gifts** to see the email arrive.
 
 ## Day to day
 

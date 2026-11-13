@@ -43,7 +43,7 @@ class TodayCard
 
   def greeting(now = Time.zone.now)
     hours = @stats.hours_this_week
-    day = @snapshot&.current_day
+    day = @snapshot&.day_today
     pool = GREETINGS.reject { |g| g.include?("%{day}") && day.nil? }
     pool = pool.reject { |g| g.start_with?("Morning") } unless now.hour < 12
     pool = pool.reject { |g| g.start_with?("Good evening") } unless now.hour >= 17
@@ -54,7 +54,7 @@ class TodayCard
 
   def gate
     return nil unless @snapshot&.next_gate_name && @snapshot.next_gate_day
-    { name: @snapshot.next_gate_name, days: @snapshot.days_to_next_gate, day: @snapshot.current_day,
+    { name: @snapshot.next_gate_name, days: @snapshot.days_to_next_gate, day: @snapshot.day_today,
       gate_day: @snapshot.next_gate_day, goal: @snapshot.next_gate_goal,
       hours: @stats.total_hours, target: @snapshot.stage_hours_target }
   end

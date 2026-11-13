@@ -1,4 +1,15 @@
 two_free:
   user: two
   course: free
-  source: self
+  source: admin
+
+# The two invited students own every classroom course used in the tests, as
+# if the owner had given them. Tests about access use other accounts.
+<% %w[tour cs090 cs101 ai360 gt110 js210 cs330 wd110].each do |course| %>
+<% %w[one two].each do |user| %>
+<%= user %>_<%= course %>:
+  user: <%= user %>
+  course: <%= course %>
+  source: admin
+<% end %>
+<% end %>

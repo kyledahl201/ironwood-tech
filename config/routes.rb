@@ -11,7 +11,11 @@ Rails.application.routes.draw do
   get "store/:id/checkout/success", to: "checkouts#success", as: :store_checkout_success
   post "webhooks/stripe", to: "stripe_webhooks#create"
 
-  # A course that ships as one player page: enrolled students and the owner only
+  # A gift: a one-time link to get a course, emailed to the recipient
+  get "gift/:token", to: "gifts#show", as: :gift_claim
+  post "gift/:token", to: "gifts#redeem", as: :redeem_gift
+
+  # A course that ships as one player page: students who own it, and the owner
   get "learn/:course_id/player", to: "course_players#show", as: :course_player
   get "learn/:course_id/downloads", to: "course_players#downloads", as: :course_downloads
 
@@ -35,7 +39,6 @@ Rails.application.routes.draw do
 
   resources :courses, only: %i[index show] do
     get :rubric, on: :member
-    resource :enrollment, only: :create
   end
   scope "learn/:course_id", module: "learn", as: "learn" do
     resources :lessons, only: :show do
@@ -74,6 +77,12 @@ Rails.application.routes.draw do
     root "dashboard#show"
     resources :users, only: %i[index show update]
     resources :invites, only: %i[index create destroy]
+    resources :gifts, only: %i[index create] do
+      member do
+        post :revoke
+        post :reissue
+      end
+    end
     resources :enrollments, only: %i[index create] do
       member do
         post :revoke

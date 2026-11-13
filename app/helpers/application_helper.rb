@@ -9,6 +9,12 @@ module ApplicationHelper
   MARKDOWN_TAGS = (Rails::HTML5::SafeListSanitizer.allowed_tags.to_a + %w[table thead tbody tr th td]).freeze
 
   # Markdown with raw HTML stripped, so tutor replies and stored content can't inject markup.
+  # Hours as the transcript writes them: up to two decimal places, no
+  # trailing zeros (0.75, 0.5, 41).
+  def hours_text(value)
+    format("%.2f", value.to_f).sub(/\.?0+\z/, "")
+  end
+
   def markdown(text)
     sanitize(MARKDOWN.render(text.to_s), tags: MARKDOWN_TAGS)
   end

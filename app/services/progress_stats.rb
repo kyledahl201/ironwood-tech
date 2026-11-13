@@ -71,7 +71,7 @@ class ProgressStats
 
   def total_hours
     logged = @user.study_sessions.sum(:minutes) / 60.0
-    [ logged, @user.transcript_snapshot&.hours_logged.to_f ].max.round(1)
+    [ logged, @user.transcript_snapshot&.hours_logged.to_f ].max.round(2)
   end
 
   def days_away

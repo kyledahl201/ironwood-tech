@@ -1,9 +1,10 @@
 <% page_title "Join" %>
 <div class="auth">
-  <p class="eyebrow"><%= @invite ? "You're invited" : "Step 1 of 2" %></p>
+  <p class="eyebrow"><%= @invite ? "You're invited" : (@gift ? "A gift for you" : "Step 1 of 2") %></p>
   <h1>Create your account</h1>
-  <% unless @invite %><p>This account is where <strong><%= @course.title %></strong> will live. Next you'll pay <%= @course.price %> on Stripe's secure page. Already have an account? <%= link_to "Sign in", new_session_path(return_to: store_course_path(@course)) %></p><% end %>
-  <%= form_with model: @user, url: (@invite ? registration_path(invite: params[:invite]) : registration_path(course: @course.slug)), class: "form" do |f| %>
+  <% if @gift %><p>This account is where <strong><%= @gift.course.title %></strong> will live. Already have an account? <%= link_to "Sign in", new_session_path(return_to: gift_claim_path(params[:gift])) %></p>
+  <% elsif !@invite %><p>This account is where <strong><%= @course.title %></strong> will live. Next you'll pay <%= @course.price %> on Stripe's secure page. Already have an account? <%= link_to "Sign in", new_session_path(return_to: store_course_path(@course)) %></p><% end %>
+  <%= form_with model: @user, url: (@invite ? registration_path(invite: params[:invite]) : (@gift ? registration_path(gift: params[:gift]) : registration_path(course: @course.slug))), class: "form" do |f| %>
     <%= render "shared/errors", record: @user %>
     <div class="field"><%= f.label :name, "Your name" %><%= f.text_field :name, required: true, autocomplete: "name", autofocus: true %></div>
     <div class="field"><%= f.label :email_address, "Email" %><%= f.email_field :email_address, required: true, autocomplete: "username" %></div>

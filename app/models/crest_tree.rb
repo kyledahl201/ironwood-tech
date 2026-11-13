@@ -68,7 +68,7 @@ class CrestTree
 
   def caption
     parts = [ facts[:stage] ]
-    parts << "#{facts[:hours]} of #{facts[:target]} hours" if facts[:target].to_i.positive?
+    parts << "#{format('%.2f', facts[:hours].to_f).sub(/\.?0+\z/, '')} of #{facts[:target]} hours" if facts[:target].to_i.positive?
     parts << "#{facts[:next_gate]} in #{facts[:gate_days]} days" if facts[:next_gate] && facts[:gate_days]
     parts.compact.join(" · ")
   end

@@ -1,6 +1,7 @@
-# Hands a signed-in student a course's tutor kit: the whole kit as one .zip,
-# or one of its files (for the notes of a week that has just opened).
+# Hands a student who owns the course its tutor kit: the whole kit as one
+# .zip, or one of its files (for the notes of a week that has just opened).
 class TutorKitsController < ApplicationController
+  allow_customer_accounts
   before_action :set_kit
 
   def show
@@ -14,6 +15,7 @@ class TutorKitsController < ApplicationController
 
   private
     def set_kit
-      @kit = TutorKit.find(params[:course]) or head :not_found
+      @kit = TutorKit.find(params[:course]) or return head :not_found
+      head :forbidden unless current_user.can_open_code?(@kit.course_code)
     end
 end

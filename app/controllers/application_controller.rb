@@ -29,6 +29,15 @@ class ApplicationController < ActionController::Base
       Rails.configuration.x.brand
     end
 
+    # Course content someone doesn't own (User#can_open?). JSON requests get a
+    # plain 403; pages go to the course's page, which says how to get access.
+    def refuse_course_access(back = courses_path)
+      respond_to do |format|
+        format.html { redirect_to back, alert: "That course isn't yours yet. Courses here open once you own them: buy one in the store, or ask the owner for access." }
+        format.any { head :forbidden }
+      end
+    end
+
     def require_admin
       redirect_to root_path, alert: "That page is for the owner only." unless current_user&.admin?
     end
