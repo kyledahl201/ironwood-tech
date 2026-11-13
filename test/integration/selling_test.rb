@@ -174,10 +174,14 @@ class SellingTest < ActionDispatch::IntegrationTest
   test "the footer, the buy box and the Stripe line say the same thing about AI personas" do
     brand = Rails.configuration.x.brand
     footer = "Ironwood Tech's lesson guides and tutors are AI personas, not people. Video lessons are recorded by a real instructor. " \
-             "Ironwood Tech is not an accredited school and grants no degrees or credit."
+             "Ironwood Tech is not an accredited school and grants no degrees or credit. " \
+             "No course promises a job, a raise or any income."
     get store_course_path(@course)
     assert_select "footer #disclosure", text: /\A#{Regexp.escape(footer)}/
-    assert_select ".buy-box p", text: "Lesson guides are AI personas. Video lessons are recorded by a real instructor."
+    assert_select ".buy-box p", text: footer, count: 1
+    assert_select ".buy-box p", text: "Lesson guides are AI personas. Video lessons are recorded by a real instructor.", count: 0
+    assert_select "dd", text: "AI lesson guides and tutors (not people), with video lessons recorded by a real instructor."
+    assert_no_match(/Institute of Technology/, response.body)
     assert_equal "Life and Work, With Claude: AI 101. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas.",
                  brand.checkout_description.call(@course)
     assert_equal "Free Course. Self-paced online course by Ironwood Tech (Digital Farm and Garden). Lesson guides are AI personas.",
@@ -350,6 +354,8 @@ class SellingTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "<title>Life and Work, With Claude</title>"
     assert_includes response.body, "window.COURSE"
+    assert_no_match(/googleapis|gstatic/, response.body)
+    assert_match(%r{<link rel="stylesheet" href="/assets/fonts-[^"]+\.css">}, response.body)
     assert_match(/no-store/, response.headers["Cache-Control"])
     assert_equal "noindex, nofollow", response.headers["X-Robots-Tag"]
 

@@ -1,7 +1,7 @@
 # Brand settings in one place.
 Rails.application.config.x.brand = ActiveSupport::OrderedOptions.new.tap do |b|
   b.name = ENV.fetch("BRAND_NAME", "Ironwood Tech")
-  b.full_name = ENV.fetch("BRAND_FULL_NAME", "Ironwood Institute of Technology")
+  b.full_name = ENV.fetch("BRAND_FULL_NAME", "Ironwood Tech")
   b.motto = "Ab initio"
   b.contact_email = ENV.fetch("BRAND_CONTACT_EMAIL", "hello@example.com")
   b.host_name = ENV.fetch("BRAND_HOST_NAME", "our hosting provider")
@@ -16,9 +16,8 @@ Rails.application.config.x.brand = ActiveSupport::OrderedOptions.new.tap do |b|
   # word for word; the buy box and the Stripe line below say the same thing.
   b.disclosure = "Ironwood Tech's lesson guides and tutors are AI personas, not people. " \
                  "Video lessons are recorded by a real instructor. " \
-                 "Ironwood Tech is not an accredited school and grants no degrees or credit."
-  # The buy box's own line.
-  b.disclosure_buy_box = "Lesson guides are AI personas. Video lessons are recorded by a real instructor."
+                 "Ironwood Tech is not an accredited school and grants no degrees or credit. " \
+                 "No course promises a job, a raise or any income."
   # The product description on the Stripe checkout page. PX1's is Legal's line,
   # word for word; any other course gets the same sentence with its own title.
   b.checkout_descriptions = {

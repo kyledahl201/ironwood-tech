@@ -35,6 +35,7 @@ class CoursePlayer
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
       <meta name="robots" content="noindex, nofollow">
+      <link rel="stylesheet" href="#{fonts_stylesheet_path}">
       </head>
       <body>
       #{dir.join("index.html").read}
@@ -42,6 +43,10 @@ class CoursePlayer
       </html>
     HTML
   end
+
+  # The player names its fonts but loads none itself; the portal supplies them
+  # from its own files, so no request leaves for a font service.
+  def fonts_stylesheet_path = ActionController::Base.helpers.stylesheet_path("fonts")
 
   def download_files
     base = dir.join("downloads")
