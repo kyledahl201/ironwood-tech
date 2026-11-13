@@ -93,10 +93,23 @@ class SellingTest < ActionDispatch::IntegrationTest
       assert_not buyer.admin?
       assert_not buyer.enrolled_in?(@course), "an account alone is not a purchase"
 
-      # The terms box is required.
-      post store_checkout_path(@course)
-      assert_redirected_to store_course_path(@course)
-      assert_match(/terms/, flash[:alert])
+      # The seller line sits under the price, and the box carries Legal's label.
+      get store_course_path(@course)
+      assert_select ".buy-box .price + .seller-line", text: "Sold by KD Farm and Garden LLC, doing business as Digital Farm and Garden. Ironwood Tech is a learning brand of Digital Farm and Garden."
+      assert_select "form[action=?] label", store_checkout_path(@course), text: "I'm 18 or older and I agree to the Terms of Sale and Privacy Policy." do
+        assert_select "input[type=checkbox][name=accept_terms][value='1'][required]"
+        assert_select "a[href=?]", terms_path, text: "Terms of Sale"
+        assert_select "a[href=?]", privacy_path, text: "Privacy Policy"
+      end
+
+      # The box is required on the server too: no tick, or any other value, never reaches Stripe.
+      stub_method(Payments, :create_session, ->(**) { flunk "checkout opened without the 18+ and terms box" }) do
+        [ {}, { accept_terms: "" }, { accept_terms: "0" }, { accept_terms: "on" } ].each do |params|
+          post store_checkout_path(@course), params: params
+          assert_redirected_to store_course_path(@course)
+          assert_match(/18 or older.*Terms of Sale and Privacy Policy/, flash[:alert])
+        end
+      end
 
       asked = nil
       fake = lambda do |**args|
@@ -111,6 +124,17 @@ class SellingTest < ActionDispatch::IntegrationTest
       assert_equal @course, asked[:course]
       assert_includes asked[:success_url], "session_id={CHECKOUT_SESSION_ID}"
       assert_not buyer.enrolled_in?(@course), "going to Stripe is not a purchase"
+    end
+  end
+
+  test "the policy pages carry Legal's text, with no placeholder banners" do
+    { terms_path => [ "Terms of Sale: PX1", "Texas law applies.", "14-day refund, no questions asked." ],
+      refunds_path => [ "Refund policy: PX1", "14-day refund, no questions asked." ],
+      privacy_path => [ "Privacy policy: Ironwood Tech (covers PX1)", "No tracking pixels.", "PX1: your browser only.", "Delete your account by emailing us." ] }.each do |path, lines|
+      get path
+      assert_response :success, path
+      lines.each { |line| assert_includes response.body, line, path }
+      assert_not_includes response.body, "LEGAL TO CONFIRM", path
     end
   end
 

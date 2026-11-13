@@ -14,7 +14,7 @@ class CheckoutsController < ApplicationController
     elsif !Payments.enabled?
       redirect_to store_course_path(@course), alert: "Checkout isn't open yet, so nothing was charged."
     elsif params[:accept_terms] != "1"
-      redirect_to store_course_path(@course), alert: "Please tick the box to say you've read the terms and refund policy."
+      redirect_to store_course_path(@course), alert: "Please tick the box to say you're 18 or older and you agree to the Terms of Sale and Privacy Policy."
     else
       checkout = Payments.create_session(
         course: @course, user: current_user, terms_accepted_at: Time.current,

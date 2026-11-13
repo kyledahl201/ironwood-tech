@@ -39,10 +39,11 @@
       <p>This course can't be bought yet.</p>
     <% else %>
       <p class="price"><%= @course.price %></p>
+      <p class="small seller-line">Sold by KD Farm and Garden LLC, doing business as Digital Farm and Garden. Ironwood Tech is a learning brand of Digital Farm and Garden.</p>
       <div class="disclosure-box">
         <p>You're buying <strong><%= @course.title %></strong> for <strong><%= @course.price %></strong>, as one payment.</p>
         <p><%= brand.disclosure %></p>
-        <p>[LEGAL TO CONFIRM: what the buyer gets, how long access lasts, and whether sales tax is added.] <%= link_to "Terms", terms_path %> · <%= link_to "Refund policy", refunds_path %></p>
+        <p><%= link_to "Terms of Sale", terms_path %> · <%= link_to "Refund policy", refunds_path %> · <%= link_to "Privacy Policy", privacy_path %></p>
       </div>
       <% if @blocked %>
         <button type="button" class="btn btn-copper" disabled aria-describedby="checkout-closed">Buy for <%= @course.price %></button>
@@ -51,7 +52,7 @@
       <% elsif current_user %>
         <% if Payments.test_mode? %><p class="small" role="status"><strong>Test mode.</strong> No real charge is made; only Stripe's test cards work.</p><% end %>
         <%= form_with url: store_checkout_path(@course), data: { turbo: false } do %>
-          <label class="checkbox small" style="margin-bottom:12px"><input type="checkbox" name="accept_terms" value="1" required> I've read the <%= link_to "terms", terms_path, target: "_blank", rel: "noopener" %> and the <%= link_to "refund policy", refunds_path, target: "_blank", rel: "noopener" %>.</label>
+          <label class="checkbox small" style="margin-bottom:12px"><input type="checkbox" name="accept_terms" value="1" required> I'm 18 or older and I agree to the <%= link_to "Terms of Sale", terms_path, target: "_blank", rel: "noopener" %> and <%= link_to "Privacy Policy", privacy_path, target: "_blank", rel: "noopener" %>.</label>
           <button type="submit" class="btn btn-copper">Buy for <%= @course.price %></button>
         <% end %>
         <p class="small muted" style="margin-top:12px">You'll pay on Stripe's secure page. <%= brand.name %> never sees your card number.</p>
